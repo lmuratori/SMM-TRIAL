@@ -55,6 +55,13 @@
       <button class="btn btn-primary" onclick="generarQR()">Generar QR</button>
     </div>
 
+    <p class="sub" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">¿Ya tenés armado el link exacto (por ejemplo, una interconsulta o un formulario de otro módulo) y solo necesitás el QR imprimible? Pegalo acá en vez de escribir un lugar.</p>
+    <label>Link personalizado <span style="font-weight:400;color:var(--muted);font-size:11.5px">(opcional)</span></label>
+    <input type="text" id="f-link-personalizado" placeholder="https://lmuratori.github.io/smm-acceso-temporal/..." onkeydown="if(event.key==='Enter')generarQRPersonalizado();">
+    <div class="row">
+      <button class="btn btn-primary" onclick="generarQRPersonalizado()">Generar QR de este link</button>
+    </div>
+
     <div class="resultado" id="resultado">
       <div id="zona-imprimir">
         <img id="qr-img" alt="Código QR">
@@ -2413,6 +2420,42 @@ function generarQR(){
   guardarEnHistorial_(lugar, link);
 }
 
+// Igual que generarQR(), pero para un link ya armado por otro módulo
+// (interconsulta prequirúrgica, kinesiólogo, sala de espera, etc.) en vez
+// de un "lugar" — no toca guardarEnHistorial_ con el mismo formato para no
+// mezclar el historial de orígenes de consulta con estos links puntuales.
+function generarQRPersonalizado(link, tituloOpcional){
+  const linkFinal = (link || document.getElementById('f-link-personalizado').value.trim());
+  if(!linkFinal){ alert('Pegá primero el link a convertir en QR'); return; }
+
+  const qr = qrcode(0, 'M');
+  qr.addData(linkFinal);
+  qr.make();
+  const dataUrl = qr.createDataURL(8, 4);
+
+  const titulo = tituloOpcional || 'QR personalizado';
+  document.getElementById('qr-img').src = dataUrl;
+  document.getElementById('qr-link').textContent = linkFinal;
+  document.getElementById('btn-descargar').href = dataUrl;
+  document.getElementById('btn-descargar').download = 'qr-' + titulo.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '.gif';
+  document.getElementById('qr-titulo-impresion').textContent = titulo;
+  document.getElementById('resultado').style.display = 'block';
+}
+
+// Si llega por link con ?modo=personalizado&link=...&titulo=..., lo
+// autocompleta y genera el QR sin que haga falta tipear nada — así un
+// botón "Generar QR" desde OCM (o cualquier otro módulo) puede abrir esta
+// página ya lista para imprimir/escanear.
+(function autocargarDesdeURL_(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('modo') === 'personalizado' && params.get('link')){
+    const link = params.get('link');
+    const titulo = params.get('titulo') || '';
+    document.getElementById('f-link-personalizado').value = link;
+    generarQRPersonalizado(link, titulo);
+  }
+})();
+
 function copiarLink(){
   const link = document.getElementById('qr-link').textContent;
   if(!link) return;
@@ -2460,5 +2503,6 @@ function volverAGenerar_(lugar){
 renderHistorial_();
 </script>
 
+<script src="efecto-lupa.js" defer></script>
 </body>
 </html>

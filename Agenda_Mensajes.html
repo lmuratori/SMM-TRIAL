@@ -122,6 +122,31 @@ function configurarTokenAgenda(){
 let MENSAJES = [];
 let MENSAJE_ACTUAL = null;
 
+// ══════════════════════════════════════════════════════════════
+// Precio de fin de semana de la entrevista express (Dr. Muratori, sep 2026)
+// — mismo criterio que QR_Consulta_Virtual.html (duplicado acá porque son
+// dos páginas HTML separadas, sin backend compartido para esto): valores
+// fijos y redondos — $25.000 entre semana, $35.000 el sábado, $40.000 el
+// domingo. La consulta de 15 minutos NO cambia de precio el fin de semana
+// (a pedido expreso del Dr. Muratori). Se usa acá para que el botón de
+// "Generar Meet" le muestre a la secretaría/al doctor el precio que
+// corresponde HOY, sin tener que calcularlo a mano.
+// ══════════════════════════════════════════════════════════════
+const PRECIO_EXPRESS_SEMANA = 25000;
+const PRECIO_EXPRESS_SABADO = 35000;
+const PRECIO_EXPRESS_DOMINGO = 40000;
+const PRECIO_CONSULTA15 = 50000; // fijo, no cambia el fin de semana
+function precioExpressHoy_(fecha){
+  fecha = fecha || new Date();
+  const dia = fecha.getDay(); // 0=domingo … 6=sábado
+  if(dia === 0) return PRECIO_EXPRESS_DOMINGO;
+  if(dia === 6) return PRECIO_EXPRESS_SABADO;
+  return PRECIO_EXPRESS_SEMANA;
+}
+function formatearPrecio_(n){
+  return '$' + n.toLocaleString('es-AR');
+}
+
 async function cargarMensajes(){
   const cont = document.getElementById('lista-mensajes');
   try{
@@ -168,10 +193,11 @@ function mostrarMensaje(i){
       <div class="cuerpo-original">${(m.cuerpo||'').replace(/</g,'&lt;')}</div>
     </div>
 
-    ${(m.segmento || m.cuando || m.vioMedico || m.diagnosticoPrevio || m.medicacionRecibida || m.fotoUrl) ? `
+    ${(m.tipoSolicitud || m.segmento || m.cuando || m.vioMedico || m.diagnosticoPrevio || m.medicacionRecibida || m.fotoUrl) ? `
     <div class="card">
       <h3>Datos cargados por el paciente (QR)</h3>
       <div class="qr-datos">
+        ${m.tipoSolicitud ? `<div><b>Qué necesita:</b> ${m.tipoSolicitud}</div>` : ''}
         ${m.segmento ? `<div><b>Segmento afectado:</b> ${m.segmento}</div>` : ''}
         ${m.cuando ? `<div><b>Cuándo pasó:</b> ${m.cuando}</div>` : ''}
         ${m.vioMedico ? `<div><b>¿Ya vio a un médico?:</b> ${m.vioMedico}${m.diagnosticoPrevio ? ' — diagnóstico dado: '+m.diagnosticoPrevio : ''}</div>` : ''}
@@ -184,6 +210,12 @@ function mostrarMensaje(i){
     <div class="card">
       <h3>Estado de pago</h3>
       ${m.estadoPago!=='confirmado' ? `<div class="alerta-pago">⚠️ Esta consulta es paga y todavía no está confirmado el pago. No se puede enviar la respuesta hasta confirmarlo.</div>` : `<div style="color:#166534;font-size:12px;font-weight:700">✅ Pago confirmado</div>`}
+      ${(m.comprobanteUrl || m.comprobanteDatos) ? `
+      <div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px">
+        <b>Comprobante enviado por el paciente:</b>
+        ${m.comprobanteUrl ? `<div><a href="${m.comprobanteUrl}" target="_blank">📎 ver comprobante</a></div>` : ''}
+        ${m.comprobanteDatos ? `<div>${m.comprobanteDatos}</div>` : ''}
+      </div>` : `<div style="font-size:11.5px;color:var(--muted);margin:6px 0">El paciente todavía no adjuntó comprobante de pago.</div>`}
       <div class="row">
         ${m.estadoPago!=='confirmado' ? `<button class="btn btn-ghost" onclick="generarCobroMP()">💳 Generar link de cobro (Mercado Pago)</button>` : ''}
         <button class="btn btn-ghost" onclick="marcarPagoConfirmado()">${m.estadoPago==='confirmado'?'✓ Pago ya confirmado':'Marcar pago como confirmado'}</button>
@@ -196,8 +228,8 @@ function mostrarMensaje(i){
     <div class="card">
       <h3>Varias preguntas — ¿coordinar videollamada?</h3>
       <div class="row">
-        <button class="btn btn-ghost" onclick="generarMeet(5)">📅 Generar Meet — entrevista express (5 min · $20.000)</button>
-        <button class="btn btn-ghost" onclick="generarMeet(15)">📅 Generar Meet — consulta virtual (15 min · $60.000)</button>
+        <button class="btn btn-ghost" onclick="generarMeet(5)">📅 Generar Meet — entrevista express (5 min · ${formatearPrecio_(precioExpressHoy_())})</button>
+        <button class="btn btn-ghost" onclick="generarMeet(15)">📅 Generar Meet — consulta virtual (15 min · ${formatearPrecio_(PRECIO_CONSULTA15)})</button>
       </div>
       <div id="meet-resultado"></div>
     </div>` : ''}
@@ -242,9 +274,19 @@ async function generarMeet(duracionMin){
     cont.innerHTML = `<div class="alerta-pago">⚠️ No se pudo generar el link: ${e.message}</div>`;
   }
 }
+// Pedido de Luis, sep 2026: el aviso de "instalá Google Meet" solo se le
+// mostraba al paciente en pantalla al cargar el formulario del QR — pero el
+// mail que realmente termina leyendo (con el link de la videollamada) no lo
+// repetía. Ahora se agrega siempre que se inserta un link de Meet en la
+// respuesta, para que el recordatorio llegue en el mensaje que de verdad
+// va a abrir antes del turno.
 function insertarLinkEnRespuesta(link){
   const ta = document.getElementById('respuesta-texto');
-  ta.value += `\n\nLink de la videollamada: ${link}`;
+  ta.value += `\n\nLink de la videollamada: ${link}\n\n` +
+    `Antes del horario acordado, instalá Google Meet si te vas a conectar desde el celular ` +
+    `(desde una computadora no hace falta, se abre directo en Chrome):\n` +
+    `Android: https://play.google.com/store/apps/details?id=com.google.android.apps.tachyon\n` +
+    `iPhone: https://apps.apple.com/us/app/google-meet/id1096918571`;
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -267,6 +309,74 @@ function cvExtraerDNI_(cuerpo){
   const dni = m ? m[1].trim() : '';
   return (dni && dni !== '') ? dni : '';
 }
+// Mismo truco que cvExtraerDNI_ pero para teléfono/nombre — hacen falta
+// para reservar el turno presencial (ver reservarTurno en Codigo.gs), que
+// pide al menos nombre + (teléfono o mail) del paciente.
+function cvExtraerTelefono_(cuerpo){
+  const m = String(cuerpo||'').match(/Tel[eé]fono:\s*([^\n]+)/i);
+  const tel = m ? m[1].trim() : '';
+  return (tel && tel !== '') ? tel : '';
+}
+function cvExtraerNombre_(cuerpo){
+  const m = String(cuerpo||'').match(/Nombre:\s*([^\n]+)/i);
+  const nom = m ? m[1].trim() : '';
+  return (nom && nom !== '') ? nom : '';
+}
+
+// ── Turno presencial de seguimiento — agenda real compartida con
+// Turnos_Secretaria.html (ver getTurnosDisponibles/reservarTurno en
+// Codigo.gs). cvTurnoSeleccionado queda null hasta que el médico elige un
+// horario puntual de la lista; si elige "a mano", se guarda como texto
+// libre y no reserva nada en Turnos_Agenda.
+let cvTurnoSeleccionado = null;
+
+async function cvCambioConsultorio(){
+  const consultorio = document.getElementById('cv-turno-consultorio').value;
+  cvTurnoSeleccionado = null;
+  document.getElementById('cv-turno-seleccionado').textContent = '';
+  const contSlots = document.getElementById('cv-turno-slots');
+  const contManual = document.getElementById('cv-turno-manual');
+  if(!consultorio){ contSlots.innerHTML = ''; contManual.style.display = 'none'; return; }
+  if(consultorio === 'a-mano'){ contSlots.innerHTML = ''; contManual.style.display = 'block'; return; }
+  contManual.style.display = 'none';
+  contSlots.innerHTML = '<div style="font-size:15px;color:var(--muted)">Buscando horarios disponibles…</div>';
+  try{
+    const resp = await fetch(SHEETS_URL + '?action=get_turnos_disponibles&consultorio=' + encodeURIComponent(consultorio));
+    const data = await resp.json();
+    const dias = (data.success && data.consultorios && data.consultorios[consultorio]) || [];
+    if(!dias.length){ contSlots.innerHTML = '<div style="font-size:15px;color:var(--muted)">No hay horarios libres en las próximas semanas — probá con otro consultorio o anotalo a mano.</div>'; return; }
+    contSlots.innerHTML = dias.map(d => `
+      <div style="margin-bottom:12px">
+        <div style="font-size:22px;font-weight:700;color:#334155;margin-bottom:6px">${cvFormatFecha_(d.fecha)}</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          ${d.horarios.map(h => `<button type="button" class="btn-mini cv-slot" data-fecha="${d.fecha}" data-hora="${h}" onclick="cvSeleccionarSlot('${consultorio}','${d.fecha}','${h}')" style="border:3px solid var(--border);background:#fff;border-radius:12px;padding:10px 18px;font-size:23px;cursor:pointer;font-family:inherit">${h}</button>`).join('')}
+        </div>
+      </div>`).join('');
+  }catch(e){
+    contSlots.innerHTML = '<div style="font-size:11px;color:var(--rojo)">No se pudo cargar la disponibilidad (sin conexión con el backend).</div>';
+  }
+}
+
+function cvFormatFecha_(fechaISO){
+  // fechaISO viene 'yyyy-MM-dd' desde el backend — se arma la fecha en
+  // horario local para que no se corra un día por huso horario.
+  const [y,m,d] = fechaISO.split('-').map(Number);
+  const fecha = new Date(y, m-1, d);
+  const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  return dias[fecha.getDay()] + ' ' + String(d).padStart(2,'0') + '/' + String(m).padStart(2,'0');
+}
+
+function cvSeleccionarSlot(consultorio, fecha, hora){
+  cvTurnoSeleccionado = { consultorio, fecha, hora };
+  document.querySelectorAll('.cv-slot').forEach(b => {
+    const on = b.dataset.fecha === fecha && b.dataset.hora === hora;
+    b.style.background = on ? 'var(--azul)' : '#fff';
+    b.style.color = on ? '#fff' : '#0f172a';
+    b.style.borderColor = on ? 'var(--azul)' : 'var(--border)';
+  });
+  document.getElementById('cv-turno-seleccionado').innerHTML =
+    `✅ Turno a reservar: <b>${cvFormatFecha_(fecha)} a las ${hora} hs</b> en ${consultorio}`;
+}
 
 function abrirConsultaVirtual(){
   if(!MENSAJE_ACTUAL) return;
@@ -288,7 +398,12 @@ function abrirConsultaVirtual(){
   document.getElementById('cv-meet-box').innerHTML = `<button class="btn btn-ghost" onclick="cvGenerarMeet()">📅 Generar link de Meet</button>`;
   document.getElementById('cv-notas').value = '';
   document.getElementById('cv-diagnostico').value = '';
-  document.getElementById('cv-proximo-control').value = '';
+  document.getElementById('cv-turno-consultorio').value = '';
+  document.getElementById('cv-turno-slots').innerHTML = '';
+  document.getElementById('cv-turno-manual').style.display = 'none';
+  document.getElementById('cv-turno-texto-manual').value = '';
+  document.getElementById('cv-turno-seleccionado').innerHTML = '';
+  cvTurnoSeleccionado = null;
   document.getElementById('cv-guardado-resultado').textContent = '';
   cvSetDuracion(5);
 
@@ -449,8 +564,38 @@ async function cvGuardarEnOCM(){
   }
   const notas = document.getElementById('cv-notas').value.trim();
   const diagnostico = document.getElementById('cv-diagnostico').value.trim();
-  const proximoControl = document.getElementById('cv-proximo-control').value.trim();
+  const consultorioElegido = document.getElementById('cv-turno-consultorio').value;
   if(!notas && !diagnostico){ cont.textContent = 'Cargá al menos una nota o un diagnóstico antes de guardar.'; return; }
+
+  // Si se eligió un turno real (no "a mano" y no vacío), primero lo reservamos
+  // contra la Agenda de Turnos (Codigo.gs: reservarTurno) — recién si eso sale
+  // bien seguimos con el guardado en la Historia Clínica, para que el texto que
+  // queda en Proximo_Control refleje un turno que realmente quedó reservado.
+  let proximoControl = '';
+  if(consultorioElegido && consultorioElegido !== 'a-mano' && cvTurnoSeleccionado){
+    cont.textContent = 'Reservando el turno…';
+    const cuerpo = (MENSAJE_ACTUAL && MENSAJE_ACTUAL.cuerpo) || '';
+    const nombrePaciente = cvExtraerNombre_(cuerpo) ||
+      (document.getElementById('cv-paciente-nombre').textContent || '').trim();
+    const telefonoPaciente = cvExtraerTelefono_(cuerpo);
+    const emailPaciente = (MENSAJE_ACTUAL && ((MENSAJE_ACTUAL.remitente.match(/<(.+)>/)||[])[1] || MENSAJE_ACTUAL.remitente)) || '';
+    try{
+      const resp = await fetch(SHEETS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(Object.assign({action:'reservar_turno',
+          consultorio:cvTurnoSeleccionado.consultorio, fecha:cvTurnoSeleccionado.fecha, hora:cvTurnoSeleccionado.hora,
+          dni, nombre:nombrePaciente, telefono:telefonoPaciente, email:emailPaciente,
+          origen:'Consulta Virtual', notas}, APP_TOKEN?{token:APP_TOKEN}:{}))});
+      const data = await resp.json();
+      if(!data.success) throw new Error(data.error||'Ese horario ya se acaba de reservar — elegí otro.');
+      proximoControl = `Turno presencial: ${cvFormatFecha_(cvTurnoSeleccionado.fecha)} a las ${cvTurnoSeleccionado.hora} hs en ${cvTurnoSeleccionado.consultorio}`;
+    }catch(e){
+      cont.innerHTML = `<span style="color:var(--rojo)">⚠️ No se pudo reservar el turno: ${e.message} — elegí otro horario y volvé a guardar (las notas y el diagnóstico no se perdieron).</span>`;
+      return;
+    }
+  } else if(consultorioElegido === 'a-mano'){
+    proximoControl = document.getElementById('cv-turno-texto-manual').value.trim();
+  }
+
   cont.textContent = 'Guardando…';
   try{
     const resp = await fetch(SHEETS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -458,9 +603,10 @@ async function cvGuardarEnOCM(){
         Observaciones:notas, Proximo_Control:proximoControl}, APP_TOKEN?{token:APP_TOKEN}:{}))});
     const data = await resp.json();
     if(!data.success) throw new Error(data.error||'Error del servidor');
-    cont.innerHTML = '<span style="color:#166534;font-weight:700">✅ Guardado en la Historia Clínica (OCM)</span>';
+    cont.innerHTML = '<span style="color:#166534;font-weight:700">✅ Guardado en la Historia Clínica (OCM)' +
+      (proximoControl ? ' — turno confirmado' : '') + '</span>';
   }catch(e){
-    cont.innerHTML = `<span style="color:var(--rojo)">⚠️ No se pudo guardar: ${e.message}</span>`;
+    cont.innerHTML = `<span style="color:var(--rojo)">⚠️ No se pudo guardar: ${e.message}${proximoControl ? ' (el turno ya quedó reservado — no hace falta reservarlo de nuevo, solo reintentá guardar la nota)' : ''}</span>`;
   }
 }
 
@@ -558,15 +704,25 @@ setInterval(cargarMensajes, 60000); // se refresca sola cada 1 minuto
     <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin:14px 0 5px">Notas de esta entrevista</label>
     <textarea id="cv-notas" rows="4" placeholder="Qué se conversó, indicaciones dadas…" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:10px 12px;font-size:12.5px;font-family:inherit"></textarea>
 
-    <div class="fila2-cv" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-      <div>
-        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin:0 0 5px">Diagnóstico / indicaciones</label>
-        <input type="text" id="cv-diagnostico" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:9px 11px;font-size:12.5px;font-family:inherit">
+    <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin:14px 0 5px">Diagnóstico / indicaciones</label>
+    <input type="text" id="cv-diagnostico" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:9px 11px;font-size:12.5px;font-family:inherit">
+
+    <div class="cv-box" style="margin-top:14px">
+      <h4>Próximo control / turno presencial</h4>
+      <label style="display:block;font-size:16px;font-weight:700;color:#334155;margin:0 0 8px">Consultorio</label>
+      <select id="cv-turno-consultorio" onchange="cvCambioConsultorio()" style="width:100%;border:2px solid var(--border);border-radius:10px;padding:14px 16px;font-size:19px;font-family:inherit">
+        <option value="">— No hace falta turno presencial —</option>
+        <option value="Centro Médico Palmares">Centro Médico Palmares (martes 13:30–16:45 y jueves 13:30–20 hs)</option>
+        <option value="Rehabilitarte Instituto Médico">Rehabilitarte Instituto Médico (viernes 16–18 hs)</option>
+        <option value="Consultorios Privados del Norte">Consultorios Privados del Norte (viernes 18–20:30 hs)</option>
+        <option value="Hospital Dr. Domingo Sícoli">Hospital Dr. Domingo Sícoli (según disponibilidad cargada por la secretaría del hospital)</option>
+        <option value="a-mano">Otro / anotarlo a mano (no reserva nada, solo texto)</option>
+      </select>
+      <div id="cv-turno-slots" style="margin-top:14px"></div>
+      <div id="cv-turno-manual" style="display:none;margin-top:14px">
+        <input type="text" id="cv-turno-texto-manual" placeholder="Ej: turno presencial en Rehabilitarte, viernes" style="width:100%;border:2px solid var(--border);border-radius:10px;padding:14px 16px;font-size:19px;font-family:inherit">
       </div>
-      <div>
-        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin:0 0 5px">Próximo control / turno presencial</label>
-        <input type="text" id="cv-proximo-control" placeholder="Ej: turno presencial en Rehabilitarte, viernes" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:9px 11px;font-size:12.5px;font-family:inherit">
-      </div>
+      <div id="cv-turno-seleccionado" style="margin-top:14px;font-size:18px"></div>
     </div>
 
     <div class="row">
@@ -598,5 +754,6 @@ setInterval(cargarMensajes, 60000); // se refresca sola cada 1 minuto
   }catch(e){}
 })();
 </script>
+<script src="efecto-lupa.js" defer></script>
 </body>
 </html>

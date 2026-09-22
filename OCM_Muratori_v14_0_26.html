@@ -123,6 +123,9 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
 /* Carrito — colapsable */
 .carrito-zone{padding:6px 12px;border-bottom:1px solid var(--border);flex-shrink:0;transition:all .2s;}
 .carrito-zone.collapsed .carrito-items{display:none;}
+.antec-zone.collapsed .antec-body{display:none;}
+.antec-zone .zone-lbl{margin-bottom:0;color:#92400e;font-size:11px;text-transform:none;letter-spacing:0;font-weight:700;}
+.antec-zone.collapsed .zone-toggle{transform:rotate(-90deg);}
 .zone-lbl{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
 .zone-lbl:hover{color:var(--text);}
 .zone-toggle{font-size:10px;transition:transform .2s;}
@@ -143,7 +146,8 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
 .cmd-zone.compact{max-height:56px;overflow:hidden;}
 .cmd-section{margin-bottom:7px;}
 .cmd-sect-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
-.cmd-row{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+.cmd-row{display:flex;flex-direction:column;gap:3px;}
+.cmd-row .cmd-btn{width:100%;}
 .cmd-btn{padding:8px 2px;border:1px solid var(--border);border-radius:8px;cursor:pointer;text-align:center;background:var(--panel);transition:all .12s;}
 .cmd-btn:hover{background:#f0f7ff;border-color:#93c5fd;}
 .cmd-btn.active{background:#eff6ff;border-color:var(--accent2);box-shadow:0 0 0 2px rgba(37,99,235,.15);}
@@ -430,6 +434,14 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
      documento a imprimir, y esa era la razón real por la que la firma
      terminaba en una 2da hoja, incluso con una receta corta. */
   .modal-overlay,#cert-zone{display:none!important;}
+  /* GAP encontrado sep 2026 (auditoría general del sistema): #modal-foto-pac
+     (la foto ampliada del paciente) es un mismo tipo de overlay fijo de
+     pantalla completa, pero NO usa la clase .modal-overlay — se muestra/oculta
+     con su propio style="display:none/flex" en JS. La regla de arriba no lo
+     alcanza, así que si quedaba abierto al imprimir podía reproducir el mismo
+     problema (receta en 2 hojas) que ya se había corregido para el resto de
+     los modales. */
+  #modal-foto-pac{display:none!important;}
 }
 
 /* ── CERT ZONE ── */
@@ -469,7 +481,7 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* ══════════════════════════════════════════════════════════════════
-   IMDCMYT — Informe Médico de Consulta y Recordatorio Terapéutico
+   RECOMENDACIONES MEDICAS — Informe Médico de Consulta y Recordatorio Terapéutico
    v11 — Columna Cervical · F1 Medicación · F2 Ejercicios · F3 Eval
    ══════════════════════════════════════════════════════════════════ */
 .imd-modal-box{width:920px;max-width:98vw;max-height:94vh;display:flex;flex-direction:column;overflow:hidden}
@@ -544,7 +556,7 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
 .imd-ej-meta span{background:#eff6ff;padding:2px 8px;border-radius:10px}
 .imd-disclaimer{background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px 14px;font-size:11px;color:#92400e;margin-top:14px;line-height:1.5}
 /* F3 — Evaluación */
-.imd-f3-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.imd-f4-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 .imd-param-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
 .imd-param-row:last-child{border-bottom:none}
 .imd-param-label{min-width:190px;flex-shrink:0}
@@ -562,7 +574,7 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
 .imd-conector-title{font-weight:700;font-size:13px;color:var(--text)}
 .imd-conector-desc{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4}
 .imd-empty-meds{color:#9ca3af;font-style:italic;padding:14px;text-align:center;background:#f8fafc;border-radius:6px;border:1px dashed var(--border)}
-@media(max-width:680px){.imd-f3-grid{grid-template-columns:1fr}.imd-conectores{flex-direction:column}.imd-med-fields{grid-template-columns:1fr}.imd-tabs-bar{flex-wrap:wrap}}
+@media(max-width:680px){.imd-f4-grid{grid-template-columns:1fr}.imd-conectores{flex-direction:column}.imd-med-fields{grid-template-columns:1fr}.imd-tabs-bar{flex-wrap:wrap}}
 
 /* ══ DASHBOARD RSG ══ */
 .rsg-modal-box{width:980px;max-width:99vw;max-height:96vh;display:flex;flex-direction:column;overflow:hidden}
@@ -609,7 +621,7 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
 .seg-law{font-size:10px;color:#9ca3af;text-align:center;margin-top:10px;line-height:1.4}
 .btn-seg-den{background:#dc2626;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-seg-den:hover{background:#b91c1c}
-/* ══ IMDCMYT SELECTOR ══ */
+/* ══ RECOMENDACIONES MEDICAS SELECTOR ══ */
 .imd-sel-box{width:820px;max-width:98vw;max-height:90vh}
 .imd-sel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px}
 .imd-sel-card{border:2px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;transition:all .15s;background:#fff}
@@ -835,9 +847,34 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
   .panel-qx .libro-chk-row label{display:flex;align-items:center;gap:5px;font-size:11px;flex:2;cursor:pointer;font-weight:400}
   .panel-qx .libro-chk-row .imprimible-lbl{flex:1;font-size:10px;color:var(--violeta);display:flex;align-items:center;gap:4px;cursor:pointer}
 
+/* Velo de carga para entradas con deep-link (?abrir=...) desde el índice:
+   tapa la pantalla general de OCM mientras se termina de armar todo, para
+   que el usuario vea directo el modal puntual (agenda, dashboard, etc.)
+   en vez de ver primero toda la pantalla de OCM y recién después el modal. */
+html.deep-link-cargando .app{visibility:hidden}
+#deep-link-veil{position:fixed;inset:0;background:#f8fafc;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-family:inherit;color:#1e40af;font-size:14px;font-weight:600}
+html.deep-link-cargando #deep-link-veil{display:flex}
+
 </style>
 </head>
 <body>
+<script>
+// Si se entra con ?abrir=... (deep-link desde el índice/carátula), tapamos
+// la pantalla hasta que init() termine de abrir el modal puntual — evita
+// el "flash" de ver toda la pantalla de OCM antes de la agenda pedida.
+// Con timeout de seguridad: si algo falla y nunca se saca la clase, a los
+// 4s se muestra igual la pantalla para no dejar a Muratori con la pantalla
+// tapada.
+(function(){
+  try{
+    if(new URLSearchParams(location.search).get('abrir')){
+      document.documentElement.classList.add('deep-link-cargando');
+      setTimeout(function(){ document.documentElement.classList.remove('deep-link-cargando'); }, 4000);
+    }
+  }catch(e){}
+})();
+</script>
+<div id="deep-link-veil">⏳ Cargando…</div>
 
 <!-- MODAL: Nuevo/Editar Paciente -->
 <div id="modal-pac" class="modal-overlay">
@@ -888,6 +925,10 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
       <div style="margin-top:6px;display:flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:8px 10px">
         <input type="checkbox" id="p-discapacidad" style="width:auto;margin:0">
         <label for="p-discapacidad" style="margin:0;font-size:11.5px;font-weight:600;color:#9a3412;cursor:pointer">Trámite de discapacidad (CUD) — el RIMP que se le envíe incluirá vivienda, trabajos, infancia, vacunas y COVID (si no, se manda la versión breve)</label>
+      </div>
+      <div style="margin-top:6px;display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 10px">
+        <input type="checkbox" id="p-membresia" style="width:auto;margin:0">
+        <label for="p-membresia" style="margin:0;font-size:11.5px;font-weight:600;color:#166534;cursor:pointer">🤝 Paciente con membresía — habilita RMYT, respuesta de mail con contexto clínico, agendas y seguimiento posquirúrgico. Elección tuya, sin costo — no todo paciente con filiación la tiene.</label>
       </div>
       <div id="modal-pac-msg" class="msg-error" style="display:none"></div>
     </div>
@@ -1252,6 +1293,40 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
   </div>
 </div>
 
+<!-- MODAL: Resumen de Historia Clínica con firma táctil del paciente —
+     versión más simple posible: texto editable (mismo mecanismo que
+     Certificados), link para que el paciente firme con el dedo en su
+     celular, y recién con la firma confirmada se habilita imprimir/enviar. -->
+<div id="modal-resumen-hc" class="modal-overlay">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-header"><span>🖊 Resumen de Historia Clínica</span><button onclick="cerrarModal('modal-resumen-hc')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg2"><label>Texto del resumen (editable — agregá diagnóstico, detalle quirúrgico, lo que corresponda)</label>
+        <textarea id="rhc-texto" rows="10" style="width:100%;border:1px solid var(--border2);border-radius:6px;padding:8px 10px;font-size:12.5px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="generarLinkFirmaHC()">🔗 Generar link para firma del paciente</button>
+        <button class="btn btn-ghost" onclick="verificarFirmaHC()">🔄 Verificar si ya firmó</button>
+      </div>
+      <div id="rhc-link-resultado" style="margin-top:10px;font-size:12px"></div>
+      <div id="rhc-firma-resultado" style="margin-top:10px;font-size:12px"></div>
+      <div id="rhc-acciones-firmado" style="margin-top:12px;display:none">
+        <div class="fg2"><label>Enviar por mail a (quien lo solicitó)</label>
+          <input id="rhc-destinatario" type="email" placeholder="mail@ejemplo.com" style="width:100%;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit">
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="imprimirResumenHC()">🖨 Imprimir</button>
+          <button class="btn btn-ghost" onclick="enviarResumenHCPorMail()">📤 Enviar por mail</button>
+        </div>
+        <div id="rhc-envio-resultado" style="margin-top:8px;font-size:12px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-resumen-hc')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Pago rápido — seña o cancelación total, en 2 movimientos -->
 <div id="modal-pago-rapido" class="modal-overlay">
   <div class="modal-box" style="width:420px;max-width:95vw">
@@ -1447,10 +1522,12 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
     <div class="modal-body" style="padding:16px">
       <div class="panel-desc" style="margin-top:0">La IA lee la foto y completa los datos automáticamente — siempre revisá y corregí antes de guardar el Libro.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <button type="button" class="btn-ghost" onclick="document.getElementById('docdiscap-file').click()">🖼 Archivo / cámara del celular</button>
+        <button type="button" class="btn-ghost" onclick="document.getElementById('docdiscap-file').click()">📷 Sacar foto ahora (celular)</button>
+        <button type="button" class="btn-ghost" onclick="document.getElementById('docdiscap-file-galeria').click()">🖼 Elegir de galería / archivo</button>
         <button type="button" class="btn-ghost" onclick="abrirWebcamDocDiscap()">🎥 Cámara web (PC)</button>
       </div>
       <input type="file" id="docdiscap-file" accept="image/*" capture="environment" style="display:none" onchange="docDiscapFotoElegida(event)">
+      <input type="file" id="docdiscap-file-galeria" accept="image/*" style="display:none" onchange="docDiscapFotoElegida(event)">
       <div id="docdiscap-webcam-wrap" style="display:none">
         <video id="docdiscap-webcam-video" autoplay playsinline style="width:100%;max-height:260px;border-radius:8px;background:#000;object-fit:contain"></video>
         <div style="display:flex;gap:8px;margin-top:8px">
@@ -1471,7 +1548,8 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
 
 <!-- MODAL: Cobrar (Mercado Pago) — genera el link real de pago (Checkout Pro) que
      antes no existía en ningún lado del sistema; el médico lo generaba a mano
-     afuera de OCM. Ahora se genera acá y se manda por WhatsApp al paciente. -->
+     afuera de OCM. Ahora se genera acá y se manda por mail al paciente
+     (WhatsApp sacado del sistema, sep 2026). -->
 <div id="modal-cobro-mp" class="modal-overlay">
   <div class="modal-box" style="width:440px;max-width:95vw">
     <div class="modal-header" style="background:linear-gradient(135deg,#0369a1,#0c4a6e)">
@@ -1492,7 +1570,7 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
       <div id="cobromp-resultado" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;font-size:12px;word-break:break-all"></div>
       <div id="cobromp-acciones" style="display:none;gap:8px">
         <button type="button" class="btn-ghost" style="flex:1" onclick="copiarLinkPagoMP()">📋 Copiar link</button>
-        <button type="button" class="btn btn-primary" style="flex:1" onclick="enviarLinkPagoWA()">📲 Enviar por WhatsApp</button>
+        <button type="button" class="btn btn-primary" style="flex:1" onclick="enviarLinkPagoPorMail()">📧 Enviar por mail</button>
       </div>
     </div>
     <div class="modal-footer">
@@ -1632,21 +1710,30 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
     <div class="simm-nav-wrap" style="position:relative;margin-left:8px">
       <button class="btn btn-ghost btn-sm" onclick="toggleSimmNav()" title="Ir a otro capítulo de SIM-M sin pasar por el índice">🔀 Ir a…</button>
       <div id="simm-nav-dropdown" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:230px;z-index:200;padding:4px">
-        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 10px 2px">Programas del consultorio</div>
-        <a href="Lector_CUD.html" class="simm-nav-item">🪪 Lector CUD</a>
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 10px 2px">Consulta médica</div>
         <a href="CAM_Herramientas_Clinicas.html" class="simm-nav-item">🩺 CAM — Herramientas Clínicas</a>
-        <a href="Agenda_Mensajes.html" class="simm-nav-item">✉️ Agenda de Mensajes</a>
-        <a href="Panel_Especialistas.html" class="simm-nav-item">🔐 Panel de Especialistas</a>
-        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 10px 2px;border-top:1px solid var(--border);margin-top:4px">Capítulos de SIM-M</div>
-        <a href="INDEX_SIM.html" class="simm-nav-item">🏠 Índice SIM-M</a>
-        <a href="CUD_Seguimiento_v1.html" class="simm-nav-item">♿ CUD — Seguimiento</a>
-        <a href="Asistente_Isa_Discapacidad.html" class="simm-nav-item">🤖 Asistente Isa (Discapacidad)</a>
-        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 10px 2px;border-top:1px solid var(--border);margin-top:4px">GONIO</div>
-        <a href="GONIO_ValgoVaro_v1.html" class="simm-nav-item">📐 Valgo / Varo (retropié)</a>
-        <a href="GONIO_CostaBartani_v1.html" class="simm-nav-item">📐 Costa-Bartani (lateral)</a>
-        <a href="GONIO_Podoscopia_v1.html" class="simm-nav-item">📐 Podoscopía</a>
-        <a href="GONIO_AnguloFrente_v1.html" class="simm-nav-item">📐 Ángulo Frente</a>
-        <a href="GONIO_SeguimientoCientifico_v1.html" class="simm-nav-item">📐 Seguimiento Científico</a>
+        <!-- Agenda de pacientes — vivía en su propio botón "📇 Agenda ▾" aparte;
+             a pedido, se unificó acá adentro de "Ir a…" para no tener tantos
+             menús sueltos en el top-bar. Mismos ítems, misma función
+             cerrarAgendaNavYAbrir_ de siempre, ahora cierra este dropdown. -->
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 10px 2px;border-top:1px solid var(--border);margin-top:4px">Agenda de pacientes</div>
+        <a href="#" class="simm-nav-item" onclick="cerrarAgendaNavYAbrir_('todos');return false">📇 Agenda Pacientes</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarAgendaNavYAbrir_('discapacidad');return false">🔵 Discapacidad</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarAgendaNavYAbrir_('tratamiento');return false">🩺 En tratamiento</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarAgendaNavYAbrir_('decidido');return false">✅ Decidido s/prequir.</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarAgendaNavYAbrir_('observado');return false">👁 Observado</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarAgendaNavYAbrir_('planificacion');return false">📋 Planificación Qx</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarAgendaNavYAbrir_('programacion');return false">📅 Programación Qx</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarAgendaNavYAbrir_('seguimiento');return false">🩹 Seguimiento postop</a>
+      </div>
+    </div>
+    <div class="docs-nav-wrap" style="position:relative;margin-left:8px">
+      <button class="btn btn-ghost btn-sm" onclick="toggleDocsNav()" title="Libros y documentos">📚 Documentos ▾</button>
+      <div id="docs-nav-dropdown" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:220px;z-index:200;padding:4px">
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 10px 2px">Libros y documentos</div>
+        <a href="#" class="simm-nav-item" onclick="cerrarDocsNavYEjecutar_('abrirLibroRmyt');return false">📔 Libro RMYT</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarDocsNavYEjecutar_('abrirLibroDiscapacidad');return false">📘 Libro Discapacidad</a>
+        <a href="#" class="simm-nav-item" onclick="cerrarDocsNavYEjecutar_('abrirCatastroEmpresas');return false">🏭 Catastro de Empresas</a>
       </div>
     </div>
     <div class="top-centros" id="top-centros"></div>
@@ -1657,10 +1744,8 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
       </div>
       <button class="btn btn-ghost btn-sm" onclick="abrirModalNuevoPaciente()">+ Paciente</button>
       <button class="btn btn-ghost btn-sm" onclick="abrirAgendaPacientes()" title="Todos los pacientes cargados en este equipo, en orden alfabético y coloreados por discapacidad/circuito quirúrgico — entrás directo a la historia clínica de cada uno">📇 Agenda</button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirRidmRapido()" title="Cargar datos de filiación en el momento (sin antecedentes)">⚡ Filiación</button>
       <button class="btn btn-ghost btn-sm" onclick="abrirRidmPendientes()" id="btn-ridm-pend">📥 RIDM</button>
       <button class="btn btn-ghost btn-sm" onclick="abrirConsultasOnline()" id="btn-consultas" style="position:relative">💬 Consultas<span id="badge-consultas" style="display:none;position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center"></span></button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirModalCobroMP()" title="Generar un link real de Mercado Pago para que el paciente pague a distancia">💳 Cobrar</button>
       <button class="btn btn-ghost btn-sm" onclick="window.location.href='Agenda_Mensajes.html'" id="btn-bandeja-ia" style="position:relative" title="Abrir la Agenda de Mensajes — mails clasificados y con borrador de respuesta por IA">📬 Agenda Mails<span id="badge-bandeja-ia" style="display:none;position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center"></span></button>
       <button class="btn btn-ghost btn-sm" id="btn-ridm-local" onclick="importarRidmLocal()" style="display:none">📥 RIMP local</button>
       <button class="btn btn-ghost btn-sm" onclick="verHistorialModal()" id="btn-hist" disabled>📋 Historial</button>
@@ -1670,9 +1755,31 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
   </div>
 
   <div class="main">
-    <div class="panel-izq-hdr">
-      <span class="panel-izq-brand">OCM</span>
-      <span class="panel-izq-sub">Optimizador de Consultas Médicas</span>
+    <div class="panel-izq-hdr" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="min-width:0">
+        <span class="panel-izq-brand">OCM</span>
+        <span class="panel-izq-sub">Optimizador de Consultas Médicas</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <!-- Ítems en receta — se trasladó acá, al lado de Certificados, por
+             pedido explícito, para no restarle alto útil a la columna de
+             comandos. -->
+        <div class="carrito-zone collapsed" id="carrito-zone" style="position:relative;padding:0;border:none;flex-shrink:0">
+          <div class="zone-lbl" onclick="toggleCarrito()" style="margin:0;padding:5px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;font-size:10.5px;font-weight:600;text-transform:none;letter-spacing:0;gap:6px">
+            <span>📋 Ítems en receta</span>
+            <span style="display:flex;align-items:center;gap:5px">
+              <button class="btn-xs" onclick="event.stopPropagation();limpiarReceta()" style="background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.5);color:#fff">✕</button>
+              <span class="zone-toggle">▾</span>
+            </span>
+          </div>
+          <div class="carrito-items" id="carrito" style="position:absolute;top:100%;right:0;margin-top:4px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:6px;min-width:220px;z-index:200"></div>
+        </div>
+        <!-- Certificados — antes vivía en la barra de abajo (bot-bar) y después
+             en un botón propio arriba de cmd-zone; se trasladó acá, al
+             cartelito de cabecera, para no restarle alto útil a la columna de
+             comandos y que entren todos sin necesidad de scroll. -->
+        <button id="btn-cert-toggle" title="Certificados (Z)" onclick="toggleCertZone()" style="flex-shrink:0;padding:5px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit">📋 Certificados</button>
+      </div>
     </div>
 
     <!-- PANEL IZQUIERDO -->
@@ -1685,18 +1792,6 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
           <select id="medico-select" class="medico-select" onchange="seleccionarMedico(this.value)"></select>
           <button class="btn-gear" onclick="abrirModal('modal-medicos')" title="Gestionar médicos">⚙</button>
         </div>
-      </div>
-
-      <!-- Carrito colapsable -->
-      <div class="carrito-zone" id="carrito-zone">
-        <div class="zone-lbl" onclick="toggleCarrito()">
-          <span>📋 Ítems en receta</span>
-          <span style="display:flex;align-items:center;gap:5px">
-            <button class="btn-xs" onclick="event.stopPropagation();limpiarReceta()">✕</button>
-            <span class="zone-toggle">▾</span>
-          </span>
-        </div>
-        <div class="carrito-items" id="carrito"></div>
       </div>
 
       <!-- El carrito de "varias IM acumuladas + envío en bloque" se sacó de la
@@ -1741,6 +1836,21 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
     <div class="panel-rec">
       <!-- Vista: Receta -->
       <div id="view-receta" class="panel-view active">
+        <!-- Antecedentes y consultas anteriores — arriba del recetario,
+             visible por defecto (ya no colapsado) para que se vea el
+             espacio de historia clínica apenas se abre la vista.
+             Reutiliza get_vista_consolidada (la misma fuente que ya usan
+             CAM y Agenda de Mensajes) — no agrega nada nuevo al backend. -->
+        <div class="antec-zone" id="antec-zone">
+          <div class="zone-lbl" onclick="toggleAntecZone()" style="padding:6px 12px;background:#fffbeb;border-bottom:1px solid #fde68a;margin:0">
+            <span>🩺 Antecedentes y consultas anteriores</span>
+            <span class="zone-toggle">▾</span>
+          </div>
+          <div class="antec-body" id="antec-body" style="padding:8px 12px;background:#fffdf7;border-bottom:1px solid #fde68a;font-size:11.5px">
+            <div id="antec-resumen" style="margin-bottom:8px;line-height:1.6">Cargá un paciente (DNI) para ver sus antecedentes y consultas anteriores acá.</div>
+            <div id="antec-historial" style="max-height:220px;overflow-y:auto;padding-right:4px"></div>
+          </div>
+        </div>
         <div class="receta" id="receta">
           <div class="rec-head">
             <div class="rec-logo-circle" id="rec-logo-wrap">🏥</div>
@@ -2059,6 +2169,7 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
       <div id="libro-checklist-resumen"></div>
       <div id="libro-checklist-lista"></div>
       <button type="button" class="btn-mini" onclick="agregarChecklistLibro()">+ Agregar ítem</button>
+      <button type="button" class="btn-mini" onclick="actualizarEstadoInterconsultasDesdeMiniRIMP_()" style="margin-left:6px">🔄 Actualizar interconsultas (Mini-RIMP)</button>
     </div>
 
     <div id="libro-p-preqx" class="libro-sub">
@@ -2203,16 +2314,23 @@ body{font-family:'Inter',system-ui,sans-serif;font-size:13px;background:var(--bg
   <button class="acc-btn" title="Micrófono (Ctrl+M)" onclick="toggleMic()">🎤</button>
   <button class="acc-btn" title="IA clínica (Ctrl+A)" onclick="abrirIA()">✦ IA</button>
   <div class="acc-sep"></div>
+  <!-- GRUPO 1B: PACIENTE — bajado de la barra de arriba (sep 2026) porque ahí
+       ya no había lugar. Misma función, mismos onclick/id de siempre. -->
+  <button class="acc-btn" onclick="abrirRidmRapido()" title="Cargar datos de filiación en el momento (sin antecedentes)">⚡ Filiación</button>
+  <button class="acc-btn" id="btn-membresia" onclick="toggleMembresiaPaciente()" disabled title="Seleccioná un paciente primero">🤝 Dar membresía</button>
+  <button class="acc-btn" onclick="abrirModalCobroMP()" title="Generar un link real de Mercado Pago para que el paciente pague a distancia">💳 Cobrar</button>
+  <div class="acc-sep"></div>
   <!-- GRUPO 2: DOCUMENTOS -->
-  <button class="acc-btn acc-cert" id="btn-cert-toggle" title="Certificados (Z)" onclick="toggleCertZone()">📋 Certificados</button>
+  <!-- Certificados se trasladó al panel lateral izquierdo (arriba de cmd-zone) -->
   <button class="acc-btn" id="btn-plantillas" title="Seguimiento de Plantillas: estados, pagos, lote de la fábrica y estadísticas" onclick="abrirModal_plantillas()">👟 Seguim. Plantillas</button>
+  <button class="acc-btn" id="btn-resumen-hc" title="Resumen de Historia Clínica con firma del paciente" onclick="abrirModal_resumenHC()">🖊 Resumen HC</button>
   <button class="acc-btn" title="RCTA Digital" onclick="window.open('https://app.rcta.me/p/luis-alberto-muratori','_blank')">🔗 RCTA</button>
   <div class="acc-sep"></div>
   <!-- GRUPO 3: RECETA -->
   <button class="acc-btn" title="Imprimir (Ctrl+P)" onclick="imprimirReceta()">🖨 Imprimir</button>
   <div class="acc-sep"></div>
   <!-- GRUPO 4: ENVÍO -->
-  <button class="acc-btn acc-mail" title="Enviar por Mail" onclick="mailReceta()">✉ Mail</button>
+  <button class="acc-btn acc-mail" title="Enviar receta al paciente por mail — si no tiene mail cargado, avisa para imprimir o entregar en mano" onclick="enviarRecetaInteligente()">📤 Enviar</button>
   <div class="acc-sep"></div>
   <!-- GRUPO 5: DATOS -->
   <button class="acc-btn" style="color:#7c3aed;border-color:#c4b5fd;background:#faf5ff" title="Dashboard RSG" onclick="abrirDashboardRSG()">📈 Dashboard RSG</button>
@@ -2427,6 +2545,24 @@ const CERT_MODELOS = {
   asistencia: `CONCURRE EN EL DÍA DE LA FECHA A CONTROL POR ESPECIALIDAD, SOLICITANDO ESTUDIOS QUE NO REQUIEREN ALTERAR CONDICIÓN LABORAL O CURSADO DE CLASE.`,
 
   historia: `RESUMEN DE HISTORIA CLÍNICA. PACIENTE QUE PRESENTA CUADRO CLÍNICO DE ESPECIALIDAD, SE ENCUENTRA EN ESTUDIO PARA DETERMINAR DIAGNÓSTICO DEFINITIVO. SE INDICA SEGUIMIENTO AMBULATORIO Y CONTROLES PERIÓDICOS. LAPSO EN EL QUE SE EVALUARÁ EL TIPO DE LESIÓN Y TERAPÉUTICA A SEGUIR PARA UNA PRONTA Y ADECUADA RECUPERACIÓN.`
+};
+
+// ── Textos completos de recomendaciones RMYT (sin encabezado — OCM pone
+// su propio membrete al imprimir/enviar). Ver SUBMENUS.reco arriba.
+const RECO_TEXTOS_RMYT = {
+  "Osteoporosis — recomendaciones generales": `1. DEBO CONSULTAR CON NUTRICIONISTA, PARA ACORDAR UNA DIETA ENRIQUECIDA EN CALCIO, LO MAS NATURAL Y SALUDABLE POSIBLE EN RELACIÓN A MIS PREFERENCIAS Y GUSTOS.<br><br>2. COMO REGLA GENERAL, DEBO CUMPLIR DIARIAMENTE CON MI CUOTA DE CALCIO EN LA DIETA (1000 MG/DÍA SI SOY MUJER DE HASTA 50 AÑOS U HOMBRE DE HASTA 70; 1200 MG/DÍA SI SOY MUJER DE 51 AÑOS O MÁS U HOMBRE DE 71 AÑOS O MÁS), PARA QUE MI ORGANISMO NO LO RETIRE DE MIS HUESOS.<br><br>3. ASÍ MISMO, DEBO CUBRIR MI CUOTA DE VITAMINA D (400 A 800 UI/DÍA SI TENGO MENOS DE 50 AÑOS, U 800 A 1000 UI/DÍA SI TENGO 50 AÑOS O MÁS) Y CONSULTAR A MI MÉDICO SI NECESITO UN SUPLEMENTO.<br><br>4. REALIZARÉ UN LABORATORIO ANUAL Y UN REGISTRO DE DENSITOMETRÍA (DMO) CON LA FRECUENCIA QUE ME INDIQUE MI MÉDICO (HABITUALMENTE CADA 2 AÑOS, AUNQUE EL INTERVALO EXACTO DEPENDE DE MI RIESGO Y DE MI RESULTADO PREVIO).<br><br>5. DEBO EXPONERME AL SOL ENTRE 10 Y 20 MINUTOS POR DÍA (CARA, MANOS Y BRAZOS), FUERA DEL HORARIO PICO (ANTES DE LAS 10 O DESPUÉS DE LAS 14 HS), SIN QUEMARME; CAMINAR U OTRO EJERCICIO DE CARGA (BAILAR, TROTAR SUAVE) ENTRE 30 Y 40 MINUTOS, 3 A 4 VECES POR SEMANA, COMBINADO CON EJERCICIOS DE FUERZA; E INGERIR UNA DIETA BALANCEADA Y ENRIQUECIDA EN CALCIO. ES BUENO EL YOGA, PILATES O CALISTENIA PARA TONIFICAR SIN CARGA.<br><br>6. SI YA TUVE UNA FRACTURA VERTEBRAL POR OSTEOPOROSIS, DEBO EVITAR ABDOMINALES, FLEXIONAR MUCHO LA CINTURA, MOVIMIENTOS DE TORSIÓN (TIPO SWING DE GOLF) Y EJERCICIOS DE IMPACTO O SALTO — CONSULTAR SIEMPRE ANTES DE INICIAR UNA ACTIVIDAD NUEVA.<br><br>7. TODA ACTIVIDAD FÍSICA DEBE REALIZARSE SUPERVISADA POR PERSONAL RESPONSABLE.`,
+  "Ergonomía laboral": `1. SILLA CON ESPALDAR ALTO, ALMOHADAS LUMBARES Y CERVICALES, REGULACIÓN DE ALTURA DE APOYABRAZOS Y DE DESPEGUE DE PISO.<br><br>2. ESCRITORIO REGULABLE EN ALTURA. TECLADO INALÁMBRICO Y DIVIDIDO. MOUSE INALÁMBRICO, DE PROYECCIÓN VERTICAL.<br><br>3. POSICIÓN: SENTADO CON EL TORSO ALGO RECLINADO (ENTRE 100° Y 120°, NO RECTO A 90°) Y EL CODO ENTRE 90° Y 120°, APOYADO EN EL APOYABRAZOS, SIN GENERAR TENSIÓN CERVICAL.<br><br>4. LA PARTE SUPERIOR DE LA PANTALLA DEBE QUEDAR A LA ALTURA DEL OJO O APENAS POR DEBAJO, A 50–80 CM DE DISTANCIA DE LOS OJOS. ILUMINACIÓN ADECUADA A LA ACTIVIDAD.<br><br>5. REGLA 20-20-20 PARA LA VISTA: CADA 20 MINUTOS, MIRAR ALGO A 6 METROS DE DISTANCIA DURANTE 20 SEGUNDOS.<br><br>6. HACER UNA PAUSA CORTA CADA 20 A 30 MINUTOS CON: EJERCICIOS ISOMÉTRICOS CERVICALES, ELONGACIÓN DE MIEMBROS SUPERIORES E INFERIORES, EJERCICIOS HIPOPRESIVOS ABDOMINALES Y EJERCICIOS DE BOMBA VASCULAR.`,
+  "Ergonomía de carga": `1. CON LA COLUMNA RECTA Y EN EQUILIBRIO, DESCENDER FLEXIONANDO LAS RODILLAS CON LAS PIERNAS ABIERTAS; TOMAR LA CARGA CON LAS MANOS, ENTRE LAS PIERNAS Y LO MÁS PEGADA AL CUERPO POSIBLE, Y ASCENDER.<br><br>2. CON LA CARGA PEGADA AL CUERPO, DIRIGIRSE A PASO FIRME. NUNCA GIRAR ROTANDO LA PELVIS CON LOS HOMBROS — GIRAR SIEMPRE "COMO UN ROBOT", MANTENIENDO CADERA Y HOMBRO EN EL MISMO PLANO. LA MISMA MECÁNICA SE USA PARA MOVILIZAR A UN FAMILIAR O UNA MASCOTA.<br><br>3. LA CARGA MÁXIMA RECOMENDADA (RES. SRT 886/15) ES DE 25 KG PARA HOMBRES ADULTOS EN CONDICIONES ÓPTIMAS, PERO SOLO 15 KG PARA MUJERES, JÓVENES Y TRABAJADORES DE MAYOR EDAD; SI SE SUPERA, USAR AYUDA MECÁNICA O HACERLO ENTRE VARIAS PERSONAS.<br><br>4. COMO CRITERIO PROPIO (NO ES UNA CIFRA OFICIAL), TRATE DE NO SUPERAR EL 20% DE SU PROPIO PESO AL LEVANTAR CARGAS DE USO COTIDIANO. EN MOCHILAS, NO SUPERAR EL 10 A 15% DEL PESO CORPORAL, EN ESPECIAL EN NIÑOS.`,
+  "Curaciones — cuidado de heridas": `1. LAVAR LA HERIDA CADA 24 HS (UNA VEZ POR DÍA, SALVO QUE ESTÉ MUY SUCIA O CON SECRECIÓN) CON AGUA Y JABÓN, GENERANDO ESPUMA, RETIRANDO LA SECRECIÓN CON GASA (EVITAR ALGODÓN O HISOPOS, QUE PUEDEN DEJAR HILOS EN LA HERIDA), SECAR Y CUBRIR CON GASA ESTÉRIL.<br><br>2. AGUA BAXTER: AGUA HERVIDA 5 MINUTOS, Y AL ENFRIAR, AGREGAR 8 GOTAS DE LAVANDINA POR LITRO DE AGUA.<br><br>3. JABÓN BLANCO NEUTRO: CORTARLO EN TROZOS PEQUEÑOS (COMO JABÓN DE HOTEL) Y USAR UNO NUEVO EN CADA CURACIÓN.<br><br>4. CONSULTAR ANTES DEL CONTROL PROGRAMADO SI APARECE MÁS ROJEZ, CALOR, PUS, FIEBRE O MÁS DOLOR ALREDEDOR DE LA HERIDA.`,
+  "Paciente con onicocriptosis — recomendaciones": `1. LAVAR LA HERIDA CADA 24 HS (UNA VEZ POR DÍA, SALVO QUE ESTÉ MUY SUCIA O CON SECRECIÓN) CON AGUA Y JABÓN, GENERANDO ESPUMA, RETIRANDO LA SECRECIÓN CON GASA (EVITAR ALGODÓN O HISOPOS, QUE PUEDEN DEJAR HILOS EN LA HERIDA), SECAR Y CUBRIR CON GASA ESTÉRIL.<br><br>2. AGUA BAXTER: AGUA HERVIDA 5 MINUTOS, Y AL ENFRIAR, AGREGAR 8 GOTAS DE LAVANDINA POR LITRO DE AGUA.<br><br>3. JABÓN BLANCO NEUTRO: CORTARLO EN TROZOS PEQUEÑOS (COMO JABÓN DE HOTEL) Y USAR UNO NUEVO EN CADA CURACIÓN.<br><br>4. CONSULTAR ANTES DEL CONTROL PROGRAMADO SI APARECE MÁS ROJEZ, CALOR, PUS, FIEBRE O MÁS DOLOR ALREDEDOR DE LA HERIDA.<br><br>5. MEDICACIÓN, REPOSO DEPORTIVO Y EVENTUAL CONDUCTA QUIRÚRGICA: SEGÚN LA INDICACIÓN INDIVIDUAL DE SU MÉDICO EN ESTA CONSULTA.`,
+  "Paciente anticoagulado — recomendaciones": `1. LOS ANTICOAGULANTES ORALES MÁS FRECUENTES SON: WARFARINA Y ACENOCUMAROL.<br><br>2. MUCHOS MEDICAMENTOS INTERACTÚAN CON LOS ANTICOAGULANTES ORALES (ACO), YA SEA POTENCIANDO SU EFECTO (AUMENTANDO EL RIESGO DE HEMORRAGIA) O DISMINUYENDO SU ACCIÓN (AUMENTANDO EL RIESGO DE TROMBOSIS). ES CRUCIAL NO AUTOMEDICARSE Y CONSULTAR SIEMPRE A SU MÉDICO ANTES DE TOMAR UN NUEVO MEDICAMENTO, INCLUYENDO LOS DE VENTA LIBRE Y SUPLEMENTOS HERBALES.<br><br>3. ENTRE LOS QUE AUMENTAN SU EFECTO (MAYOR RIESGO DE HEMORRAGIA) ESTÁN: ANTIINFLAMATORIOS NO ESTEROIDEOS — AINES (AAS, IBUPROFENO, INDOMETACINA, PARACETAMOL EN DOSIS ALTAS); ANTIBIÓTICOS COMO MACRÓLIDOS, METRONIDAZOL, SULFAMIDAS Y ALGUNAS PENICILINAS; ANTIFÚNGICOS COMO FLUCONAZOL (EL DE MAYOR RIESGO) Y ECONAZOLES; ANTIARRÍTMICOS COMO AMIODARONA Y QUINIDINA; VITAMINA E; ALCOHOL; ALOPURINOL.<br><br>4. ENTRE LOS QUE DISMINUYEN SU EFECTO (MAYOR RIESGO DE TROMBOSIS) ESTÁN: ANTIEPILÉPTICOS (CARBAMAZEPINA, FENITOÍNA, FENOBARBITAL); EL ANTIBIÓTICO RIFAMPICINA; INMUNOSUPRESORES O ANTINEOPLÁSICOS (AZATIOPRINA, 6-MERCAPTOPURINA); VITAMINA K; ALIMENTOS DE HOJA VERDE (ACELGA, ESPINACA); SUPLEMENTOS HERBALES COMO LA HIERBA DE SAN JUAN.`,
+  "Preparación intestinal para RX de columna": `1. LA PREPARACIÓN INTESTINAL PARA RADIOGRAFÍAS (ABDOMEN SIMPLE, COLUMNA LUMBOSACRA O COLON POR ENEMA) GENERALMENTE REQUIERE UNA DIETA ESPECIAL Y, A VECES, LAXANTES, PARA QUE EL INTESTINO ESTÉ LO MÁS LIMPIO POSIBLE Y NO INTERFIERA CON LAS IMÁGENES.<br><br>2. IMPORTANTE: LA EVIDENCIA ACTUAL NO RESPALDA LA PREPARACIÓN INTESTINAL NI EL AYUNO PROLONGADO PARA UNA RADIOGRAFÍA SIMPLE (SIN CONTRASTE) DE COLUMNA LUMBOSACRA O ABDOMEN. ESTA PREPARACIÓN SIGUE SIENDO VÁLIDA PARA ESTUDIOS CON CONTRASTE (COMO COLON POR ENEMA) — CONSULTE SI REALMENTE ES NECESARIA SEGÚN EL ESTUDIO SOLICITADO.<br><br>3. EL DÍA ANTERIOR: DIETA LÍQUIDA O BLANDA DURANTE LAS 24 HS PREVIAS (CALDOS COLADOS, JUGOS CLAROS, GELATINA, TÉ, AGUA); EVITAR LÁCTEOS, CARNES ROJAS, FRUTAS Y VERDURAS CON CÁSCARA O SEMILLAS, GRANOS, GASEOSAS Y ALCOHOL. HIDRATACIÓN ABUNDANTE. SI SU MÉDICO INDICA UN LAXANTE (FOSFO-DOM, FOSFOSODA U OTRO), TOMARLO EN LA DOSIS Y HORARIO INDICADOS.<br><br>4. EL DÍA DEL ESTUDIO: PRESENTARSE EN AYUNAS (GENERALMENTE 6 A 8 HS); LOS MEDICAMENTOS HABITUALES SUELEN TOMARSE CON UN POCO DE AGUA SALVO INDICACIÓN CONTRARIA; ASISTIR CON ROPA CÓMODA Y RETIRAR OBJETOS METÁLICOS.<br><br>5. SI TIENE INSUFICIENCIA RENAL, PROBLEMAS CARDÍACOS O DIABETES, CONSULTE ANTES DE USAR LAXANTES, YA QUE PUEDEN ESTAR CONTRAINDICADOS.`,
+  "Preparación para realizar RMN": `1. SI EL ESTUDIO ES CONTRASTADO, COMUNICAR ALERGIAS. SE UTILIZA GADOLINIO, UN CONTRASTE PARAMAGNÉTICO QUE RESALTA LAS ZONAS CON MAYOR FLUJO SANGUÍNEO O ALTERACIÓN DE LA BARRERA HEMATOENCEFÁLICA (COMO TUMORES O INFLAMACIÓN).<br><br>2. ACUDA CON ROPA HOLGADA, SIN APLIQUES METÁLICOS. DEBERÁ PERMANECER INMÓVIL; LA DURACIÓN VARÍA SEGÚN EL ESTUDIO (ENTRE 15 Y 90 MINUTOS).<br><br>3. SI FUE OPERADO Y TIENE PRÓTESIS O ELEMENTOS METÁLICOS, DEBE COMUNICARLO. SI USA CORPIÑO, NO ACUDIR CON ENGANCHES METÁLICOS — USAR CORPIÑO DEPORTIVO SIN APLIQUES METÁLICOS.<br><br>4. RETIRAR TODO ELEMENTO METÁLICO DEL CUERPO: PIERCINGS, AROS, CADENAS, PULSERAS O APLIQUES METÁLICOS DE UÑAS.<br><br>5. AVISAR SI TIENE MARCAPASOS U OTRO DISPOSITIVO ELECTRÓNICO IMPLANTADO, CLIPS DE ANEURISMA, IMPLANTE COCLEAR, SI ESTÁ EMBARAZADA, SI TIENE PROBLEMAS RENALES (POR EL GADOLINIO) O SI SIENTE CLAUSTROFOBIA.`,
+  "Adaptación a plantillas ortopédicas": `1. PARA UNA MEJOR ADAPTACIÓN, DURANTE EL PRIMER MES DEBEN USARSE EN FORMA PROGRESIVA, COMENZANDO POR PERÍODOS CORTOS EN CASA (ALREDEDOR DE 2 HS POR DÍA) Y AUMENTANDO GRADUALMENTE, YA QUE EL PIE NECESITA ACOSTUMBRARSE A LA NUEVA POSICIÓN Y A LOS NUEVOS PUNTOS DE APOYO.<br><br>2. EL CALZADO IDEAL ES AQUEL CON CONTRAFUERTES FIRMES, QUE PERMITAN MANTENER EL PIE CENTRADO SOBRE LA PLANTILLA. LA PLANTILLA ORTOPÉDICA DEBE TENER EL TAMAÑO EXACTO DE LA PLANTILLA DE FÁBRICA DEL CALZADO, Y ÉSTE NO DEBE SUPERAR MÁS DE 5 A 10 MM EL TAMAÑO DEL PIE.<br><br>3. TODAS LAS NOCHES RETIRE LAS PLANTILLAS DEL CALZADO PARA QUE PIERDAN LA HUMEDAD ADQUIRIDA EN EL DÍA. ES UN BUEN HÁBITO TENER UNA PLANTILLA POR CADA CALZADO EN USO.`,
+  "Cuidados de plantillas ortopédicas": `1. LA HIGIENE CONSISTE EN PASAR UN PAÑO HÚMEDO 2 VECES POR SEMANA, RETIRANDO LA SUCIEDAD ACUMULADA EN SU SUPERFICIE. GENERALMENTE DAN MEJOR RESULTADO PARA USO DE OFICINA O ESCOLAR QUE PARA USO DEPORTIVO.<br><br>2. TODAS LAS NOCHES RETIRE LAS PLANTILLAS DEL CALZADO PARA QUE PIERDAN LA HUMEDAD ADQUIRIDA EN EL DÍA. TENER UNA PLANTILLA POR CADA CALZADO EN USO PROLONGA SU VIDA ÚTIL.<br><br>3. LAS PLANTILLAS SE REEMPLAZAN CUANDO PIERDEN ALTURA EN SUS RELIEVES, SE ROMPEN O SE RESQUEBRAJA SU SUPERFICIE, O QUEDAN MÁS PEQUEÑAS EN RELACIÓN AL PIE QUE DEBEN SOSTENER Y CORREGIR.`,
+  "Cuidado del yeso — miembro superior": `1. MANTENGA EL YESO SIEMPRE SECO. PARA BAÑARSE, CÚBRALO POR COMPLETO CON UNA BOLSA DE PLÁSTICO BIEN SELLADA EN EL EXTREMO SUPERIOR — LA HUMEDAD DEBILITA EL YESO TRADICIONAL Y PUEDE IRRITAR LA PIEL AUNQUE SEA DE FIBRA DE VIDRIO.<br><br>2. SI ES YESO TRADICIONAL (A BASE DE SULFATO DE CALCIO), TARDA APROXIMADAMENTE 1 A 3 DÍAS EN ENDURECER POR COMPLETO — EVITE APOYARLO CON FUERZA O GOLPEARLO MIENTRAS TANTO. SI ES DE FIBRA DE VIDRIO, ENDURECE MUCHO MÁS RÁPIDO (ALREDEDOR DE 1 HORA), ES MÁS LIVIANO Y RESISTENTE, AUNQUE EL ACOLCHADO DE ADENTRO PUEDE SEGUIR SIN SER RESISTENTE AL AGUA, SALVO INDICACIÓN CONTRARIA DE SU MÉDICO.<br><br>3. DURANTE LOS PRIMEROS 2 A 3 DÍAS, MANTENGA EL BRAZO ELEVADO POR ENCIMA DEL NIVEL DEL CORAZÓN (CON CABESTRILLO O SOBRE ALMOHADAS, MANO MÁS ALTA QUE EL CODO) PARA REDUCIR LA HINCHAZÓN.<br><br>4. MUEVA LOS DEDOS CON FRECUENCIA (ESTIRARLOS, SEPARARLOS, CERRAR Y ABRIR LA MANO) VARIAS VECES POR DÍA, Y MUEVA EL HOMBRO Y EL CODO SI NO ESTÁN INMOVILIZADOS, PARA EVITAR RIGIDEZ.<br><br>5. NUNCA INTRODUZCA OBJETOS DENTRO DEL YESO PARA RASCARSE, NI USE TALCOS O CREMAS EN SU INTERIOR. NO RETIRE EL ACOLCHADO NI RECORTE LOS BORDES POR SU CUENTA; SI LE MOLESTA UN BORDE, CONSULTE.<br><br>6. REVISE A DIARIO EL COLOR, LA TEMPERATURA Y LA SENSIBILIDAD DE LOS DEDOS, Y EVITE ANILLOS U OTROS OBJETOS AJUSTADOS EN ELLOS.<br><br>7. CONSULTE DE INMEDIATO SI APARECE: DOLOR QUE AUMENTA Y NO MEJORA CON LA ELEVACIÓN O LA MEDICACIÓN INDICADA; HORMIGUEO O ADORMECIMIENTO; DEDOS FRÍOS, PÁLIDOS, MORADOS O MUY HINCHADOS; IMPOSIBILIDAD DE MOVERLOS; EL YESO MUY AJUSTADO, MUY FLOJO, ROTO, BLANDO O MOJADO POR DENTRO; MAL OLOR, SECRECIÓN O FIEBRE.`,
+  "Cuidado del yeso — miembro inferior": `1. MANTENGA EL YESO SIEMPRE SECO. PARA BAÑARSE, CÚBRALO POR COMPLETO CON UNA BOLSA DE PLÁSTICO BIEN SELLADA EN EL EXTREMO SUPERIOR — LA HUMEDAD DEBILITA EL YESO TRADICIONAL Y PUEDE IRRITAR LA PIEL AUNQUE SEA DE FIBRA DE VIDRIO.<br><br>2. SI ES YESO TRADICIONAL (A BASE DE SULFATO DE CALCIO), TARDA APROXIMADAMENTE 1 A 3 DÍAS EN ENDURECER POR COMPLETO — EVITE APOYAR PESO SOBRE ÉL MIENTRAS TANTO. SI ES DE FIBRA DE VIDRIO, ENDURECE MUCHO MÁS RÁPIDO (ALREDEDOR DE 1 HORA), ES MÁS LIVIANO Y RESISTENTE, AUNQUE EL ACOLCHADO DE ADENTRO PUEDE SEGUIR SIN SER RESISTENTE AL AGUA, SALVO INDICACIÓN CONTRARIA DE SU MÉDICO.<br><br>3. DURANTE LOS PRIMEROS 2 A 3 DÍAS, MANTENGA LA PIERNA ELEVADA CON EL PIE MÁS ALTO QUE LA RODILLA (SOBRE ALMOHADAS, RECOSTADO O ACOSTADO) PARA REDUCIR LA HINCHAZÓN.<br><br>4. NO CAMINE NI APOYE PESO SOBRE EL YESO SALVO AUTORIZACIÓN EXPRESA DE SU MÉDICO; SI SE LA DAN, USE SIEMPRE EL BOTÍN O ZAPATO PARA YESO INDICADO, Y LAS MULETAS COMO LE ENSEÑARON.<br><br>5. MUEVA LOS DEDOS DEL PIE CON FRECUENCIA, Y LA RODILLA Y LA CADERA SI NO ESTÁN INMOVILIZADAS, PARA EVITAR RIGIDEZ.<br><br>6. NUNCA INTRODUZCA OBJETOS DENTRO DEL YESO PARA RASCARSE, NI USE TALCOS O CREMAS EN SU INTERIOR. NO RETIRE EL ACOLCHADO NI RECORTE LOS BORDES POR SU CUENTA; SI LE MOLESTA UN BORDE, CONSULTE.<br><br>7. REVISE A DIARIO EL COLOR, LA TEMPERATURA Y LA SENSIBILIDAD DE LOS DEDOS DEL PIE, Y EVITE ANILLOS U OTROS OBJETOS AJUSTADOS EN ELLOS.<br><br>8. CONSULTE DE INMEDIATO SI APARECE: DOLOR QUE AUMENTA Y NO MEJORA CON LA ELEVACIÓN O LA MEDICACIÓN INDICADA; HORMIGUEO O ADORMECIMIENTO; DEDOS FRÍOS, PÁLIDOS, MORADOS O MUY HINCHADOS; IMPOSIBILIDAD DE MOVERLOS; EL YESO MUY AJUSTADO, MUY FLOJO, ROTO, BLANDO O MOJADO POR DENTRO; MAL OLOR, SECRECIÓN O FIEBRE.<br><br>9. CONSULTE EN FORMA URGENTE SI TIENE DOLOR O HINCHAZÓN INTENSA DE LA PANTORRILLA, O DOLOR EN EL PECHO O FALTA DE AIRE — SON POCO FRECUENTES PERO PUEDEN INDICAR UN COÁGULO, ESPECIALMENTE SI SE MUEVE MENOS DE LO HABITUAL POR EL YESO.`,
+  "Reacciones alérgicas a medicamentos — referencia": `LAS REACCIONES ALÉRGICAS A MEDICAMENTOS SE CLASIFICAN POR TIEMPO DE APARICIÓN (INMEDIATAS O TARDÍAS), MECANISMO INMUNOLÓGICO (CLASIFICACIÓN DE GELL Y COOMBS, TIPOS I A IV) Y EXTENSIÓN DE LA REACCIÓN (TIPO A, PREDECIBLES/FARMACOLÓGICAS LEVES; TIPO B, NO PREDECIBLES/ALÉRGICAS O NO ALÉRGICAS, GRAVES).<br><br>INMEDIATAS (MINUTOS A 1 HORA): MEDIADAS POR IGE, LIBERAN HISTAMINA, CAUSANDO URTICARIA, ANGIOEDEMA, BRONCOESPASMO Y ANAFILAXIA. TARDÍAS (HORAS, DÍAS O SEMANAS): INVOLUCRAN OTROS MECANISMOS INMUNES, DESDE ERUPCIONES CUTÁNEAS HASTA SÍNDROMES GRAVES COMO DRESS O STEVENS-JOHNSON.<br><br>GELL Y COOMBS: TIPO I (ANAFILÁCTICO) MEDIADO POR IGE, RÁPIDO (MINUTOS) — EJ. ANAFILAXIA, URTICARIA, ASMA. TIPO II (CITOTÓXICO) MEDIADO POR IGG/IGM CONTRA CÉLULAS, CAUSANDO CITOPENIAS (EJ. ANEMIA HEMOLÍTICA). TIPO III (INMUNOCOMPLEJOS): COMPLEJOS FÁRMACO-ANTICUERPO QUE SE DEPOSITAN, CAUSANDO VASCULITIS O ARTRITIS. TIPO IV (MEDIADO POR CÉLULAS): MEDIADO POR LINFOCITOS T, TARDÍO — EJ. DERMATITIS DE CONTACTO, DRESS, STEVENS-JOHNSON, NET.<br><br>LEVES: URTICARIA, PICAZÓN, SARPULLIDO, FIEBRE, HINCHAZÓN. GRAVES: DIFICULTAD PARA RESPIRAR, SIBILANCIAS, MAREOS, DESMAYO, VÓMITOS, DIARREA, PULSO RÁPIDO.<br><br>NOTA: LA MAYORÍA DE LAS REACCIONES A MEDICAMENTOS (~80%) SON TIPO A (PREVISIBLES), NO VERDADERAS ALERGIAS. EL TIPO IV TIENE SUBTIPOS SEGÚN LA CÉLULA INVOLUCRADA (DRESS Y STEVENS-JOHNSON CORRESPONDEN A SUBTIPOS DISTINTOS ENTRE SÍ).`,
 };
 
 
@@ -2657,10 +2793,10 @@ const SUBMENUS = {
     {n:'RMYT — Miembro superior',items:['RMYT: Hombro','RMYT: Brazo / húmero','RMYT: Codo','RMYT: Muñeca y mano']},
     {n:'RMYT — Miembro inferior',items:['RMYT: Cadera','RMYT: Rodilla','RMYT: Tobillo y pie','RMYT: Dismetría de MMII']},
     {n:'RMYT — Rehabilitación',items:['RMYT: Rehabilitación global — polipatología','RMYT: Calistenia básica — programa integral']},
-    {n:'Derivaciones',items:['Centros de imágenes recomendados para la zona','Kinesiólogos que realizan RPG','Ortopedias de confianza']},
-    {n:'Cuidados generales',items:['Adaptación a plantillas ortopédicas','Cuidados de plantillas ortopédicas','Osteoporosis — recomendaciones generales','Ergonomía laboral','Ergonomía de carga']},
+    {n:'Cuidados generales',items:['Adaptación a plantillas ortopédicas','Cuidados de plantillas ortopédicas','Osteoporosis — recomendaciones generales','Ergonomía laboral','Ergonomía de carga','Curaciones — cuidado de heridas','Cuidado del yeso — miembro superior','Cuidado del yeso — miembro inferior']},
     {n:'Preparación estudios',items:['Preparación intestinal para RX de columna','Preparación para realizar RMN']},
-    {n:'Condiciones especiales',items:['Paciente anticoagulado — recomendaciones','Paciente con gastritis — recomendaciones','Paciente con onicocriptosis — recomendaciones']}
+    {n:'Condiciones especiales',items:['Paciente anticoagulado — recomendaciones','Paciente con gastritis — recomendaciones','Paciente con onicocriptosis — recomendaciones','Reacciones alérgicas a medicamentos — referencia']},
+    {n:'Derivaciones',items:['Centros de imágenes recomendados para la zona','Kinesiólogos que realizan RPG','Ortopedias de confianza']}
   ]}
 };
 
@@ -2750,9 +2886,24 @@ async function getConsultas(id){
 // nube despues) y lo deja seleccionado solo, listo para armar la receta.
 // No cambia nada del comportamiento normal si no viene el parametro.
 // ══════════════════════════════════════════════════════════════════
-async function autoAbrirPacientePorDNI(dni){
-  if(!dni) return;
-  try{
+// BUGFIX (sept 2026): OCM tiene DOS secciones que se auto-cargan por
+// separado al abrir la pagina con ?dni=... — la clinica/recetario
+// (autoAbrirPacientePorDNI, mas abajo) y la quirurgica (cargarPacientePorDNI,
+// mucho mas abajo en el archivo). Antes CADA UNA hacia su propia busqueda
+// local+nube en paralelo, sin coordinarse entre si: eran dos carreras
+// independientes por el mismo DNI, y segun cual terminara ultima, la otra
+// seccion podia quedar sin pintar el paciente (o pintarlo con datos algo
+// distintos). Esto se veia como "OCM no carga el paciente" al venir desde
+// CAM. Ahora hay UNA sola busqueda compartida y memoizada por DNI: la
+// primera seccion que la pide dispara la consulta real; la segunda reusa
+// el mismo resultado (sin duplicar la llamada a la nube), y cada una sigue
+// pintando su propia parte de la pantalla como antes.
+let _buscaPacOCMDniPromise = null, _buscaPacOCMDniValor = null;
+async function buscarPacienteCompartidoPorDNI_(dni){
+  if(!dni) return null;
+  if(_buscaPacOCMDniValor && String(_buscaPacOCMDniValor.dni)===String(dni)) return _buscaPacOCMDniValor;
+  if(_buscaPacOCMDniPromise) return _buscaPacOCMDniPromise;
+  _buscaPacOCMDniPromise = (async()=>{
     const local = await buscarPacientesDB(dni);
     let pac = local.find(p=>String(p.dni||'')===String(dni));
     if(!pac){
@@ -2768,9 +2919,17 @@ async function autoAbrirPacientePorDNI(dni){
         };
         const id = await dbAdd('pacientes',{...datos,created_at:new Date().toISOString()});
         pac = {...datos,id};
-        toast('☁ Paciente traido desde CAM','ok');
       }
     }
+    _buscaPacOCMDniValor = pac || null;
+    return _buscaPacOCMDniValor;
+  })();
+  return _buscaPacOCMDniPromise;
+}
+async function autoAbrirPacientePorDNI(dni){
+  if(!dni) return;
+  try{
+    const pac = await buscarPacienteCompartidoPorDNI_(dni);
     if(pac){
       seleccionarPaciente(pac);
       toast('Paciente cargado desde CAM: '+(pac.apellido||'')+', '+(pac.nombre||''),'ok');
@@ -2831,10 +2990,31 @@ function toggleSimmNav(){
   if(!dd) return;
   dd.style.display = dd.style.display==='none' ? 'block' : 'none';
 }
+function cerrarAgendaNavYAbrir_(categoria){
+  // La Agenda de pacientes ahora vive adentro del dropdown "Ir a…"
+  // (antes tenía su propio botón "📇 Agenda ▾" aparte).
+  const dd = document.getElementById('simm-nav-dropdown');
+  if(dd) dd.style.display='none';
+  abrirAgendaPacientes(categoria);
+}
+function toggleDocsNav(){
+  const dd = document.getElementById('docs-nav-dropdown');
+  if(!dd) return;
+  dd.style.display = dd.style.display==='none' ? 'block' : 'none';
+}
+function cerrarDocsNavYEjecutar_(nombreFuncion){
+  const dd = document.getElementById('docs-nav-dropdown');
+  if(dd) dd.style.display='none';
+  const fn = window[nombreFuncion];
+  if(typeof fn === 'function') fn();
+}
 document.addEventListener('click', e=>{
   const wrap = document.querySelector('.simm-nav-wrap');
   const dd = document.getElementById('simm-nav-dropdown');
   if(wrap && dd && !wrap.contains(e.target)) dd.style.display='none';
+  const docsWrap = document.querySelector('.docs-nav-wrap');
+  const docsDd = document.getElementById('docs-nav-dropdown');
+  if(docsWrap && docsDd && !docsWrap.contains(e.target)) docsDd.style.display='none';
 });
 document.addEventListener('DOMContentLoaded',async()=>{
   // Cada paso corre aislado: si alguno falla (localStorage, red, IndexedDB, etc.)
@@ -2869,6 +3049,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   /* Nuevos módulos */
   safePaso_('initVoz', initVoz);
   safePaso_('initTeclado', initTeclado);
+  safePaso_('sincronizarPlantillasDesdeNube_', sincronizarPlantillasDesdeNube_);
   // NUEVO: si CAM nos manda el DNI por la URL, cargamos ese paciente solo
   const dniDeCAM = new URLSearchParams(window.location.search).get('dni');
   if(dniDeCAM) safePaso_('autoAbrirPacientePorDNI', ()=>autoAbrirPacientePorDNI(dniDeCAM));
@@ -3055,7 +3236,10 @@ function setCentro(key){
 function renderCentroLinks(c){
   const el=document.getElementById('rec-centro-links');
   el.innerHTML='';
-  if(c.wsp) el.innerHTML+=`<a class="turno-link turno-wsp" href="https://wa.me/${c.wsp}?text=Hola, quisiera sacar turno con el Dr. Muratori" target="_blank">💬 Turno WhatsApp</a>`;
+  // WhatsApp sacado del sistema (pedido del Dr. Muratori, sep 2026) — el turno
+  // ahora se pide únicamente por mail. Nota: los centros Palmares y Cl. Santa
+  // María tienen wsp cargado pero mail vacío en CENTROS — quedan sin link de
+  // turno acá hasta que se les cargue un mail (flagueado al Dr. Muratori).
   if(c.mail) el.innerHTML+=`<a class="turno-link turno-mail" href="mailto:${c.mail}?subject=Solicitud de turno — Consultorio Dr. Muratori" target="_blank">✉ Turno por mail</a>`;
   if(c.lat) el.innerHTML+=`<a class="turno-link turno-geo" href="https://www.google.com/maps?q=${c.lat},${c.lng}" target="_blank">📍 Ver ubicación</a>`;
 }
@@ -3130,29 +3314,37 @@ const CMD_DEFS=[
   // Medicación: se ingresa directamente en el cuerpo de la receta (Rp/){k:'cir',icon:'🔬',lbl:'Cirugía',sec:'TRATAMIENTOS'},
   // cert moved to bottom cert-zone{k:'reco',icon:'📋',lbl:'Recom.',sec:'DOCUMENTOS'}
   {k:'rmyt',icon:'📋',lbl:'RMYT',sec:'RECOMENDACIONES'},
-  {k:'genrmyt',icon:'📄',lbl:'Generar RMYT',sec:'RECOMENDACIONES'},
-  {k:'librmyt',icon:'📔',lbl:'Libro RMYT',sec:'RECOMENDACIONES'},
-  {k:'librodiscap',icon:'📘',lbl:'Libro Discapacidad',sec:'RECOMENDACIONES'},
-  {k:'catastro',icon:'🏭',lbl:'Catastro Empresas',sec:'RECOMENDACIONES'},
-  // PEDIDO: acceso directo (un solo clic) desde este menú a cada categoría
-  // de 📇 Agenda de Pacientes, sin tener que abrirla primero en "Todos" y
-  // después buscar la pestaña.
-  {k:'ag_todos',icon:'📇',lbl:'Agenda Pacientes',sec:'AGENDA'},
-  {k:'ag_discap',icon:'🔵',lbl:'Discapacidad',sec:'AGENDA'},
-  {k:'ag_tratam',icon:'🩺',lbl:'En tratamiento',sec:'AGENDA'},
-  {k:'ag_decidido',icon:'✅',lbl:'Decidido s/prequir.',sec:'AGENDA'},
-  {k:'ag_observado',icon:'👁',lbl:'Observado',sec:'AGENDA'},
-  {k:'ag_planif',icon:'📋',lbl:'Planificación Qx',sec:'AGENDA'},
-  {k:'ag_program',icon:'📅',lbl:'Programación Qx',sec:'AGENDA'},
-  {k:'ag_seguim',icon:'🩹',lbl:'Seguimiento postop',sec:'AGENDA'}
+  {k:'genrmyt',icon:'📄',lbl:'Generar RMYT',sec:'RECOMENDACIONES'}
+  // La sección AGENDA (Agenda Pacientes, Discapacidad, En tratamiento,
+  // Decidido s/prequir., Observado, Planificación Qx, Programación Qx,
+  // Seguimiento postop) se sacó de esta grilla de comandos de consulta —
+  // no es "velocidad de atención médica", es gestión de agenda. Vivió un
+  // tiempo en su propio botón "📇 Agenda ▾" aparte, pero a pedido se
+  // unificó DENTRO de "Ir a…" (#simm-nav-dropdown / toggleSimmNav()),
+  // llamando a la misma abrirAgendaPacientes(categoria) de siempre —
+  // ver cerrarAgendaNavYAbrir_().
+  //
+  // Libro RMYT, Libro Discapacidad y Catastro de Empresas también se
+  // sacaron de esta grilla — no son acciones de consulta en curso, son
+  // libros/registros de consulta poco frecuente. Viven como lista única
+  // en el botón "📚 Documentos ▾" del top-bar (ver #docs-nav-dropdown /
+  // toggleDocsNav()). Certificados NO está ahí — vive como botón propio
+  // "📋 Certificados" al lado de "Ítems en receta" (ver btn-cert-toggle).
 ];
+// Carteles de sección: se sacaron todos (pedido explícito — la iconografía
+// ya es clara sin título arriba). Las secciones siguen existiendo para
+// agrupar en CMD_DEFS, solo que ya no muestran su nombre.
+const CMD_SECCIONES_SIN_CARTEL = ['ESTUDIOS','TRATAMIENTOS','RECOMENDACIONES'];
 function buildCmdZone(){
   const zone=document.getElementById('cmd-zone');
   const secs={};
   CMD_DEFS.forEach(c=>{if(!secs[c.sec])secs[c.sec]=[];secs[c.sec].push(c);});
   Object.entries(secs).forEach(([sec,cmds])=>{
     const s=document.createElement('div');s.className='cmd-section';
-    const lbl=document.createElement('div');lbl.className='cmd-sect-lbl';lbl.textContent=sec;
+    if(!CMD_SECCIONES_SIN_CARTEL.includes(sec)){
+      const lbl=document.createElement('div');lbl.className='cmd-sect-lbl';lbl.textContent=sec;
+      s.appendChild(lbl);
+    }
     const row=document.createElement('div');row.className='cmd-row';
     cmds.forEach(c=>{
       const btn=document.createElement('div');
@@ -3162,14 +3354,72 @@ function buildCmdZone(){
       btn.onclick=()=>selectCmd(c.k);
       row.appendChild(btn);
     });
-    s.appendChild(lbl);s.appendChild(row);zone.appendChild(s);
+    s.appendChild(row);zone.appendChild(s);
   });
 }
 function toggleCarrito(){
   const z=document.getElementById('carrito-zone');
   z.classList.toggle('collapsed');
 }
+function toggleAntecZone(){
+  const z=document.getElementById('antec-zone');
+  if(z) z.classList.toggle('collapsed');
+}
+// Antecedentes (enfermedades/medicamentos/alergias/cirugías/vacunas) y
+// consultas anteriores (fecha, diagnóstico, tratamiento en un renglón),
+// arriba del recetario. Usa get_vista_consolidada — la misma fuente que ya
+// usan CAM (get_vista_consolidada) y la Consulta Virtual de Agenda de
+// Mensajes — no crea ninguna acción nueva en Codigo.gs.
+async function cargarAntecedentesYHistorial(dni){
+  const resumenEl=document.getElementById('antec-resumen'), histEl=document.getElementById('antec-historial');
+  if(!resumenEl||!histEl) return;
+  if(!dni){ resumenEl.innerHTML=''; histEl.innerHTML=''; return; }
+  // Al cargar un paciente, desplegar automáticamente la zona de
+  // antecedentes/consultas anteriores (antes quedaba colapsada y
+  // había que hacer clic manual para verla).
+  const antecZoneEl=document.getElementById('antec-zone');
+  if(antecZoneEl) antecZoneEl.classList.remove('collapsed');
+  resumenEl.innerHTML='<span style="color:var(--muted)">Cargando…</span>';
+  histEl.innerHTML='';
+  try{
+    const resp=await fetch(SHEETS_URL+'?action=get_vista_consolidada&dni='+encodeURIComponent(dni),{signal:AbortSignal.timeout(8000)});
+    const data=await resp.json();
+    if(!data.success||!data.vista){ resumenEl.innerHTML='<span style="color:var(--muted)">Sin antecedentes cargados todavía.</span>'; return; }
+    const a=data.vista.antecedentes||{};
+    const partes=[];
+    if(a.enfermedades) partes.push(`<b>Enfermedades:</b> ${a.enfermedades}`);
+    if(a.medicacion) partes.push(`<b>Medicamentos:</b> ${a.medicacion}`);
+    if(a.alergia) partes.push(`<b>Alergias:</b> ${a.alergia}${a.alergia_det?' — '+a.alergia_det:''}`);
+    if(a.cirugias) partes.push(`<b>Cirugías previas:</b> ${a.cirugias}`);
+    if(a.vacunas) partes.push(`<b>Vacunas:</b> ${a.vacunas}`);
+    resumenEl.innerHTML = partes.length ? partes.map(p=>`<div>${p}</div>`).join('') : '<span style="color:var(--muted)">Sin antecedentes cargados todavía — se le pueden pedir al paciente por RIDM vía mail.</span>';
+    const historia=(data.vista.historia||[]).filter(h=>h.Fecha).sort((x,y)=>new Date(y.Fecha)-new Date(x.Fecha));
+    if(historia.length){
+      // Línea corta: fecha - diagnóstico - clasificación - terapéutica (solo
+      // palabras). Si hay más detalle (Observaciones/Medicamentos/Estudios),
+      // "ver más" lo despliega debajo sin recargar nada — pedido de CAM
+      // Verbal, sep 2026.
+      histEl.innerHTML='<div style="font-weight:700;margin-bottom:4px;color:var(--muted);font-size:10px;text-transform:uppercase">Consultas anteriores</div>'+
+        historia.map((h,i)=>{
+          const cortas=[h.Diagnostico||'sin diagnóstico registrado', h.Clasificacion, h.Terapeutica, h.Lugar_Atencion?('📍 '+h.Lugar_Atencion):''].filter(Boolean);
+          const detalle=[h.Observaciones, h.Medicamentos].filter(Boolean).join(' — ');
+          return `<div style="padding:3px 0;border-top:1px dashed #fde68a">
+            <div>📅 ${h.Fecha} — ${cortas.join(' — ')}${detalle?` <span onclick="toggleAntecDetalle(${i})" style="cursor:pointer;color:var(--azul);font-size:10px">▾ ver más</span>`:''}</div>
+            ${detalle?`<div id="antec-det-${i}" style="display:none;margin-top:2px;color:var(--muted)">${detalle}</div>`:''}
+          </div>`;
+        }).join('');
+    } else {
+      histEl.innerHTML='<span style="color:var(--muted)">Sin consultas anteriores registradas.</span>';
+    }
+  }catch(e){
+    resumenEl.innerHTML='<span style="color:var(--muted)">No se pudo conectar para traer antecedentes.</span>';
+  }
+}
 
+function toggleAntecDetalle(i){
+  const el=document.getElementById('antec-det-'+i);
+  if(el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
 function selectCmd(key){
   // Medicación: va directo al cuerpo libre de la receta
   if(key==='_med_directo'||key==='med'){
@@ -3181,7 +3431,7 @@ function selectCmd(key){
   // RMYT: estos tres abren directamente su modal — no tienen categoría de
   // estudios/tratamientos para desplegar al lado.
   if(key==='rmyt'){ abrirModal('modal-imd-selector'); return; }
-  if(key==='genrmyt'){ abrirGeneradorIMDCYMT(); return; }
+  if(key==='genrmyt'){ abrirGeneradorRecomendaciones(); return; }
   if(key==='librmyt'){ abrirLibroRmyt(); return; }
   if(key==='librodiscap'){ abrirLibroDiscapacidad(); return; }
   if(key==='catastro'){ abrirCatastroEmpresas(); return; }
@@ -4211,7 +4461,7 @@ function buscarPaciente(q){
       const div=document.createElement('div');div.className='search-item';
       const badge = p._nube ? ' <span style="font-size:9px;background:#e0f2fe;color:#0369a1;border-radius:8px;padding:1px 6px;margin-left:4px">☁ EN LA NUBE</span>'
                   : p._pendienteRidm ? ' <span style="font-size:9px;background:#fef3c7;color:#92400e;border-radius:8px;padding:1px 6px;margin-left:4px">🆕 FILIACIÓN RECIÉN CARGADA</span>' : '';
-      div.innerHTML=`<div class="s-nom">${p.apellido||''}, ${p.nombre||''}${badge}</div><div class="s-det">DNI: ${p.dni||'—'} · ${p.obra_social||(p._pendienteRidm?'Filiación rápida — completar el resto luego':'Sin obra social')}</div>`;
+      div.innerHTML=`<div class="s-nom">${String(p.apellido||'').toUpperCase()}, ${String(p.nombre||'').toUpperCase()}${badge}</div><div class="s-det">DNI: ${p.dni||'—'} · ${p.obra_social||(p._pendienteRidm?'Filiación rápida — completar el resto luego':'Sin obra social')}</div>`;
       div.onclick=async()=>{
         let pac=p;
         if(p._nube){
@@ -4240,18 +4490,21 @@ function buscarPaciente(q){
 function seleccionarPaciente(p){
   pacienteActivo=p;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'';};
-  set('rf-paciente',`${p.apellido||''}, ${p.nombre||''}`);
+  set('rf-paciente',`${String(p.apellido||'').toUpperCase()}, ${String(p.nombre||'').toUpperCase()}`);
   set('rf-dni',p.dni);set('rf-fnac',p.fecha_nac);set('rf-edad',p.edad);
   set('rf-dir',p.direccion);set('rf-tel',p.telefono);
   set('rf-os',p.obra_social);set('rf-plan',p.plan);
   set('rf-afil',p.nro_afiliado);set('rf-mail',p.mail);
-  document.getElementById('pac-activo-lbl').textContent=`${p.apellido||''}, ${p.nombre||''} (DNI: ${p.dni||'—'})`;
+  document.getElementById('pac-activo-lbl').textContent=`${String(p.apellido||'').toUpperCase()}, ${String(p.nombre||'').toUpperCase()} (DNI: ${p.dni||'—'})`;
   document.getElementById('btn-hist').disabled=false;
   document.getElementById('btn-segui').disabled=false;
   const btnGenImd = document.getElementById('btn-gen-imd') || document.getElementById('cmd-genrmyt');
   if(btnGenImd) btnGenImd.disabled=false;
+  actualizarBotonMembresia_();
   // Verificar si existe RIDM pre-consulta para este paciente
   if (p.dni) verificarRIDM(p.dni);
+  // Antecedentes y consultas anteriores, arriba del recetario
+  if (p.dni) cargarAntecedentesYHistorial(p.dni);
   // Cargar el carrito de "Recetas de esta consulta" guardado para este DNI (si había uno a medio armar)
   cargarIMCartLocal();
   // Repintar los botones de categoría (RX, IRM, TAC, etc.) con el color que
@@ -4406,6 +4659,8 @@ function abrirModalNuevoPaciente(datos){
   if(chkPrimera) chkPrimera.checked = !pacEditId; // paciente nuevo: tildado por default; al editar uno existente, no
   const chkDiscapacidad=document.getElementById('p-discapacidad');
   if(chkDiscapacidad) chkDiscapacidad.checked = !!(datos && datos.discapacidad);
+  const chkMembresia=document.getElementById('p-membresia');
+  if(chkMembresia) chkMembresia.checked = !!(datos && datos.membresia);
   if(datos){
     const sv=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
     sv('p-dni',datos.dni);sv('p-ape',datos.apellido);sv('p-nom',datos.nombre);
@@ -4431,6 +4686,11 @@ async function guardarPaciente(){
   };
   const esPrimeraConsulta = !!document.getElementById('p-primera-consulta')?.checked;
   const esDiscapacidad = !!document.getElementById('p-discapacidad')?.checked;
+  // Membresía: elección del Dr. Muratori, sin costo — habilita RMYT, respuesta
+  // de mail con contexto clínico (RSP), agendas y seguimiento posquirúrgico
+  // (RSPQ). La filiación por sí sola NO la da — solo abre lo transaccional
+  // (recetas, pedidos de estudio, certificados).
+  const esMembresia = !!document.getElementById('p-membresia')?.checked;
   const payload={dni,apellido:ape,nombre:nom,fecha_nac:g('p-fnac'),edad:g('p-edad'),
     direccion:g('p-dir'),telefono:g('p-tel'),mail:g('p-mail'),
     obra_social:g('p-os'),plan:g('p-plan'),nro_afiliado:g('p-afil'),
@@ -4439,6 +4699,7 @@ async function guardarPaciente(){
     // nunca quedaba en el registro local — por eso 📇 Agenda de Pacientes no
     // podía detectarlo sin que además existiera el Libro de Discapacidad.
     discapacidad:esDiscapacidad,
+    membresia:esMembresia,
     updated_at:new Date().toISOString()};
   try{
     let id;
@@ -4452,7 +4713,21 @@ async function guardarPaciente(){
       action:'addPaciente', Apellido:ape, Nombre:nom, DNI:dni,
       Fecha_Nac:g('p-fnac')||'', Obra_Social:g('p-os')||'', N_Afiliado:g('p-afil')||'',
       Plan:g('p-plan')||'', Telefono:g('p-tel')||'', Email:g('p-mail')||'',
-      Domicilio:g('p-dir')||'', Lugar_Atencion:currentCentroKey||'',
+      // BUGFIX (sep 2026, pedido de Luis): antes acá se mandaba
+      // Lugar_Atencion:currentCentroKey — currentCentroKey es la pestaña de
+      // centro/consultorio que está ACTIVA en la barra de arriba de OCM (la
+      // que define el membrete/logo del recetario), no el consultorio real
+      // del paciente. Como addPaciente en el backend pisa el valor de
+      // Lugar_Atencion cada vez que se guarda algo del paciente (aunque sea
+      // una edición sin relación con eso), esto terminaba sobreescribiendo
+      // el Lugar_Atencion de CUALQUIER paciente con lo que tuvieras
+      // seleccionado en ese momento — así fue como cientos de pacientes
+      // cargados en una sesión con "Consultorios Privados del Norte"
+      // activo quedaron todos marcados con ese consultorio, sin que fuera
+      // real. Ahora no se manda este campo desde acá: si no viene,
+      // addPaciente no lo toca (ver "valoresNuevos[h] !== undefined" en
+      // Codigo.gs), así que deja de pisarse solo.
+      Domicilio:g('p-dir')||'',
       Diagnostico_Principal:'', Estado_Tratamiento:'Activo',
       Antecedentes_Generales: antecedentesGenerales,
       // "Primera consulta": el backend manda el RIMP ahora mismo si hay mail
@@ -4460,7 +4735,8 @@ async function guardarPaciente(){
       Primera_Consulta: esPrimeraConsulta,
       // Si está tildado, el RIMP que se manda es el completo (vivienda, trabajos,
       // infancia, vacunas, COVID) — si no, se manda la versión breve.
-      Discapacidad: esDiscapacidad
+      Discapacidad: esDiscapacidad,
+      Membresia: esMembresia
     };
     // Si hay datos de RIMP para este mismo paciente, sumar localidad/trabajos/vivienda
     if(ridmData && String(ridmData.dni||'')===String(dni||'')){
@@ -4485,6 +4761,149 @@ async function guardarPaciente(){
     msg.style.display='block';
   }
 }
+
+// ══════════════════════════════════════════════════════════════════
+// FILIACIÓN AUTOMÁTICA DESDE EL RECETARIO — pedido del Dr. Muratori:
+// al atender, tipeando directo en el encabezado del recetario (Paciente,
+// DNI, etc.) eso mismo da de alta la filiación real, sin tener que abrir
+// aparte el modal "Nuevo paciente". Sirve en especial para pacientes sin
+// mail: no depende de mandarles nada, el médico carga los datos él mismo
+// en el momento y ya puede hacer la receta/certificado.
+// ══════════════════════════════════════════════════════════════════
+async function autoCrearFiliacionDesdeReceta_(){
+  const gTxt = id => (document.getElementById(id)?.textContent || '').trim();
+  const dni = gTxt('rf-dni');
+  const nombreCompleto = gTxt('rf-paciente');
+  if(!dni || !nombreCompleto){
+    toast('Para crear la filiación automáticamente completá al menos "Paciente" y "DNI" en el encabezado del recetario','err');
+    return null;
+  }
+  // El campo "Paciente" se muestra como "Apellido, Nombre" para los
+  // pacientes ya existentes (ver seleccionarPaciente) — mantenemos esa
+  // misma convención para separar apellido y nombre de lo tipeado a mano.
+  const comaIdx = nombreCompleto.indexOf(',');
+  let apellido, nombre;
+  if(comaIdx>-1){
+    apellido = nombreCompleto.slice(0,comaIdx).trim();
+    nombre = nombreCompleto.slice(comaIdx+1).trim();
+  } else {
+    apellido = nombreCompleto.trim(); nombre = '';
+  }
+  if(!apellido || !nombre){
+    toast('Escribí el campo "Paciente" como Apellido, Nombre (con coma) para poder crear la filiación automáticamente','err');
+    return null;
+  }
+  const payload = {
+    dni, apellido, nombre,
+    fecha_nac: gTxt('rf-fnac'), edad: gTxt('rf-edad'),
+    direccion: gTxt('rf-dir'), telefono: gTxt('rf-tel'), mail: gTxt('rf-mail'),
+    obra_social: gTxt('rf-os'), plan: gTxt('rf-plan'), nro_afiliado: gTxt('rf-afil'),
+    antecedentes_generales: {}, discapacidad: false,
+    // La filiación cargada rápido desde el recetario (ej. para pedir un
+    // estudio) NO da membresía por sí sola — eso lo decidís vos aparte,
+    // con el botón "🤝 Dar membresía", si el paciente te elige como médico.
+    membresia: false,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+  };
+  let id;
+  try{
+    id = await dbAdd('pacientes', payload);
+  }catch(e){
+    toast(e.message.includes('constraint') ? 'Ya existe un paciente con ese DNI — buscalo en vez de tipearlo de nuevo' : 'Error creando filiación: '+e.message, 'err');
+    return null;
+  }
+  const creado = {...payload, id};
+  seleccionarPaciente(creado);
+  toast('✅ Filiación creada automáticamente desde el recetario','ok');
+  if(typeof vistaActual!=='undefined' && vistaActual==='pacientes') cargarListaPacientes();
+  // Sincronizar a la nube igual que guardarPaciente() — si falla, va a la cola de reintento
+  const payloadCloud = {
+    action:'addPaciente', Apellido:apellido, Nombre:nombre, DNI:dni,
+    Fecha_Nac:payload.fecha_nac||'', Obra_Social:payload.obra_social||'', N_Afiliado:payload.nro_afiliado||'',
+    Plan:payload.plan||'', Telefono:payload.telefono||'', Email:payload.mail||'',
+    // Ídem BUGFIX de guardarPaciente() de acá arriba: no mandar
+    // currentCentroKey como Lugar_Atencion — es la pestaña de centro
+    // activa en pantalla, no el consultorio real del paciente.
+    Domicilio:payload.direccion||'',
+    Diagnostico_Principal:'', Estado_Tratamiento:'Activo',
+    Antecedentes_Generales:{}, Primera_Consulta:true, Discapacidad:false, Membresia:false
+  };
+  try{
+    const resp = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payloadCloud),signal:AbortSignal.timeout(8000)});
+    const data = await resp.json();
+    if(data && data.rimpEnviado) toast(`✉️ RIMP enviado a ${payload.mail} para que complete sus antecedentes`,'ok');
+  }catch(_){
+    colaAgregar('addPaciente', payloadCloud);
+  }
+  return creado;
+}
+
+// ── Membresía: elección del Dr. Muratori, sin costo, cuando el paciente lo
+//    elige como médico. Es el interruptor real de RMYT / RSP con contexto
+//    clínico / agendas / RSPQ — la filiación por sí sola NO la da. Se puede
+//    dar en cualquier momento (no solo al crear la filiación), por eso vive
+//    como un botón aparte en la barra superior, igual de directo que "⚡
+//    Filiación": un solo click, sin abrir modal.
+async function toggleMembresiaPaciente(){
+  if(!pacienteActivo){ toast('Seleccioná un paciente primero','err'); return; }
+  const nuevoEstado = !pacienteActivo.membresia;
+  pacienteActivo.membresia = nuevoEstado;
+  try{ await dbPut('pacientes', pacienteActivo); }catch(e){ console.warn('No se pudo guardar la membresía localmente:', e); }
+  actualizarBotonMembresia_();
+  toast(nuevoEstado
+    ? '🤝 Membresía activada — ya tiene acceso a RMYT, respuesta de mail con contexto clínico, agendas y seguimiento posquirúrgico'
+    : 'Membresía desactivada para este paciente', 'ok');
+  const payloadCloud = {action:'set_membresia', DNI: pacienteActivo.dni, Membresia: nuevoEstado};
+  try{
+    await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payloadCloud),signal:AbortSignal.timeout(8000)});
+  }catch(_){
+    colaAgregar('set_membresia', payloadCloud);
+  }
+}
+function actualizarBotonMembresia_(){
+  const btn=document.getElementById('btn-membresia');
+  if(!btn) return;
+  if(!pacienteActivo){
+    btn.disabled=true; btn.title='Seleccioná un paciente primero';
+    btn.textContent='🤝 Dar membresía';
+    btn.style.background=''; btn.style.color=''; btn.style.borderColor='';
+    return;
+  }
+  btn.disabled=false;
+  const activa = !!pacienteActivo.membresia;
+  btn.textContent = activa ? '🤝 Con membresía' : '🤝 Dar membresía';
+  btn.title = activa
+    ? 'Ya tiene membresía (RMYT, mail con contexto clínico, agendas, seguimiento posquirúrgico) — click para quitarla'
+    : 'Elección tuya, sin costo — click para darle membresía si eligió quedar como tu paciente';
+  btn.style.background = activa ? '#dcfce7' : '';
+  btn.style.color = activa ? '#166534' : '';
+  btn.style.borderColor = activa ? '#86efac' : '';
+}
+
+// Disparador: al salir del campo DNI o Paciente en el encabezado del
+// recetario (blur), si ambos ya tienen datos y no coinciden con el
+// paciente ya cargado: busca si existe (y lo carga con todos sus datos)
+// o, si no existe, crea la filiación directo con lo tipeado — sin pasar
+// por el modal "Nuevo paciente".
+async function rfAutoFiliacion_(){
+  const gTxt = id => (document.getElementById(id)?.textContent || '').trim();
+  const dni = gTxt('rf-dni');
+  const nombreCompleto = gTxt('rf-paciente');
+  if(!dni || !nombreCompleto) return;
+  if(pacienteActivo && String(pacienteActivo.dni)===String(dni)) return;
+  try{
+    const existentes = await buscarPacientesDB(dni);
+    const encontrado = (existentes||[]).find(p=>String(p.dni)===String(dni));
+    if(encontrado){
+      seleccionarPaciente(encontrado);
+      toast(`✅ ${encontrado.apellido}, ${encontrado.nombre} — cargado desde filiación existente`,'ok');
+      return;
+    }
+  }catch(e){ console.warn('No se pudo buscar paciente existente:', e); }
+  await autoCrearFiliacionDesdeReceta_();
+}
+document.getElementById('rf-dni')?.addEventListener('blur', rfAutoFiliacion_);
+document.getElementById('rf-paciente')?.addEventListener('blur', rfAutoFiliacion_);
 
 // ══════════════════════════════════════════════════════════════════
 // RIDM PENDIENTES — puente real entre el formulario que llena el paciente y OCM
@@ -4536,6 +4955,19 @@ const AGENDA_TABS_CFG = [
   {k:'programacion',  lbl:'📅 Programación'},
   {k:'seguimiento',   lbl:'🩹 Seguimiento postop'}
 ];
+// PEDIDO (sep 2026): Luis decía no entender cómo se organizaban las
+// pestañas — estaban todas en una sola fila sin agrupar. Son en realidad
+// dos familias: "Todos"/"Discapacidad" por un lado, y todo el circuito
+// quirúrgico (Libro Quirúrgico) por el otro, en el orden real en que un
+// paciente avanza: primero se lo observa, después queda en tratamiento,
+// se decide o no la cirugía, se planifica, se programa una fecha, y por
+// último el seguimiento postoperatorio. Agrupar visualmente estas dos
+// familias (con un subtítulo arriba del circuito quirúrgico) no cambia
+// ningún filtro — solo hace evidente por qué están juntas.
+const AGENDA_TABS_GRUPOS_ = [
+  { titulo: null, claves: ['todos', 'discapacidad'] },
+  { titulo: 'Circuito quirúrgico (Libro Quirúrgico) — en orden', claves: ['observado','tratamiento','decidido','planificacion','programacion','seguimiento'] }
+];
 let agendaPacTabActual = 'todos';
 async function abrirAgendaPacientes(tab){
   abrirModal('modal-agenda-pacientes');
@@ -4547,9 +4979,15 @@ async function abrirAgendaPacientes(tab){
 function renderAgendaPacTabs(){
   const cont = document.getElementById('agenda-pac-tabs');
   if(!cont) return;
-  cont.innerHTML = AGENDA_TABS_CFG.map(t=>{
-    const activo = agendaPacTabActual===t.k;
-    return `<button onclick="seleccionarAgendaPacTab('${t.k}')" style="font-size:11px;padding:5px 10px;border-radius:14px;border:1px solid var(--border2);cursor:pointer;font-family:inherit;font-weight:${activo?'700':'500'};background:${activo?'var(--navy)':'#f8fafc'};color:${activo?'#fff':'var(--muted)'}">${t.lbl}</button>`;
+  const porClave_ = {}; AGENDA_TABS_CFG.forEach(t=>{ porClave_[t.k]=t; });
+  cont.innerHTML = AGENDA_TABS_GRUPOS_.map(grupo=>{
+    const botones = grupo.claves.map(k=>{
+      const t = porClave_[k]; if(!t) return '';
+      const activo = agendaPacTabActual===t.k;
+      return `<button onclick="seleccionarAgendaPacTab('${t.k}')" style="font-size:20px;padding:12px 20px;border-radius:24px;border:1.5px solid var(--border2);cursor:pointer;font-family:inherit;font-weight:${activo?'700':'500'};background:${activo?'var(--navy)':'#f8fafc'};color:${activo?'#fff':'var(--muted)'}">${t.lbl}</button>`;
+    }).join('');
+    const titulo = grupo.titulo ? `<div style="font-size:15px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:6px">${grupo.titulo}</div>` : '';
+    return `${titulo}<div style="display:flex;gap:12px;flex-wrap:wrap">${botones}</div>`;
   }).join('');
 }
 function seleccionarAgendaPacTab(k){
@@ -4560,7 +4998,7 @@ function seleccionarAgendaPacTab(k){
 }
 async function cargarAgendaPacientes(){
   const cont = document.getElementById('agenda-pac-list');
-  cont.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Cargando...</div>';
+  cont.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:22px">Cargando...</div>';
   try{
     const pacientes = await dbGetAll('pacientes');
     agendaPacientesCache = pacientes
@@ -4571,7 +5009,7 @@ async function cargarAgendaPacientes(){
       .sort((a,b)=> (String(a.apellido||'')+' '+String(a.nombre||'')).localeCompare(String(b.apellido||'')+' '+String(b.nombre||''), 'es'));
     renderAgendaPacientes(document.getElementById('agenda-pac-filtro')?.value||'');
   }catch(e){
-    cont.innerHTML = '<div style="text-align:center;color:#dc2626;padding:30px;font-size:13px">No se pudo leer la lista de pacientes de este equipo.</div>';
+    cont.innerHTML = '<div style="text-align:center;color:#dc2626;padding:30px;font-size:22px">No se pudo leer la lista de pacientes de este equipo.</div>';
   }
 }
 // Gravedad (1/2/3) cargada en la página 4 del Libro de Discapacidad de
@@ -4633,17 +5071,23 @@ function renderAgendaPacientes(filtro){
     );
   }
   if(!lista.length){
-    cont.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Sin pacientes que coincidan en esta categoría.</div>';
+    cont.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:22px">Sin pacientes que coincidan en esta categoría.</div>';
     return;
   }
+  const CATEGORIAS_CIRCUITO_QX = ['planificacion','seguimiento','tratamiento','decidido','observado','programacion'];
   cont.innerHTML = lista.map(p=>`
-    <div onclick="irAHistorialDesdeAgenda(${p.id})" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;border-radius:8px;background:${p._color.bg};color:${p._color.texto}">
+    <div onclick="irAHistorialDesdeAgenda(${p.id})" style="cursor:pointer;display:flex;align-items:center;gap:18px;padding:16px 20px;margin-bottom:10px;border-radius:12px;background:${p._color.bg};color:${p._color.texto}">
       <div style="flex:1">
-        <div style="font-weight:700;font-size:13px">${p.apellido||''}, ${p.nombre||''}</div>
-        <div style="font-size:11px;opacity:.85">DNI ${p.dni||'—'}${p._color.label?' · '+p._color.label:''}</div>
+        <div style="font-weight:700;font-size:24px">${String(p.apellido||'').toUpperCase()}, ${String(p.nombre||'').toUpperCase()}</div>
+        <div style="font-size:19px;opacity:.85">DNI ${p.dni||'—'}${p._color.label?' · '+p._color.label:''}</div>
       </div>
-      <span style="font-size:16px">›</span>
+      ${CATEGORIAS_CIRCUITO_QX.includes(p._categoria) ? `<button onclick="event.stopPropagation();abrirLegajoIntegral('${String(p.dni||'').replace(/[^0-9A-Za-z]/g,'')}')" title="Abrir Legajo Integral (SSQ)" style="border:none;background:rgba(255,255,255,.5);color:inherit;border-radius:10px;padding:10px 16px;font-size:19px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Legajo</button>` : ''}
+      <span style="font-size:28px">›</span>
     </div>`).join('');
+}
+function abrirLegajoIntegral(dni){
+  const caso = (dni||'SIN-DNI')+'_sin-fecha';
+  window.open('SSQ_Legajo_Integral_v1.html?caso='+encodeURIComponent(caso)+'&tab=evento','_blank');
 }
 function irAHistorialDesdeAgenda(id){
   const pac = agendaPacientesCache.find(p=>p.id===id);
@@ -4664,7 +5108,7 @@ async function chequearRidmPendientesBadge(){
   }catch(_){ /* sin conexión o script aún no desplegado: no romper nada */ }
 }
 
-/* ── GENERADOR IMDCYMT PACIENTE ─────────────────────────────────── */
+/* ── GENERADOR RECOMENDACIONES MEDICAS PACIENTE ─────────────────────────────────── */
 // ══════════════════════════════════════════════════════════════════
 // LIBRO RMYT — bitácora de seguimiento de rehabilitación. Registra qué
 // se le indicó al paciente (ejercicios/medicación) y cómo fue evolucionando
@@ -4731,6 +5175,7 @@ function abrirCapturaDocDiscap(tipo, idx){
   document.getElementById('docdiscap-btn-analizar').disabled=true;
   document.getElementById('docdiscap-btn-sinia').disabled=true;
   document.getElementById('docdiscap-file').value='';
+  document.getElementById('docdiscap-file-galeria').value='';
   document.getElementById('docdiscap-webcam-error').textContent='';
   const titulos = {cud:'📷 Foto del certificado CUD', estudio:'📷 Foto del estudio / informe', prestador:'📷 Foto del informe del prestador'};
   document.getElementById('docdiscap-titulo').textContent = titulos[tipo] || '📷 Adjuntar foto';
@@ -4971,10 +5416,17 @@ function abrirCatastroEmpresas(){
 // autorizados desde KSM u otras apps. Si falla (sin conexión, etc.) NO
 // interrumpe el guardado local, que sigue siendo la fuente de verdad acá.
 function syncBackendFireAndForget_(action, payload){
+  // BUGFIX (sep 2026): igual que syncBackendAwait_ un poco más abajo, a este
+  // helper le faltaba mandar el token — sync_empresa_catastro,
+  // guardar_cud_libro_discapacidad y sync_plantilla (Catastro de Empresas,
+  // Libro de Discapacidad/CUD, y Plantillas) pasan por acá, y si hay un
+  // APP_TOKEN configurado en las Propiedades del script, el backend las
+  // rechazaba todas en silencio (el .catch(()=>{}) se comía el error) — esos
+  // guardados quedaban solo en esta computadora y nunca llegaban a la nube.
   try{
     fetch(SHEETS_URL, {
       method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(Object.assign({action}, payload))
+      body: JSON.stringify(Object.assign({action, token:APP_TOKEN}, payload))
     }).catch(()=>{});
   }catch(e){}
 }
@@ -4987,16 +5439,27 @@ function syncBackendFireAndForget_(action, payload){
 // no duplica nada — solo actualiza.
 // ══════════════════════════════════════════════════════════════════
 async function syncBackendAwait_(action, payload){
+  // BUGFIX (sep 2026): a diferencia de los fetch por GET (que sí agregan el
+  // token con tokenQS_()), este helper nunca mandaba el token en el body del
+  // POST. Varias de las acciones que pasan por acá están en la lista
+  // ACCIONES_POST_PROTEGIDAS_ del backend (crear_link_pago_mp —el botón
+  // "Cobrar por Mercado Pago"—, analizar_foto_cud, analizar_foto_documento_discap,
+  // asistente_consulta_ia, analizar_texto_paciente, guardar_paciente_historial,
+  // sync_empresa_catastro, guardar_cud_libro_discapacidad, sync_plantilla): si
+  // en las Propiedades del script hay un APP_TOKEN configurado, el backend las
+  // rechazaba todas con "Token inválido o faltante", incluida la generación
+  // del link de pago.
   const resp = await fetch(SHEETS_URL, {
     method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify(Object.assign({action}, payload))
+    body: JSON.stringify(Object.assign({action, token:APP_TOKEN}, payload))
   });
   return resp.json();
 }
 // ══════════════════════════════════════════════════════════════════
 // RCM — Cobrar (Mercado Pago): genera el link real de pago (Checkout Pro)
-// y lo manda por WhatsApp al paciente. Antes esto no existía en ningún
-// lado del sistema — el médico lo generaba a mano afuera de OCM.
+// y lo manda por mail al paciente (WhatsApp sacado del sistema, sep 2026).
+// Antes esto no existía en ningún lado del sistema — el médico lo generaba
+// a mano afuera de OCM.
 // ══════════════════════════════════════════════════════════════════
 let cobrompUltimoLink = '';
 function abrirModalCobroMP(){
@@ -5046,12 +5509,13 @@ function copiarLinkPagoMP(){
     .then(()=>toast('📋 Link copiado al portapapeles'))
     .catch(()=>toast('❌ No se pudo copiar el link','err'));
 }
-function enviarLinkPagoWA(){
+function enviarLinkPagoPorMail(){
   if(!cobrompUltimoLink){ toast('⚠️ Todavía no generaste un link','err'); return; }
-  const tel = (typeof pacienteActivo!=='undefined' && pacienteActivo && pacienteActivo.telefono) ? pacienteActivo.telefono.replace(/\D/g,'') : '';
-  if(!tel){ toast('⚠️ El paciente no tiene teléfono cargado','err'); return; }
-  const texto = `Hola${pacienteActivo.nombre?' '+pacienteActivo.nombre:''}! Te paso el link para abonar la consulta por Mercado Pago:\n${cobrompUltimoLink}`;
-  window.open(`https://wa.me/549${tel}?text=${encodeURIComponent(texto)}`,'_blank');
+  const mail = (typeof pacienteActivo!=='undefined' && pacienteActivo && pacienteActivo.mail) ? pacienteActivo.mail : '';
+  if(!mail){ toast('⚠️ El paciente no tiene mail cargado — copiá el link y mandaselo por otra vía','err'); return; }
+  const asunto = 'Link de pago — Consulta Dr. Muratori';
+  const cuerpo = `Hola${pacienteActivo.nombre?' '+pacienteActivo.nombre:''}! Te paso el link para abonar la consulta por Mercado Pago:\n${cobrompUltimoLink}`;
+  window.open(`mailto:${mail}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`,'_blank');
 }
 async function migrarDatosLocalesANube(){
   const statusEl = document.getElementById('migracion-status');
@@ -5503,7 +5967,7 @@ function renderPreguntasRmyt(){
 }
 
 
-function abrirGeneradorIMDCYMT(){
+function abrirGeneradorRecomendaciones(){
   if(!pacienteActivo){ toast('Seleccioná un paciente primero','err'); return; }
   // Pre-llenar diagnóstico desde el recetario actual
   const dxEl = document.getElementById('gen-dx');
@@ -5511,10 +5975,10 @@ function abrirGeneradorIMDCYMT(){
     const dxBanner = document.getElementById('rf-dx');
     if(dxBanner) dxEl.value = dxBanner.textContent || '';
   }
-  // Poblar el select de regiones desde la DB de IMDCMYT
+  // Poblar el select de regiones desde la DB de RECOMENDACIONES MEDICAS
   const sel = document.getElementById('gen-region');
   if(sel && sel.options.length <= 1){
-    Object.entries(IMDCMYT_DB_V12).forEach(([key, val])=>{
+    Object.entries(RECOM_REGIONES_DB_V12).forEach(([key, val])=>{
       const opt = document.createElement('option');
       opt.value = key;
       opt.textContent = val.titulo || key;
@@ -5523,15 +5987,15 @@ function abrirGeneradorIMDCYMT(){
   }
   // NUEVO: si CAM dejo datos pendientes para este paciente, pre-llenar el modal con ellos
   // (el medico sigue pudiendo revisar/editar todo antes de "Generar y abrir")
-  precargarIMDCYMTDeCAM();
+  precargarRecomendacionesDeCAM();
   actualizarFarmLabel();
   if(document.getElementById('magistral-lista') && !document.getElementById('magistral-lista').children.length) agregarFilaMedMagistral();
   if(document.getElementById('farmacopeo-lista') && !document.getElementById('farmacopeo-lista').children.length) agregarFilaMedFarmacopeo();
-  abrirModal('modal-gen-imdcymt');
+  abrirModal('modal-gen-recomendaciones');
 }
 
-// NUEVO — mapea el Segmento Corporal de CAM a la region del IMDCYMT
-const SEGMENTO_A_REGION_IMDCYMT = {
+// NUEVO — mapea el Segmento Corporal de CAM a la region del RECOMENDACIONES MEDICAS
+const SEGMENTO_A_REGION_RECOM = {
   'Rodilla': '12-Rodilla',
   'Hombro': '4-Hombro',
   'Columna Cervical': '2-Columna completa',
@@ -5545,7 +6009,7 @@ const SEGMENTO_A_REGION_IMDCYMT = {
   'Otro': '16-Rehabilitación global isométrica'
 };
 
-function precargarIMDCYMTDeCAM(){
+function precargarRecomendacionesDeCAM(){
   if(!pacienteActivo) return;
   const clave = 'cam_imdcymt_pendiente_' + pacienteActivo.dni;
   try{
@@ -5633,11 +6097,11 @@ function agregarFilaMedFarmacopeo(){
   cont.appendChild(fila);
 }
 
-function generarIMDCYMTPaciente(){
+function generarRecomendacionesPaciente(){
   if(!pacienteActivo){ toast('No hay paciente activo','err'); return; }
   const farmSel = document.querySelector('input[name="gen-farm"]:checked')?.value || 'san_jorge';
   const regionKey = document.getElementById('gen-region')?.value || '';
-  const regionData = regionKey && IMDCMYT_DB_V12[regionKey] ? IMDCMYT_DB_V12[regionKey] : null;
+  const regionData = regionKey && RECOM_REGIONES_DB_V12[regionKey] ? RECOM_REGIONES_DB_V12[regionKey] : null;
   const med = currentMedico || MEDICOS_DB[0];
   const centro = CENTROS[currentCentroKey] || CENTROS.sicoli;
   const hoy = new Date().toLocaleDateString('es-AR');
@@ -5693,24 +6157,24 @@ function generarIMDCYMTPaciente(){
     medico:{ nombre: med.nombre, mn: med.mn, mp: med.mp, titulos: med.titulos||'' }
   };
 
-  // Guardar en localStorage para que lo lea IMDCYMT_Paciente_v1.html
+  // Guardar en localStorage para que lo lea Recomendaciones_Medicas_Terapeuticas_v1.html
   try{
     localStorage.setItem('imdcymt_datos_'+pacienteActivo.dni, JSON.stringify(datos));
   }catch(_){}
 
   // También guardar en la nube para acceso desde el celular del paciente
   fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({action:'saveIMDCYMT', dni:pacienteActivo.dni, datos:datos})
+    body:JSON.stringify({action:'saveRecomendaciones', dni:pacienteActivo.dni, datos:datos})
   }).catch(()=>{});
 
-  // Registrar en el log de IMDCYMT del RSP
+  // Registrar en el log de RECOMENDACIONES MEDICAS del RSP
   try{
     const imdLog = JSON.parse(localStorage.getItem('imdcymt_log')||'{}');
     if(!imdLog[pacienteActivo.dni]) imdLog[pacienteActivo.dni]=[];
     imdLog[pacienteActivo.dni].unshift({
       fecha:   new Date().toISOString(),
       region:  datos.ejercicios.titulo || 'Indicación general',
-      resumen: datos.consulta.resumen || datos.consulta.dx || 'IMDCYMT generado'
+      resumen: datos.consulta.resumen || datos.consulta.dx || 'RECOMENDACIONES MEDICAS generado'
     });
     imdLog[pacienteActivo.dni] = imdLog[pacienteActivo.dni].slice(0,50);
     localStorage.setItem('imdcymt_log', JSON.stringify(imdLog));
@@ -5722,8 +6186,8 @@ function generarIMDCYMTPaciente(){
   (datos.medicacion.farmacopeo||[]).forEach(m=>agregarAChecklistRmyt('Medicación — '+m.principio_activo));
   if(datos.kinesio.prescripcion) agregarAChecklistRmyt('Kinesiología — '+datos.kinesio.prescripcion);
 
-  cerrarModal('modal-gen-imdcymt');
-  const base = window.location.href.replace(/\/[^/]*(\?.*)?$/,'/') + 'IMDCYMT_Paciente_v1.html';
+  cerrarModal('modal-gen-recomendaciones');
+  const base = window.location.href.replace(/\/[^/]*(\?.*)?$/,'/') + 'Recomendaciones_Medicas_Terapeuticas_v1.html';
   const url  = base + '?dni=' + encodeURIComponent(pacienteActivo.dni||'');
   const pw = window.open(url,'_blank');
   if(!pw){ toast('⚠ El navegador bloqueó la ventana — permitila y volvé a intentar','err'); return; }
@@ -5779,7 +6243,7 @@ async function guardarTarifas(){
   try{
     await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
       body:JSON.stringify({action:'saveTarifas',tarifas}),signal:AbortSignal.timeout(8000)});
-  }catch(_){ colaAgregar('saveTarifas',{tarifas}); }
+  }catch(_){ colaAgregar('saveTarifas',{action:'saveTarifas',tarifas}); }
   toast('✅ Tarifas actualizadas — el documento del paciente ya las refleja','ok');
   cerrarModal('modal-tarifas');
 }
@@ -5931,23 +6395,22 @@ async function aprobarRespuestaIA(){
     await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
       body:JSON.stringify({action:'actualizarConsulta',id:CONSULTA_ACTIVA.id,
         respuesta_final:respuesta,estado:'respondida'}),signal:AbortSignal.timeout(8000)});
-  }catch(_){ colaAgregar('actualizarConsulta',{id:CONSULTA_ACTIVA.id,respuesta_final:respuesta,estado:'respondida'}); }
+  }catch(_){ colaAgregar('actualizarConsulta',{action:'actualizarConsulta',id:CONSULTA_ACTIVA.id,respuesta_final:respuesta,estado:'respondida'}); }
 
-  // Enviar por WhatsApp y mail al paciente
+  // Enviar por mail al paciente (WhatsApp sacado del sistema, sep 2026)
   const pac = CONSULTA_ACTIVA;
   const texto = `Estimado/a ${pac.paciente},\n\nEn respuesta a su consulta:\n\n"${pac.pregunta}"\n\n${respuesta}\n\nSaludos,\nDr. Luis Alberto Muratori — M.N. 100.540 · M.P. 9943`;
 
-  // Buscar el paciente en la base local para obtener tel y mail
+  // Buscar el paciente en la base local para obtener el mail
   const pacLocal = (await dbGetAll('pacientes')).find(p=>String(p.dni)===String(pac.dni));
-  const tel  = (pacLocal?.telefono||'').replace(/\D/g,'');
   const mail = pacLocal?.mail || '';
 
-  window.open(`https://wa.me/${tel||DOCTOR_WA_12}?text=${encodeURIComponent(texto)}`,'_blank');
-  setTimeout(()=>{
-    if(mail) window.open(`mailto:${mail}?subject=${encodeURIComponent('Respuesta a su consulta — Dr. Muratori')}&body=${encodeURIComponent(texto)}`,'_blank');
-  },800);
-
-  toast('✅ Respuesta aprobada y enviada al paciente','ok');
+  if(mail){
+    window.open(`mailto:${mail}?subject=${encodeURIComponent('Respuesta a su consulta — Dr. Muratori')}&body=${encodeURIComponent(texto)}`,'_blank');
+    toast('✅ Respuesta aprobada y enviada al paciente','ok');
+  }else{
+    toast('⚠️ Respuesta guardada, pero este paciente no tiene mail cargado — avisale por otra vía','err');
+  }
   cerrarModal('modal-respuesta-ia');
   CONSULTA_ACTIVA = null;
   actualizarBadgeConsultas();
@@ -6260,7 +6723,13 @@ async function elimPac(id){
 // GUARDAR CONSULTA
 // ══════════════════════════════════════════════════════════════════
 async function guardarConsulta(silencioso=false){
-  if(!pacienteActivo){if(!silencioso)alert('Seleccioná un paciente primero');return;}
+  if(!pacienteActivo){
+    // Red de seguridad: si por algún motivo el blur de rf-dni/rf-paciente no
+    // llegó a disparar la filiación automática (ej. datos pegados sin pasar
+    // el foco), lo intentamos acá antes de bloquear el guardado.
+    const creado = await autoCrearFiliacionDesdeReceta_();
+    if(!creado){ if(!silencioso)alert('Seleccioná un paciente primero'); return; }
+  }
   const body=document.getElementById('rec-body');
   const cuerpo=body.innerText.replace(/▸.*/,'').trim();
   const dx=document.getElementById('rf-dx').textContent.trim();
@@ -6346,11 +6815,6 @@ function restaurarBloquesReceta(){
 window.addEventListener('afterprint', restaurarBloquesReceta);
 
 function imprimirReceta(){ ajustarBloquesRecetaParaImprimir(); window.print(); }
-function enviarWhatsApp(){
-  const tel=document.getElementById('rf-tel').textContent.trim().replace(/\D/g,'');
-  if(tel)window.open(`https://wa.me/549${tel}?text=Estimado/a, adjunto su receta médica. Dr. Muratori.`,'_blank');
-  else toast('El paciente no tiene teléfono registrado','err');
-}
 
 // ── Envía la receta actual (la que está visible en pantalla) por mail,
 //    generando el PDF automáticamente y usando el backend ya existente
@@ -6359,6 +6823,16 @@ function enviarWhatsApp(){
 //    IMPORTANTE: se captura la receta VISIBLE directamente (no una copia
 //    oculta), porque el código QR se dibuja dinámicamente y una copia
 //    fuera de pantalla lo pierde, dejando el PDF en blanco. ──
+// ── Envío "inteligente": revisa primero si hay mail cargado y en ese caso
+//    manda automáticamente por mail (mailReceta). Si NO hay mail, no manda
+//    nada solo (WhatsApp sacado del sistema, sep 2026) — avisa para que
+//    decida a mano: imprimir o entregar en mano. ──
+function enviarRecetaInteligente(){
+  if(!pacienteActivo){ toast('⚠️ No hay paciente seleccionado','err'); return; }
+  if(pacienteActivo.mail){ mailReceta(); return; }
+  toast('⚠️ Este paciente no tiene mail cargado. Imprimí la receta o entregala en mano.','err');
+}
+
 async function mailReceta(){
   if(!pacienteActivo){ toast('⚠️ No hay paciente seleccionado','err'); return; }
   if(!pacienteActivo.mail){ toast('⚠️ Este paciente no tiene mail cargado — cargalo en RIMP o en la ficha del paciente','err'); return; }
@@ -6684,40 +7158,8 @@ const PL_MAIL = {
   recordar:   n=>`Estimado/a ${n},\n\nLe recordamos que tiene una plantilla pendiente de retiro. Por favor comuníquese para coordinar.\n\nSaludos,\nDr. Luis Alberto Muratori\nOrtopedia y Traumatología`,
 };
 
-// ── Mensajes de WhatsApp por estado (más directos) ──
-const PL_WA = {
-  solicitada: (n, spec) =>
-    `Hola *${n}* 👋\nSu *plantilla ortopédica* ha sido solicitada al laboratorio.\n` +
-    (spec ? `📋 Especificaciones: ${spec}\n` : '') +
-    `Le avisaremos cuando esté en camino.\n_Dr. Luis Alberto Muratori · Ortopedia y Traumatología_`,
-  camino: (n, spec) =>
-    `Hola *${n}* 📦\nSu *plantilla ortopédica* ya está en camino al consultorio.\n` +
-    (spec ? `📋 ${spec}\n` : '') +
-    `Le avisamos en cuanto llegue y esté lista para retirar.\n_Dr. Luis Alberto Muratori_`,
-  lista: (n, spec) =>
-    `Hola *${n}* ✅\n¡Su *plantilla ortopédica* ya está lista para retirar!\n` +
-    (spec ? `📋 ${spec}\n` : '') +
-    `Puede pasar por el consultorio en el horario de atención.\n` +
-    `📍 Hospital Sicoli, Lavalle · Cons. Norte, Costa de Araujo\n` +
-    `📞 Consultas: +54 9 261 658-6234\n_Dr. Luis Alberto Muratori_`,
-  recordar: (n, spec) =>
-    `Hola *${n}* ⏰\nLe recordamos que tiene una *plantilla ortopédica pendiente de retiro*.\n` +
-    (spec ? `📋 ${spec}\n` : '') +
-    `Por favor comuníquese para coordinar el retiro.\n📞 +54 9 261 658-6234\n_Dr. Luis Alberto Muratori_`,
-  retirada: (n) =>
-    `Hola *${n}* 🎉\nConfirmamos el retiro de su *plantilla ortopédica*.\n` +
-    `Si tiene alguna duda sobre el uso, comuníquese.\n` +
-    `Recuerde su evaluación semanal en el RMYT.\n_Dr. Luis Alberto Muratori_`,
-};
-
-function enviarWAPlantilla(tel, nombre, estado, spec='') {
-  if (!tel) { toast('El paciente no tiene teléfono registrado', 'err'); return; }
-  const fn = PL_WA[estado] || PL_WA.camino;
-  const msg = fn(nombre.split(',')[0].trim(), spec);
-  const num = tel.replace(/\D/g,'');
-  const dest = num.startsWith('54') ? num : '54' + num.replace(/^0/,'').replace(/^9/,'9');
-  window.open(`https://wa.me/${dest}?text=${encodeURIComponent(msg)}`, '_blank');
-}
+// (WhatsApp sacado del sistema, sep 2026 — antes acá había mensajes de WhatsApp
+// por estado de plantilla, ya reemplazados por PL_MAIL / mailEstPlant)
 
 // Guardar una plantilla en IndexedDB cuando se agrega desde el formulario
 
@@ -6769,15 +7211,31 @@ async function colaProcesar(){
   const cola = colaLeer();
   if(!cola.length) return;
   const restantes = [];
+  let fallaron = 0;
   for(const item of cola){
     try{
-      await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body:JSON.stringify(item.payload), signal:AbortSignal.timeout(8000)});
+      // Por las dudas el payload no traiga "action" (pasó con saveTarifas y
+      // actualizarConsulta antes de este arreglo), lo completamos acá con lo
+      // que se guardó en item.accion — así el backend siempre sabe qué hacer.
+      const payload = (item.payload && item.payload.action) ? item.payload : {...item.payload, action:item.accion};
+      const resp = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify(payload), signal:AbortSignal.timeout(8000)});
+      // Antes solo se chequeaba que el fetch no tirara error de red: si el
+      // pedido llegaba al servidor pero éste lo rechazaba (token inválido,
+      // action no reconocida, etc.), igual se sacaba de la cola y se avisaba
+      // "sincronizado" — perdiendo el dato sin que nadie se entere.
+      let data = null;
+      try{ data = await resp.json(); }catch(_){}
+      if(!resp.ok || (data && data.success===false)){ restantes.push(item); fallaron++; }
     }catch(e){ restantes.push(item); }
   }
   colaGuardar(restantes);
-  if(restantes.length < cola.length){
-    toast(`☁ ${cola.length-restantes.length} pendiente(s) sincronizado(s) con la nube`,'ok');
+  const sincronizados = cola.length - restantes.length;
+  if(sincronizados > 0){
+    toast(`☁ ${sincronizados} pendiente(s) sincronizado(s) con la nube`,'ok');
+  }
+  if(fallaron > 0){
+    toast(`⚠️ ${fallaron} pendiente(s) rechazado(s) por el servidor — revisar Configuración`,'err');
   }
 }
 window.addEventListener('online', colaProcesar);
@@ -6789,8 +7247,16 @@ async function buscarEnSheets(q){
   try{
     const r=await fetch(`${SHEETS_URL}?action=search&query=${encodeURIComponent(q)}${tokenQS_()}`);
     if(!r.ok)return[];
-    const data=await r.json();
-    if(!Array.isArray(data))return[];
+    const json=await r.json();
+    // FIX (2026-09-21): el backend (searchPatient en Código.gs) devuelve
+    // {success:true, data:[...]}, NO un array directo. Antes acá se chequeaba
+    // Array.isArray(data) sobre la respuesta cruda, que siempre daba falso
+    // (porque es un objeto, no un array) => la búsqueda en la nube nunca
+    // traía resultados, y solo aparecían los pacientes ya guardados en esta
+    // misma computadora. Esto explicaba que un apellido cargado no apareciera
+    // al buscarlo en OCM. Ahora se soportan ambas formas de respuesta.
+    const data = Array.isArray(json) ? json : (json && Array.isArray(json.data) ? json.data : []);
+    if(!data.length)return[];
     return data.map(p=>({
       id:'sh_'+(p.ID||p.id||Math.random()),
       apellido:p.APELLIDO||p.Apellido||p.apellido||'',
@@ -6809,42 +7275,22 @@ async function buscarEnSheets(q){
   }catch(e){console.warn('Sheets error:',e);return[];}
 }
 
-/* Reemplazar buscarPaciente para incluir Sheets */
-const _buscarPacienteOriginal=buscarPaciente;
-buscarPaciente=function(q){
-  clearTimeout(searchTimeout);
-  const res=document.getElementById('buscar-results');
-  if(q.length<2){res.style.display='none';return;}
-  searchTimeout=setTimeout(async()=>{
-    const [localData,sheetsData]=await Promise.all([
-      buscarPacientesDB(q),
-      buscarEnSheets(q)
-    ]);
-    const map=new Map();
-    [...localData,...sheetsData].forEach(p=>{
-      const key=p.dni||p.id;if(!map.has(key))map.set(key,p);
-    });
-    const data=[...map.values()].slice(0,12);
-    if(!data.length){res.style.display='none';return;}
-    res.innerHTML='';
-    data.forEach(p=>{
-      const div=document.createElement('div');div.className='search-item';
-      const badge=p.origen==='sheets'?'<span style="font-size:9px;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;margin-left:4px">☁ MyCloud</span>':'';
-      div.innerHTML=`<div class="s-nom">${p.apellido||''}, ${p.nombre||''}${badge}</div><div class="s-det">DNI: ${p.dni||'—'} · ${p.obra_social||'Sin OS'}</div>`;
-      div.onclick=()=>{
-        seleccionarPaciente(p);
-        res.style.display='none';
-        document.getElementById('buscar-pac').value='';
-        /* Guardar en local si vino de Sheets */
-        if(p.origen==='sheets'){
-          try{dbAdd('pacientes',{...p,id:undefined,origen:undefined});}catch(e){}
-        }
-      };
-      res.appendChild(div);
-    });
-    res.style.display='block';
-  },300);
-};
+/* NOTA: acá antes había un "Reemplazar buscarPaciente para incluir Sheets"
+   que redefinía buscarPaciente() con una versión más vieja y más pobre que
+   la de arriba (línea ~4396) — como en JS gana la ÚLTIMA definición, esa
+   versión vieja era la que en realidad se ejecutaba SIEMPRE, aunque la de
+   arriba se ve más completa. Se sacó porque tenía un bug serio: al elegir
+   un paciente "☁ MyCloud" hacía seleccionarPaciente(p) ANTES de terminar de
+   guardarlo en el IndexedDB local (el dbAdd quedaba sin awaitear, dentro de
+   un try/catch que ni siquiera puede atajar el error real), entonces
+   pacienteActivo.id quedaba con un id falso ('sh_...') en vez del id real
+   — todo lo que se cargara para ese paciente en esa consulta (recetas,
+   plantillas, Libro Quirúrgico) se guardaba con ese id falso y después no
+   aparecía más en la ficha del paciente. La versión de arriba (línea 4396)
+   ya hace todo esto bien (await antes de seleccionar) y además tiene el
+   agregado de "Filiación rápida" que esta versión vieja directamente no
+   contemplaba. buscarEnSheets() se dejó intacta porque la usa también la
+   búsqueda de la línea ~8676. */
 
 /* ── MICRÓFONO (TOGGLE MANUAL) ── */
 let recognition=null,listening=false;
@@ -7020,6 +7466,12 @@ async function finalConsulta(){
      Diagnostico, Indicaciones, Observaciones, etc.), no con los nombres
      internos de OCM (paciente_id, diagnostico, items...) */
   const indicaciones = (consulta.items||[]).map(i=>i.text).filter(Boolean).join('; ');
+  // Lugar_Atencion (sep 2026, pedido de Luis): el paciente se puede atender
+  // en cualquier consultorio — lo que importa es registrar dónde fue ESTA
+  // consulta puntual, con el nombre legible del centro (no la key interna
+  // tipo "sicoli"/"norte"), tomado de la pestaña que está activa en OCM
+  // en este momento.
+  const lugarAtencionLabel = getCentroData(consulta.centro)?.label || consulta.centro || '';
   const payloadHistoria = {
     action:'addHistoria',
     ID_Paciente: consulta.paciente_id || '',
@@ -7029,7 +7481,8 @@ async function finalConsulta(){
     Estudios_Realizados: '',
     Estudios_Pendientes: '',
     Indicaciones: indicaciones,
-    Observaciones: `Paciente: ${consulta.paciente_nombre} · Centro: ${consulta.centro} · Médico: ${consulta.medico}`,
+    Observaciones: `Paciente: ${consulta.paciente_nombre} · Médico: ${consulta.medico}`,
+    Lugar_Atencion: lugarAtencionLabel,
     Proximo_Control: ''
   };
   try{
@@ -7060,6 +7513,7 @@ async function finalConsulta(){
   ['btn-hist','btn-segui','btn-gen-imd','cmd-genrmyt'].forEach(id=>{
     const b=document.getElementById(id); if(b) b.disabled=true;
   });
+  actualizarBotonMembresia_();
   // Limpiar buscador para que el médico pueda buscar el siguiente paciente
   const buscarEl = document.getElementById('buscar-pac');
   if(buscarEl){ buscarEl.value=''; buscarEl.focus(); }
@@ -7123,6 +7577,52 @@ async function guardarPlantillaDB(textoCompleto, ps){
   }catch(e){ console.warn('Error guardando plantilla:',e); }
 }
 
+// ── Trae desde la nube el estado de TODOS los pedidos de plantillas
+// (hoja Plantillas_Sync) y lo mezcla con lo que ya hay en el IndexedDB de
+// este navegador. Antes, un pedido cargado en una computadora solo se veía
+// en el seguimiento de ESA computadora — nunca en otra, ni aunque ya se
+// hubiera sincronizado. Con esto, al abrir OCM en cualquier lado:
+//  · si el pedido ya existe acá, le actualiza el estado/detalle si cambió
+//    (por ejemplo, si en otra compu ya lo pasaron a "Lista para retirar").
+//  · si el pedido no existe acá (se cargó en otra compu), lo agrega con lo
+//    poco que la nube guarda (paciente, DNI, N° de pedido, estado, fecha) —
+//    los datos de la plantilla en sí (cuñas, realces, etc.) siguen
+//    quedando solo en la computadora donde se cargó originalmente, porque
+//    esos nunca se subieron (a propósito, por privacidad).
+async function sincronizarPlantillasDesdeNube_(){
+  try{
+    const resp = await fetch(SHEETS_URL + '?action=get_todas_plantillas_sync' + tokenQS_(), {signal:AbortSignal.timeout(8000)});
+    const r = await resp.json();
+    if(!r || !r.success || !Array.isArray(r.plantillas)) return;
+    const locales = await dbGetAll('plantillas');
+    const porSerie = new Map();
+    locales.forEach(p=>{ if(p.nSerie) porSerie.set(String(p.nSerie), p); });
+    for(const remota of r.plantillas){
+      if(!remota.nSerie) continue;
+      const existente = porSerie.get(String(remota.nSerie));
+      if(existente){
+        if(existente.estado !== remota.estado || existente.detalle !== remota.detalle){
+          existente.estado  = remota.estado  || existente.estado;
+          existente.detalle = remota.detalle || existente.detalle;
+          await dbPut('plantillas', existente);
+        }
+      }else{
+        // La nube guarda el Timestamp en ISO (2026-09-21T...); el resto del
+        // dashboard espera fecha en formato dd/mm/aaaa para sus gráficos.
+        let fechaFmt = '';
+        const fISO = new Date(remota.fecha);
+        if(!isNaN(fISO)) fechaFmt = `${String(fISO.getDate()).padStart(2,'0')}/${String(fISO.getMonth()+1).padStart(2,'0')}/${fISO.getFullYear()}`;
+        await dbPut('plantillas', {
+          pac_nombre: remota.paciente||'', pac_dni: remota.dni||'', nSerie: remota.nSerie,
+          fecha: fechaFmt, centro:'', estado: remota.estado||'solicitada', detalle: remota.detalle||'',
+          texto_completo:'', items:'[]', created_at:new Date().toISOString(),
+          desde_nube:true
+        });
+      }
+    }
+  }catch(e){ console.warn('⚠️ sincronizarPlantillasDesdeNube_ falló:', e); }
+}
+
 function enviarMailPlantilla(mail, nombre, estado, extra=''){
   const fn = PL_MAIL[estado]||PL_MAIL.solicitada;
   const cuerpo = fn(nombre) + (extra?`\n\n${extra}`:'');
@@ -7151,6 +7651,90 @@ function textoComprobanteRetiroPlantilla(p){
 function abrirModal_plantillas(){
   abrirModal('modal-plantillas');
   cargarDashPlant();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RESUMEN DE HISTORIA CLÍNICA CON FIRMA TÁCTIL — lado OCM. Versión más
+// simple posible: el médico edita el texto (mismo mecanismo que
+// Certificados), genera un link para que el paciente lo firme con el
+// dedo en su celular, y recién con la firma confirmada se habilitan
+// Imprimir / Enviar por mail.
+// ══════════════════════════════════════════════════════════════════
+let RHC_ULTIMA_FIRMA_B64 = '';
+function abrirModal_resumenHC(){
+  if(!pacienteActivo || !pacienteActivo.dni){ toast('⚠️ Elegí un paciente primero','err'); return; }
+  document.getElementById('rhc-link-resultado').textContent = '';
+  document.getElementById('rhc-firma-resultado').textContent = '';
+  document.getElementById('rhc-acciones-firmado').style.display = 'none';
+  RHC_ULTIMA_FIRMA_B64 = '';
+  const encabezado = `Paciente: ${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}\nDNI: ${pacienteActivo.dni}\nFecha: ${new Date().toLocaleDateString('es-AR')}\n\nDiagnóstico y antecedentes:\n\n\nDetalle quirúrgico / tratamientos:\n\n`;
+  document.getElementById('rhc-texto').value = encabezado;
+  abrirModal('modal-resumen-hc');
+}
+async function generarLinkFirmaHC(){
+  const cont = document.getElementById('rhc-link-resultado');
+  const texto = document.getElementById('rhc-texto').value;
+  if(!texto.trim()){ toast('⚠️ Completá el resumen primero','err'); return; }
+  cont.textContent = 'Generando…';
+  try{
+    const resp = await fetch(SHEETS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({action:'guardar_resumen_para_firma', dni:pacienteActivo.dni, apellido:pacienteActivo.apellido||'', nombre:pacienteActivo.nombre||'', resumen:texto})});
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error||'Error del servidor');
+    const link = 'https://lmuratori.github.io/smm-acceso-temporal/Autorizacion_HC_v1.html?dni=' + encodeURIComponent(pacienteActivo.dni);
+    cont.innerHTML = `✅ Link generado — mandáselo al paciente por mail (o copialo y mandalo por donde prefieras):<br>
+      <input type="text" readonly value="${link}" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;font-size:11.5px" onclick="this.select()">`;
+  }catch(e){
+    cont.textContent = '⚠️ No se pudo generar el link: ' + e.message;
+  }
+}
+async function verificarFirmaHC(){
+  if(!pacienteActivo || !pacienteActivo.dni) return;
+  const cont = document.getElementById('rhc-firma-resultado');
+  cont.textContent = 'Consultando…';
+  try{
+    const resp = await fetch(SHEETS_URL + '?action=get_estado_firma&dni=' + encodeURIComponent(pacienteActivo.dni));
+    const data = await resp.json();
+    if(!data.success || !data.encontrado){ cont.textContent = 'Todavía no hay ningún resumen generado para este paciente.'; return; }
+    if(!data.firmado){ cont.textContent = '⏳ Todavía no firmó.'; document.getElementById('rhc-acciones-firmado').style.display='none'; return; }
+    cont.innerHTML = '✅ El paciente ya firmó.';
+    document.getElementById('rhc-acciones-firmado').style.display = 'block';
+    // Traemos la imagen de la firma llamando de nuevo al mismo resumen
+    // (get_estado_firma no manda la imagen para no cargar de más — se
+    // pide la firma en sí solo cuando hace falta imprimir/enviar).
+  }catch(e){
+    cont.textContent = '⚠️ No se pudo consultar: ' + e.message;
+  }
+}
+function imprimirResumenHC(){
+  const texto = document.getElementById('rhc-texto').value;
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Resumen HC</title><style>
+    body{font-family:Arial,sans-serif;font-size:13px;padding:24px;white-space:pre-wrap;line-height:1.6}
+    h3{color:#0c4a6e}
+  </style></head><body>
+  <h3>Resumen de Historia Clínica — ${(pacienteActivo.apellido||'')}, ${(pacienteActivo.nombre||'')} (DNI ${pacienteActivo.dni})</h3>
+  ${texto.replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}
+  <p style="color:#64748b;font-size:11px;margin-top:24px">Autorizado por el paciente/tutor mediante firma táctil registrada en el sistema — Dr. Luis Alberto Muratori (M.N. 100.540 / M.P. 9943).</p>
+  </body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(), 300);
+}
+async function enviarResumenHCPorMail(){
+  const destinatario = document.getElementById('rhc-destinatario').value.trim();
+  const cont = document.getElementById('rhc-envio-resultado');
+  if(!destinatario){ cont.textContent = '⚠️ Completá el mail de destino'; return; }
+  cont.textContent = 'Enviando…';
+  try{
+    const resp = await fetch(SHEETS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({action:'enviar_resumen_firmado', dni:pacienteActivo.dni, destinatario})});
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error||'Error del servidor');
+    cont.textContent = '✅ ' + data.message;
+  }catch(e){
+    cont.textContent = '⚠️ No se pudo enviar: ' + e.message;
+  }
 }
 
 // ── Switch pestañas ──
@@ -7530,16 +8114,6 @@ async function mailEstPlant(id, estado){
   }
 }
 
-
-async function waEstPlant(id, estado){
-  const todas = await dbGetAll('plantillas');
-  const p = todas.find(x=>x.id===id); if(!p||!p.pac_tel) return;
-  const nom  = (p.pac_nombre||'').split(',')[0].trim()||'paciente';
-  const items = (() => { try{ return JSON.parse(p.items||'[]'); }catch{ return []; } })();
-  const spec  = items.filter(x=>!x.startsWith('N°')).join(' · ');
-  if(estado!=='recordar'&&estado!=='retirada'){ await cambiarEstPlant(id, estado); }
-  enviarWAPlantilla(p.pac_tel, nom, estado, spec);
-}
 
 // ── Estadísticas avanzadas ──
 async function cargarStatsPlant(){
@@ -9080,10 +9654,23 @@ function czYesoAgregar(tipo){
 
 <script defer>
 /* ══════════════════════════════════════════════════════════════════
-   OCM Muratori v12 — IMDCMYT COMPLETO 16 REGIONES + 3 CAPAS SEGURIDAD
+   OCM Muratori v12 — RECOMENDACIONES MEDICAS COMPLETO 16 REGIONES + 3 CAPAS SEGURIDAD
    F1: Medicación + WhatsApp Farmacia
-   F2: Ejercicios Isométricos por región + YouTube
-   F3: Evaluación Semanal + Dashboard Cartesiano + Conectores
+   F2: Resumen de la consulta y estudios solicitados (desde Historia Clínica)
+   F3: FKT — Ejercicios Isométricos por región + YouTube + conectores por mail
+       al kinesiólogo y a los evaluadores del kinesiólogo
+   F4: Evaluación Semanal + Dashboard Cartesiano + Conectores (turno presencial
+       y teleconsulta) — reordenado sep 2026: lo que antes era F2/F3 pasó a
+       ser F3/F4 para dejar lugar al nuevo resumen de consulta en F2. A pedido
+       del Dr. Muratori, todos los conectores de contacto (turno, teleconsulta,
+       kinesiólogo, evaluadores) dejaron de abrir WhatsApp y ahora abren un
+       mailto: a MAIL_KINESIOLOGIA_12 — la misma casilla que ya usa el resto
+       del sistema para kinesiología, así el mismo procesarBandejaEntrada/IA
+       del backend los tria igual que cualquier otro mensaje entrante. El
+       asunto de cada mail indica de qué conector y qué región RMYT salió,
+       para que quede claro el origen al leerlo. El WhatsApp de la Farmacia
+       (F1) NO se tocó — ese es un pedido de stock a un tercero, no un
+       contacto con "el médico".
    Seguridad: 3 capas anticopia/antirreplicación con denuncia
    ══════════════════════════════════════════════════════════════════ */
 
@@ -9091,6 +9678,7 @@ function czYesoAgregar(tipo){
 const FARMACIA_WA_12 = '5492634779960';
 const DOCTOR_WA_12   = '5492616586234';
 const DOCTOR_MAIL     = 'drluismuratori@gmail.com';
+const MAIL_KINESIOLOGIA_12 = 'consultas.sism@gmail.com';
 
 /* ─── Parámetros base RSG (comunes a todas las regiones) ─── */
 const IMD_BASE = [
@@ -9101,8 +9689,8 @@ const IMD_BASE = [
   {id:'bienestar',  label:'⚪ Bienestar general',     desc:'0 = muy mal · 10 = excelente'}
 ];
 
-/* ─── Base de datos 16 IMDCMYT ─── */
-const IMDCMYT_DB_V12 = {
+/* ─── Base de datos 16 RECOMENDACIONES MEDICAS ─── */
+const RECOM_REGIONES_DB_V12 = {
 
  '1-Global':{titulo:'🌐 Evaluación Global',cie10:'Z00.0',
   params:[...IMD_BASE,
@@ -9340,7 +9928,7 @@ const IMDCMYT_DB_V12 = {
    {i:'🐸',n:'18. Rana (avanzado)',d:'Ejercicio de movilidad y fuerza de cadera en posición de rana.',s:'Según indicación profesional',t:'Según indicación profesional',yt:'https://www.youtube.com/watch?v=aYx2cxGqtK8'}
   ]}
 
-}; // fin IMDCMYT_DB_V12
+}; // fin RECOM_REGIONES_DB_V12
 
 /* ─── Listado de regiones para el selector ─── */
 const IMD_REGIONES = [
@@ -9434,14 +10022,15 @@ function denunciarCopiaSeg() {
     `📺 Resolución: ${last.res || 'desconocida'}\n` +
     `⚠️ Tipo de intento: ${last.tipo || 'acceso'}\n` +
     `---\nSistema OCM Dr. Muratori — Ley 11.723 Argentina`;
-  window.open(`https://wa.me/${DOCTOR_WA_12}?text=${encodeURIComponent(msg)}`, '_blank');
+  // WhatsApp sacado del sistema (sep 2026) — la alerta ahora se manda por mail.
+  window.open(`mailto:${DOCTOR_MAIL}?subject=${encodeURIComponent('🚨 Alerta de seguridad — OCM Muratori')}&body=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // Inicializar seguridad cuando carga la app
 window.addEventListener('load', initSecurity);
 
 /* ──────────────────────────────────────────────────────────────────
-   SELECTOR DE REGIONES IMDCMYT
+   SELECTOR DE REGIONES RECOMENDACIONES MEDICAS
    ────────────────────────────────────────────────────────────────── */
 function buildIMDSelector() {
   const g = document.getElementById('imd-sel-grid');
@@ -9470,7 +10059,7 @@ function toggleIMDSel(idx, key) {
 
 function abrirIMDSeleccionado() {
   if (!imdSeleccionadas.length) { toast('⚠ Seleccione al menos una región', 'err'); return; }
-  abrirIMDCMYT(imdSeleccionadas[0]);
+  abrirRecomendacionRegion(imdSeleccionadas[0]);
   cerrarModal('modal-imd-selector');
 }
 
@@ -9483,7 +10072,7 @@ async function enviarIMDpacienteMail() {
   // real de cada ejercicio (F2), que es lo que el paciente tiene que leer y hacer.
   let cuerpoEjercicios = '';
   imdSeleccionadas.forEach(key => {
-    const d = IMDCMYT_DB_V12[key];
+    const d = RECOM_REGIONES_DB_V12[key];
     if (!d) return;
     cuerpoEjercicios += `\n📍 ${d.titulo}\n`;
     (d.ejs || []).forEach((e, i) => {
@@ -9509,9 +10098,9 @@ async function enviarIMDpacienteMail() {
       if (!imdLog[dni]) imdLog[dni] = [];
       imdLog[dni].unshift({
         fecha: new Date().toISOString(),
-        region: imdSeleccionadas.map(k => IMDCMYT_DB_V12[k]?.titulo || k).join(', '),
-        ejercicios: imdSeleccionadas.reduce((acc,k) => acc + (IMDCMYT_DB_V12[k]?.ejs?.length||0), 0),
-        resumen: `RMYT enviado al paciente por mail · Regiones: ${imdSeleccionadas.map(k => IMDCMYT_DB_V12[k]?.titulo||k).join(', ')}`
+        region: imdSeleccionadas.map(k => RECOM_REGIONES_DB_V12[k]?.titulo || k).join(', '),
+        ejercicios: imdSeleccionadas.reduce((acc,k) => acc + (RECOM_REGIONES_DB_V12[k]?.ejs?.length||0), 0),
+        resumen: `RMYT enviado al paciente por mail · Regiones: ${imdSeleccionadas.map(k => RECOM_REGIONES_DB_V12[k]?.titulo||k).join(', ')}`
       });
       imdLog[dni] = imdLog[dni].slice(0, 50); // máximo 50 entradas por paciente
       localStorage.setItem('imdcymt_log', JSON.stringify(imdLog));
@@ -9526,12 +10115,25 @@ async function enviarIMDpacienteMail() {
    regiones (imdSeleccionadas) — trabaja sobre lo que el médico está viendo
    en este momento, así el botón funciona sin importar cómo se abrió el modal. */
 async function concluirYEnviarRMYT() {
-  if (!imdRegionActual || !IMDCMYT_DB_V12[imdRegionActual]) { toast('⚠ No hay región RMYT abierta', 'err'); return; }
+  if (!imdRegionActual || !RECOM_REGIONES_DB_V12[imdRegionActual]) { toast('⚠ No hay región RMYT abierta', 'err'); return; }
   if (!pacienteActivo)          { toast('⚠ No hay paciente seleccionado', 'err'); return; }
   if (!pacienteActivo.mail)     { toast('⚠ El paciente no tiene mail cargado', 'err'); return; }
 
-  const d   = IMDCMYT_DB_V12[imdRegionActual];
+  const d   = RECOM_REGIONES_DB_V12[imdRegionActual];
   const pac = `${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}`;
+
+  // Link a la autoevaluación semanal (RMYT_Autoevaluacion_Semanal_v1.html) —
+  // faltaba: el mail invitaba a "completar la evaluación semanal" pero nunca
+  // llevaba el link. seg es opcional — si la región no tiene módulo específico
+  // mapeado, la página igual abre con el formulario genérico (sin romperse).
+  const RMYT_SITE_URL = 'https://lmuratori.github.io/smm-acceso-temporal/RMYT_Autoevaluacion_Semanal_v1.html';
+  const MAPA_SEG_RMYT = {
+    '4-Hombro':'hombro', '5-Brazo':'brazo', '6-Codo':'codo', '7-Antebrazo':'antebrazo',
+    '10-Cadera':'cadera', '12-Rodilla':'rodilla', '13-Pierna':'pierna',
+    '14-Tobillo':'tobillo', '15-Pie':'pie'
+  };
+  const segRMYT  = MAPA_SEG_RMYT[imdRegionActual] || '';
+  const linkRMYT = RMYT_SITE_URL + '?dni=' + encodeURIComponent(pacienteActivo.dni||'') + (segRMYT ? '&seg=' + segRMYT : '');
 
   let cuerpo = `${pac}\n\nEl Dr. Muratori le envía su RMYT — Recomendaciones Médicas y Terapéuticas\n📍 ${d.titulo}\n`;
 
@@ -9564,7 +10166,7 @@ async function concluirYEnviarRMYT() {
     });
   }
 
-  cuerpo += `\nRealice esto según lo indicado y complete su evaluación semanal para que el Dr. pueda ver su evolución.\n` +
+  cuerpo += `\nRealice esto según lo indicado y complete su evaluación semanal para que el Dr. pueda ver su evolución, entrando al siguiente link:\n${linkRMYT}\n\n` +
             `Ante dudas: escriba a ${DOCTOR_MAIL||'el consultorio'} o solicite teleconsulta.`;
 
   const btn = document.getElementById('imd-btn-concluir');
@@ -9598,11 +10200,11 @@ async function concluirYEnviarRMYT() {
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   IMDCMYT — MODAL PRINCIPAL (F1 / F2 / F3)
+   RECOMENDACIONES MEDICAS — MODAL PRINCIPAL (F1 / F2 / F3)
    ────────────────────────────────────────────────────────────────── */
-function abrirIMDCMYT(regionKey) {
+function abrirRecomendacionRegion(regionKey) {
   imdRegionActual = regionKey;
-  const d = IMDCMYT_DB_V12[regionKey];
+  const d = RECOM_REGIONES_DB_V12[regionKey];
   if (!d) { toast('⚠ Región no disponible: ' + regionKey, 'err'); return; }
 
   document.getElementById('imd-titulo').textContent = `📋 RMYT — ${d.titulo}`;
@@ -9612,20 +10214,21 @@ function abrirIMDCMYT(regionKey) {
     : '👤 Sin paciente seleccionado';
   document.getElementById('imd-pac-info').textContent = `${pac}   |   CIE-10: ${d.cie10}`;
 
-  // F2 título
-  const f2t = document.getElementById('imd-f2-title');
-  if (f2t) f2t.textContent = `🏋️ Ejercicios Isométricos — ${d.titulo}`;
+  // F3 título (antes F2 — Ejercicios Isométricos, renumerado sep 2026)
+  const f3t = document.getElementById('imd-f3-title');
+  if (f3t) f3t.textContent = `🏋️ Ejercicios Isométricos — ${d.titulo}`;
 
   imdF1SetModo('farmacia');
   poblarPresentacionesDatalist();
   poblarPrincipiosDatalist();
   cargarMedsIMD();
   imdVademecumRender();
+  cargarResumenHistoriaIMD();
   cargarEjerciciosIMD(d.ejs);
   cargarParametrosIMD(d.params);
 
   imdTab('f1');
-  abrirModal('modal-imdcmyt');
+  abrirModal('modal-recomendaciones-regiones');
 }
 
 function imdTab(tab) {
@@ -9635,7 +10238,83 @@ function imdTab(tab) {
   const pn = document.getElementById(`imd-${tab}`);
   if (tb) tb.classList.add('active');
   if (pn) pn.style.display = 'block';
-  if (tab === 'f3') setTimeout(renderDashboardIMD, 120);
+  if (tab === 'f4') setTimeout(renderDashboardIMD, 120);
+}
+
+/* F2 — Resumen de la consulta y estudios solicitados (sep 2026, ampliado).
+   Combina dos fuentes ya existentes en el sistema, ninguna nueva:
+   1) Historia_Clinica (action get_historial) — Diagnóstico, Estudios_
+      Realizados, Estudios_Pendientes, Indicaciones: el registro formal
+      que carga addHistoria en cada consulta.
+   2) IMDCYMT_Docs (action getRecomendaciones) — lo que ya arma el "Generador RMYT"
+      (modal-gen-recomendaciones / generarRecomendacionesPaciente): consulta.estudios es la
+      interpretación/hallazgo de esos estudios (ej: "RMN: hernia L4-L5..."),
+      consulta.resumen + medicacion son el tratamiento decidido, y kinesio
+      indica si ese tratamiento incluye kinesiología y con qué prescripción.
+   No se inventa ningún campo nuevo — se refleja lo que el médico ya carga
+   en otras pantallas del sistema. */
+async function cargarResumenHistoriaIMD() {
+  const cont = document.getElementById('imd-resumen-historia');
+  if (!cont) return;
+  if (!pacienteActivo || !pacienteActivo.dni) {
+    cont.innerHTML = '<p class="imd-sec-desc">Seleccioná un paciente para ver el resumen de su historia clínica.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="imd-sec-desc">Cargando…</p>';
+  const fila = (etq, val) => val ? `<div class="imd-param-row"><div class="imd-param-label"><span>${etq}</span></div><div class="imd-sec-desc" style="text-align:left;flex:1">${String(val).replace(/\n/g,'<br>')}</div></div>` : '';
+  try {
+    const dniQ = encodeURIComponent(pacienteActivo.dni);
+    const [respHist, respImd] = await Promise.all([
+      fetch(SHEETS_URL + '?action=get_historial&dni=' + dniQ + tokenQS_(), { signal: AbortSignal.timeout(10000) }),
+      fetch(SHEETS_URL + '?action=getRecomendaciones&dni=' + dniQ + tokenQS_(), { signal: AbortSignal.timeout(10000) })
+    ]);
+    const dataHist = await respHist.json();
+    const dataImd  = await respImd.json();
+    const historial = (dataHist && dataHist.historial) || [];
+    const datos = (dataImd && dataImd.datos) || null;
+
+    if (!historial.length && !datos) {
+      cont.innerHTML = '<p class="imd-sec-desc">Todavía no hay consulta ni RMYT cargados para este paciente.</p>';
+      return;
+    }
+
+    // El registro más reciente de Historia_Clinica (formato dd/mm/aaaa, como lo guarda addHistoria)
+    const parseFecha = f => { const [d,m,y] = String(f||'').split('/'); return new Date(`${y}-${m}-${d}`); };
+    const ultimo = historial.length ? historial.slice().sort((a,b) => parseFecha(b.Fecha) - parseFecha(a.Fecha))[0] : null;
+
+    // Tratamiento decidido: resumen de la consulta + medicación efectivamente prescripta
+    let tratamiento = (datos && datos.consulta && datos.consulta.resumen) || '';
+    if (datos && datos.medicacion) {
+      const meds = [].concat(datos.medicacion.magistral||[], datos.medicacion.farmacopeo||[])
+        .filter(m => m && m.principio_activo)
+        .map(m => `• ${m.principio_activo}${m.dosis_mg?(' '+m.dosis_mg+'mg'):''}${m.frecuencia?(' — '+m.frecuencia):''}`);
+      if (meds.length) tratamiento += (tratamiento?'\n\n':'') + 'Medicación indicada:\n' + meds.join('\n');
+    }
+
+    // Kinesio: se aclara explícitamente si el tratamiento decidido incluye kinesiología
+    let kinesioTxt = '';
+    if (datos && datos.kinesio && datos.kinesio.prescripcion) {
+      kinesioTxt = `Sí — ${datos.kinesio.prescripcion}` +
+        (datos.kinesio.sesiones ? ` · ${datos.kinesio.sesiones} sesiones` : '') +
+        (datos.kinesio.frecuencia ? ` · ${datos.kinesio.frecuencia}` : '');
+    }
+
+    const filas = [
+      fila('🩺 Diagnóstico', (datos && datos.consulta && datos.consulta.dx) || (ultimo && ultimo.Diagnostico)),
+      fila('📝 Estudios solicitados', ultimo && ultimo.Estudios_Pendientes),
+      fila('🔬 Estudios realizados', ultimo && ultimo.Estudios_Realizados),
+      fila('🔎 Resumen de lo encontrado', datos && datos.consulta && datos.consulta.estudios),
+      fila('💊 Tratamiento decidido', tratamiento),
+      fila('🏋️ ¿Incluye tratamiento kinésico?', kinesioTxt || 'No'),
+      fila('📋 Indicaciones', ultimo && ultimo.Indicaciones)
+    ].join('');
+
+    cont.innerHTML =
+      (ultimo ? `<div class="imd-sec-desc" style="margin-bottom:10px">Última consulta registrada: <strong>${ultimo.Fecha||'—'}</strong></div>` : '') +
+      (filas || '<p class="imd-sec-desc">Todavía no hay datos cargados en estos campos.</p>');
+  } catch (e) {
+    cont.innerHTML = '<p class="imd-sec-desc">⚠️ No se pudo cargar el resumen de la consulta.</p>';
+  }
 }
 
 /* F1 — Toggle Receta de Farmacia / Prescripción Magistral (agosto 2026) */
@@ -9923,17 +10602,14 @@ function cargarFarmaciasMagistralesIMD() {
     const nombre   = f.nombre || `Farmacia magistral #${i+1} — pendiente de datos`;
     const dir      = f.direccion || '<span class="imd-farm-pendiente">Dirección a completar</span>';
     const mail     = f.mail || '<span class="imd-farm-pendiente">Mail a completar</span>';
-    const wa       = f.whatsapp || '<span class="imd-farm-pendiente">WhatsApp a completar</span>';
     const mapsHref = f.direccion ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.direccion)}` : '';
     return `
     <div class="imd-farm-card">
       <h4>⚗️ ${nombre}</h4>
       <div class="imd-farm-row">📍 <b>Dirección:</b> ${dir}</div>
       <div class="imd-farm-row">✉️ <b>Mail:</b> ${mail}</div>
-      <div class="imd-farm-row">📱 <b>WhatsApp:</b> ${wa}</div>
       <div class="imd-farm-actions">
         ${f.mail ? `<a class="imd-farm-mail" href="mailto:${f.mail}">✉️ Mail</a>` : ''}
-        ${f.whatsapp ? `<a class="imd-farm-wa" href="https://wa.me/${f.whatsapp}" target="_blank">📱 WhatsApp</a>` : ''}
         ${mapsHref ? `<a class="imd-farm-maps" href="${mapsHref}" target="_blank">🗺 Cómo llegar</a>` : ''}
         ${f.instruccionEjemplo ? `<button class="imd-farm-tmpl" onclick="imdMagistralInsertarEjemplo(${i})" type="button">📋 Insertar ejemplo de dosificación</button>` : ''}
       </div>
@@ -9985,7 +10661,7 @@ function cargarParametrosIMD(params) {
 }
 
 function guardarEvaluacionIMD() {
-  const d    = IMDCMYT_DB_V12[imdRegionActual];
+  const d    = RECOM_REGIONES_DB_V12[imdRegionActual];
   if (!d) return;
   const vals = {};
   d.params.forEach(p => { vals[p.id] = parseInt(document.getElementById(`imd-sl-${p.id}`)?.value ?? 5); });
@@ -10014,7 +10690,7 @@ function renderDashboardIMD() {
     ctx.fillText('Aún no hay evaluaciones. Complete y guarde la primera.', canvas.width/2, 110);
     return;
   }
-  const d      = IMDCMYT_DB_V12[imdRegionActual];
+  const d      = RECOM_REGIONES_DB_V12[imdRegionActual];
   if (!d) return;
   const labels = hist.map(e => { const dt = new Date(e.fecha); return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`; });
   const colors = ['#dc2626','#ea580c','#eab308','#7c3aed','#2563eb','#16a34a','#6b7280','#0891b2','#be185d'];
@@ -10043,47 +10719,51 @@ function renderDashboardIMD() {
 }
 
 /* Conectores */
-function whatsappFarmaciaIMD() {
-  const meds = itemsReceta.filter(x => x && x.key === 'med').map(x => x.text);
-  if (!meds.length) { toast('No hay medicamentos en el carrito', 'err'); return; }
-  const pac   = pacienteActivo ? `${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}` : '[Paciente]';
-  const fecha = new Date().toLocaleDateString('es-AR');
-  let det = '';
-  meds.forEach((m, i) => {
-    const pres = document.getElementById(`imd-pres${i}`)?.value || '';
-    const conc = document.getElementById(`imd-conc${i}`)?.value || '';
-    const via  = document.getElementById(`imd-via${i}`)?.value || '';
-    const f    = document.getElementById(`imd-f${i}`)?.value || '';
-    const dias = document.getElementById(`imd-dias${i}`)?.value || '';
-    const func = document.getElementById(`imd-func${i}`)?.value || '';
-    const ind  = document.getElementById(`imd-i${i}`)?.value || '';
-    det += `\n• *${m}*`;
-    if (pres || conc) det += ` — ${[pres, conc].filter(Boolean).join(' ')}`;
-    if (via) det += ` | ${via}`;
-    if (f) det += ` | ${f}`;
-    if (dias) det += ` | ${dias} días`;
-    if (func) det += `\n  🎯 ${func}`;
-    if (ind) det += `\n  ⚠️ ${ind}`;
-  });
-  const msg = `🏥 *RECETA MÉDICA DIGITAL*\n👨‍⚕️ *Dr. Luis Alberto Muratori* | M.P. 9943 | M.N. 100.540\n📅 ${fecha}\n👤 *Paciente:* ${pac}\n\n💊 *MEDICAMENTOS:*${det}\n\n_Por favor confirme disponibilidad y precio. Gracias._`;
-  window.open(`https://wa.me/${FARMACIA_WA_12}?text=${encodeURIComponent(msg)}`, '_blank');
-}
+// (WhatsApp Farmacia sacado del sistema, sep 2026 — ahora el teléfono de la
+// farmacia queda anotado como información en el panel de Prescripción de
+// Medicamentos, sin conector automático.)
 
-function whatsappTurnoIMD() {
+/* Conectores por mail (sep 2026) — reemplazan a los de WhatsApp. Todos abren
+   un mailto: a MAIL_KINESIOLOGIA_12 (consultas.sism@gmail.com), la misma
+   casilla que ya procesa procesarBandejaEntrada()/analizarConIA_() en el
+   backend: ese triage por IA es el que decide si es el 1er/2do mensaje
+   (gratis) o si hay que ofrecer consulta abreviada/virtual paga, así que acá
+   no se repite esa lógica — solo se manda el mensaje con el asunto marcado
+   según de qué conector y qué región RMYT salió, para que se sepa el origen
+   al leerlo o al armar la respuesta automática. */
+function mailtoIMD_(asunto, cuerpo) {
+  window.open(`mailto:${MAIL_KINESIOLOGIA_12}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`, '_blank');
+}
+function mailTurnoIMD() {
   const pac = pacienteActivo ? `${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}` : '[mi nombre]';
   const reg = IMD_REGIONES.find(r => r.key === imdRegionActual)?.n || imdRegionActual;
-  const msg = `Hola Dr. Muratori, soy *${pac}*.\nQuisiera solicitar un *turno presencial de seguimiento* por mi tratamiento de *${reg}*.\n¿Tiene disponibilidad próximamente?\nMuchas gracias.`;
-  window.open(`https://wa.me/${DOCTOR_WA_12}?text=${encodeURIComponent(msg)}`, '_blank');
+  const asunto = `RMYT — Turno presencial — ${reg}`;
+  const cuerpo = `Hola Dr. Muratori, soy ${pac}.\nQuisiera solicitar un turno presencial de seguimiento por mi tratamiento de ${reg}.\n¿Tiene disponibilidad próximamente?\nMuchas gracias.`;
+  mailtoIMD_(asunto, cuerpo);
 }
-
-function whatsappVideollamadaIMD() {
+function mailVideollamadaIMD() {
   const pac = pacienteActivo ? `${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}` : '[mi nombre]';
   const reg = IMD_REGIONES.find(r => r.key === imdRegionActual)?.n || imdRegionActual;
-  const msg = `Hola Dr. Muratori, soy *${pac}*.\nQuiero solicitar una *teleconsulta de 5 minutos* sobre mi tratamiento de *${reg}*.\n\nAguardo el link de pago por *Mercado Pago* para abonar antes de la llamada.\nUna vez confirmado el pago, coordinamos el horario.\n\nGracias.`;
-  window.open(`https://wa.me/${DOCTOR_WA_12}?text=${encodeURIComponent(msg)}`, '_blank');
+  const asunto = `RMYT — Teleconsulta 5 minutos — ${reg}`;
+  const cuerpo = `Hola Dr. Muratori, soy ${pac}.\nQuiero solicitar una teleconsulta de 5 minutos sobre mi tratamiento de ${reg}.\n\nEntiendo que esta opción tiene un costo y que antes de coordinar el horario me van a pasar el link de pago por Mercado Pago.\n\nGracias.`;
+  mailtoIMD_(asunto, cuerpo);
+}
+function mailKinesiologoIMD() {
+  const pac = pacienteActivo ? `${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}` : '[mi nombre]';
+  const reg = IMD_REGIONES.find(r => r.key === imdRegionActual)?.n || imdRegionActual;
+  const asunto = `RMYT — Consulta al kinesiólogo — ${reg}`;
+  const cuerpo = `Hola, soy ${pac}.\nTengo una consulta sobre mi tratamiento de kinesiología/FKT de ${reg} (ejercicios, técnica, dudas del plan indicado).\n\nGracias.`;
+  mailtoIMD_(asunto, cuerpo);
+}
+function mailEvaluadoresKinesiologoIMD() {
+  const pac = pacienteActivo ? `${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}` : '[mi nombre]';
+  const reg = IMD_REGIONES.find(r => r.key === imdRegionActual)?.n || imdRegionActual;
+  const asunto = `RMYT — Evaluadores del kinesiólogo — ${reg}`;
+  const cuerpo = `Hola, soy ${pac}.\nNecesito contactar a los evaluadores de mi tratamiento de kinesiología/FKT de ${reg} (auditoría / seguimiento de la evolución del plan).\n\nGracias.`;
+  mailtoIMD_(asunto, cuerpo);
 }
 
-/* ─── Interceptor addToReceta para IMDCMYT ─── */
+/* ─── Interceptor addToReceta para RECOMENDACIONES MEDICAS ─── */
 (function() {
   const _prev = addToReceta;
   addToReceta = function(text, key) {
@@ -10105,11 +10785,30 @@ function whatsappVideollamadaIMD() {
         'Rehabilitación global — polipatología': '16-Rehabilitación global isométrica',
         'Calistenia básica — programa integral':  '16-Rehabilitación global isométrica'
       };
-      const mappedKey = MAP[rawRegion] || Object.keys(IMDCMYT_DB_V12).find(k => k.toLowerCase().includes(rawRegion.toLowerCase())) || '1-Global';
-      abrirIMDCMYT(mappedKey);
+      const mappedKey = MAP[rawRegion] || Object.keys(RECOM_REGIONES_DB_V12).find(k => k.toLowerCase().includes(rawRegion.toLowerCase())) || '1-Global';
+      abrirRecomendacionRegion(mappedKey);
       return;
     }
     _prev(text, key);
+  };
+})();
+
+/* ─── Interceptor addToReceta para RECOMENDACIONES RMYT DE TEXTO FIJO ───
+   (osteoporosis, ergonomía, curaciones, anticoagulación, plantillas, yeso,
+   preparación de estudios, etc. — ver RECO_TEXTOS_RMYT arriba). Inserta el
+   texto completo de la recomendación en lugar de solo el título, y lo anota
+   en el Libro RMYT del paciente para su seguimiento. */
+(function() {
+  const _prev2 = addToReceta;
+  addToReceta = function(text, key) {
+    if (text && typeof text === 'string' && RECO_TEXTOS_RMYT[text]) {
+      _prev2(RECO_TEXTOS_RMYT[text], key);
+      if (typeof agregarAChecklistRmyt === 'function') {
+        try { agregarAChecklistRmyt('RMYT — ' + text); } catch (e) {}
+      }
+      return;
+    }
+    _prev2(text, key);
   };
 })();
 </script>
@@ -10117,7 +10816,7 @@ function whatsappVideollamadaIMD() {
 <script defer>
 /* ══════════════════════════════════════════════════════════════════
    DASHBOARD RSG — Registro de Seguimiento de Pacientes
-   Lee evaluaciones de localStorage generadas por IMDCMYT F3
+   Lee evaluaciones de localStorage generadas por RECOMENDACIONES MEDICAS F3
    ══════════════════════════════════════════════════════════════════ */
 
 let rsgChartInst = null;
@@ -10497,16 +11196,19 @@ function rsgRenderAlertas(all) {
       <div class="rsg-alert-dias" style="color:${urgencia}">Hace ${dias} días</div>
       <button onclick="recordarPacienteIMD('${e.paciente.replace(/'/g,"\\'")}','${reg}')"
         style="background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer">
-        📱 Recordar
+        📧 Recordar
       </button>
     </div>`;
   }).join('');
 }
 
-/* ── Recordatorio WhatsApp al paciente ── */
+/* ── Recordatorio por mail al paciente (WhatsApp sacado del sistema, sep 2026) —
+   abre el mail del médico sin destinatario fijo, para que elija a quién
+   mandárselo, igual que antes se elegía el contacto desde WhatsApp. ── */
 function recordarPacienteIMD(nombre, region) {
-  const msg = `Hola *${nombre}*, le escribe el consultorio del Dr. Luis Alberto Muratori.\n\nLe recordamos que tiene pendiente su *evaluación semanal de seguimiento* para la región *${region}*.\n\nPor favor complete los parámetros en su RMYT y envíe los resultados.\n\n¡Gracias! Su seguimiento es fundamental para su recuperación. 🏥`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  const asunto = 'Recordatorio — evaluación semanal de seguimiento';
+  const msg = `Hola ${nombre}, le escribe el consultorio del Dr. Luis Alberto Muratori.\n\nLe recordamos que tiene pendiente su evaluación semanal de seguimiento para la región ${region}.\n\nPor favor complete los parámetros en su RMYT y envíe los resultados.\n\n¡Gracias! Su seguimiento es fundamental para su recuperación.`;
+  window.open(`mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(msg)}`, '_blank');
 }
 
 /* ── Ranking de regiones ── */
@@ -10833,7 +11535,7 @@ async function recolectarDatosBackup() {
     medico    : 'Dr. Luis Alberto Muratori · M.P. 9943 · M.N. 100.540',
     localStorage_keys : [],
     indexedDB : { pacientes:[], historias:[], plantillas:[] },
-    evaluaciones_imdcmyt : []
+    evaluaciones_recomendaciones : []
   };
 
   // LocalStorage — keys relevantes
@@ -11347,7 +12049,7 @@ function renderHistItemHTML(c){
 </script>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     MODAL IMDCMYT — Informe Médico Consulta y Recordatorio Terapéutico
+     MODAL RECOMENDACIONES MEDICAS — Informe Médico Consulta y Recordatorio Terapéutico
      v11 · Columna Cervical · F1 Medicación · F2 Ejercicios · F3 Eval
      ══════════════════════════════════════════════════════════════════ -->
 
@@ -11374,7 +12076,7 @@ function renderHistItemHTML(c){
         <em>Toda actividad es monitoreada y archivada.</em>
       </div>
       <div style="text-align:center">
-        <button class="btn-seg-den" onclick="denunciarCopiaSeg()">📱 Alertar al Dr. Muratori</button>
+        <button class="btn-seg-den" onclick="denunciarCopiaSeg()">📧 Alertar al Dr. Muratori</button>
         &nbsp;
         <button class="btn btn-ghost" onclick="cerrarModalSeg()">Entendido</button>
       </div>
@@ -11386,7 +12088,7 @@ function renderHistItemHTML(c){
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     MODAL SELECTOR IMDCMYT — 16 regiones con checkboxes
+     MODAL SELECTOR RECOMENDACIONES MEDICAS — 16 regiones con checkboxes
      ══════════════════════════════════════════════════════════════════ -->
 <div id="modal-imd-selector" class="modal-overlay">
   <div class="modal-box imd-sel-box">
@@ -11409,13 +12111,13 @@ function renderHistItemHTML(c){
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     MODAL GENERADOR IMDCYMT PACIENTE — Documento completo del paciente
+     MODAL GENERADOR RECOMENDACIONES MEDICAS PACIENTE — Documento completo del paciente
      ══════════════════════════════════════════════════════════════════ -->
-<div id="modal-gen-imdcymt" class="modal-overlay">
+<div id="modal-gen-recomendaciones" class="modal-overlay">
   <div class="modal-box" style="max-width:540px;max-height:88vh;overflow-y:auto">
     <div class="modal-header">
       <span>📄 Generar RMYT para el paciente</span>
-      <button onclick="cerrarModal('modal-gen-imdcymt')">✕</button>
+      <button onclick="cerrarModal('modal-gen-recomendaciones')">✕</button>
     </div>
     <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
       <!-- Diagnóstico -->
@@ -11466,18 +12168,18 @@ function renderHistItemHTML(c){
           <input id="gen-kin-frec" type="text" placeholder="Frecuencia: ej 3x/semana" style="flex:1;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:inherit">
         </div>
       </div>
-      <!-- IMDCYMT región -->
+      <!-- RECOMENDACIONES MEDICAS región -->
       <div>
-        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px">Región del IMDCYMT (ejercicios)</label>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px">Región del RMYT (ejercicios)</label>
         <select id="gen-region" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:inherit">
           <option value="">— Sin ejercicios específicos (general) —</option>
         </select>
       </div>
       <!-- Botón generar -->
-      <button onclick="generarIMDCYMTPaciente()" style="background:var(--accent2);color:#fff;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
+      <button onclick="generarRecomendacionesPaciente()" style="background:var(--accent2);color:#fff;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
         📄 Generar y abrir documento del paciente
       </button>
-      <p style="font-size:10px;color:var(--muted);text-align:center">Se abrirá en una pestaña nueva. Copiá el link y compartilo con el paciente por WhatsApp o mail.</p>
+      <p style="font-size:10px;color:var(--muted);text-align:center">Se abrirá en una pestaña nueva. Copiá el link y compartilo con el paciente por mail.</p>
     </div>
   </div>
 </div>
@@ -11579,27 +12281,36 @@ function renderHistItemHTML(c){
      quirúrgico) / amarillo (en planificación o seguimiento quirúrgico)
      > turquesa (el resto). Un clic lleva directo a la historia clínica.
      ══════════════════════════════════════════════════════════════════ -->
+<style>
+  /* Agrandado a pedido de Luis (sep 2026): esta agenda se usa en pantalla
+     completa/proyector y el tamaño original quedaba chico — todo el texto
+     y los controles de ESTE modal puntual quedan al doble, sin tocar el
+     tamaño de los demás modales del sistema (.modal-box/.modal-header son
+     compartidos por todos, así que acá se pisan solo dentro de este ID). */
+  #modal-agenda-pacientes .modal-header{font-size:26px;padding:20px 26px}
+  #modal-agenda-pacientes .modal-header button{width:44px;height:44px;font-size:26px}
+</style>
 <div id="modal-agenda-pacientes" class="modal-overlay">
-  <div class="modal-box" style="max-width:680px;max-height:88vh;overflow-y:auto">
+  <div class="modal-box" style="width:980px;max-width:95vw;max-height:92vh;overflow-y:auto">
     <div class="modal-header">
       <span>📇 Agenda de Pacientes</span>
       <button onclick="cerrarModal('modal-agenda-pacientes')">✕</button>
     </div>
-    <div id="agenda-pac-tabs" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px 0"></div>
-    <div style="padding:10px 14px 0">
+    <div id="agenda-pac-tabs" style="display:flex;flex-direction:column;gap:14px;padding:20px 26px 0"></div>
+    <div style="padding:16px 26px 0">
       <input id="agenda-pac-filtro" type="text" placeholder="Filtrar por apellido o DNI…" oninput="renderAgendaPacientes(this.value)"
-        style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;font-size:10.5px;color:var(--muted)">
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#1e40af;vertical-align:-1px"></span> Discapacidad grave</span>
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#60a5fa;vertical-align:-1px"></span> Discapacidad moderada/leve</span>
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#fde047;vertical-align:-1px"></span> Qx en planificación/seguimiento</span>
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#4ade80;vertical-align:-1px"></span> Qx (otras etapas)</span>
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#5eead4;vertical-align:-1px"></span> Resto de pacientes</span>
+        style="width:100%;padding:16px 20px;border:1.5px solid var(--border2);border-radius:10px;font-size:24px;font-family:inherit;box-sizing:border-box">
+      <div style="display:flex;gap:18px;flex-wrap:wrap;margin:18px 0;font-size:19px;color:var(--muted)">
+        <span><span style="display:inline-block;width:18px;height:18px;border-radius:5px;background:#1e40af;vertical-align:-3px"></span> Discapacidad grave</span>
+        <span><span style="display:inline-block;width:18px;height:18px;border-radius:5px;background:#60a5fa;vertical-align:-3px"></span> Discapacidad moderada/leve</span>
+        <span><span style="display:inline-block;width:18px;height:18px;border-radius:5px;background:#fde047;vertical-align:-3px"></span> Qx en planificación/seguimiento</span>
+        <span><span style="display:inline-block;width:18px;height:18px;border-radius:5px;background:#4ade80;vertical-align:-3px"></span> Qx (otras etapas)</span>
+        <span><span style="display:inline-block;width:18px;height:18px;border-radius:5px;background:#5eead4;vertical-align:-3px"></span> Resto de pacientes</span>
       </div>
-      <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px">📌 Muestra los pacientes guardados en este equipo. El color de discapacidad/quirúrgico refleja lo cargado en el Libro de Discapacidad y el Libro Quirúrgico DESDE ESTE MISMO NAVEGADOR.</div>
+      <div style="font-size:19px;color:var(--muted);margin-bottom:14px">📌 Muestra los pacientes guardados en este equipo. El color de discapacidad/quirúrgico refleja lo cargado en el Libro de Discapacidad y el Libro Quirúrgico DESDE ESTE MISMO NAVEGADOR.</div>
     </div>
-    <div id="agenda-pac-list" style="padding:0 14px 14px">
-      <div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Cargando...</div>
+    <div id="agenda-pac-list" style="padding:0 26px 26px">
+      <div style="text-align:center;color:var(--muted);padding:30px;font-size:22px">Cargando...</div>
     </div>
   </div>
 </div>
@@ -11679,17 +12390,18 @@ function renderHistItemHTML(c){
     </div>
   </div>
 </div>
-<div id="modal-imdcmyt" class="modal-overlay">
+<div id="modal-recomendaciones-regiones" class="modal-overlay">
   <div class="modal-box imd-modal-box">
     <div class="modal-header">
       <span id="imd-titulo">📋 RMYT</span>
-      <button onclick="cerrarModal('modal-imdcmyt')">✕</button>
+      <button onclick="cerrarModal('modal-recomendaciones-regiones')">✕</button>
     </div>
     <div class="imd-pac-bar" id="imd-pac-info">—</div>
     <div class="imd-tabs-bar">
       <button class="imd-tab active" id="imdtab-f1" onclick="imdTab('f1')">💊 F1 — Medicación</button>
-      <button class="imd-tab" id="imdtab-f2" onclick="imdTab('f2')">🏋️ F2 — Ejercicios Isométricos</button>
-      <button class="imd-tab" id="imdtab-f3" onclick="imdTab('f3')">📊 F3 — Evaluación</button>
+      <button class="imd-tab" id="imdtab-f2" onclick="imdTab('f2')">📋 F2 — Resumen de la consulta</button>
+      <button class="imd-tab" id="imdtab-f3" onclick="imdTab('f3')">🏋️ F3 — FKT</button>
+      <button class="imd-tab" id="imdtab-f4" onclick="imdTab('f4')">📊 F4 — Evaluación</button>
     </div>
     <!-- F1 -->
     <div id="imd-f1" class="imd-panel" style="display:block">
@@ -11738,10 +12450,10 @@ function renderHistItemHTML(c){
           </div>
         </div>
         <div class="imd-f1-actions">
-          <button class="imd-btn imd-btn-wa" onclick="whatsappFarmaciaIMD()">
-            📲 Enviar receta a Farmacia por WhatsApp
-            <span class="imd-btn-sub">📞 +54 9 2634 779960</span>
-          </button>
+          <!-- WhatsApp sacado del sistema (sep 2026) — el Dr. Muratori pidió que
+               esto quede solo como información de contacto, sin botón/conector
+               automático. Llama o escribe él mismo por fuera del sistema. -->
+          <div style="font-size:11.5px;color:var(--muted);padding:8px 10px;background:#f8fafc;border:1px solid var(--border);border-radius:8px">📞 Farmacia: +54 9 2634 779960</div>
         </div>
       </div>
 
@@ -11754,18 +12466,44 @@ function renderHistItemHTML(c){
         </div>
       </div>
     </div>
-    <!-- F2 -->
+    <!-- F2 — Resumen de la consulta y estudios solicitados (sep 2026) -->
     <div id="imd-f2" class="imd-panel" style="display:none">
       <div class="imd-sec-header">
-        <h3 id="imd-f2-title">🏋️ Ejercicios Isométricos</h3>
+        <h3>📋 Resumen de la consulta y estudios solicitados</h3>
+        <p class="imd-sec-desc">Tomado de la historia clínica del paciente — el mismo registro que carga el Dr. Muratori en la consulta.</p>
+      </div>
+      <div id="imd-resumen-historia"><p class="imd-sec-desc">Cargando…</p></div>
+    </div>
+    <!-- F3 — FKT (antes F2 — Ejercicios Isométricos) -->
+    <div id="imd-f3" class="imd-panel" style="display:none">
+      <div class="imd-sec-header">
+        <h3 id="imd-f3-title">🏋️ Ejercicios Isométricos</h3>
         <p class="imd-sec-desc">Realice cada ejercicio <strong>lenta y controladamente</strong>. Si siente dolor irradiado, parestesias o mareo: <strong>suspenda y consulte.</strong></p>
       </div>
       <div id="imd-ejercicios-list"></div>
       <div class="imd-disclaimer">⚠️ Estos ejercicios son indicados específicamente por el Dr. Muratori. No los realice sin supervisión médica si tiene patologías graves.</div>
+      <div class="imd-conectores" style="margin-top:16px">
+        <div class="imd-conector-card">
+          <div class="imd-conector-icon">🧑‍⚕️</div>
+          <div class="imd-conector-body">
+            <div class="imd-conector-title">Consulta al kinesiólogo</div>
+            <div class="imd-conector-desc">Dudas sobre la técnica o el plan de ejercicios de esta región</div>
+          </div>
+          <button class="imd-btn imd-btn-sm" onclick="mailKinesiologoIMD()">✉️ Mail</button>
+        </div>
+        <div class="imd-conector-card">
+          <div class="imd-conector-icon">📊</div>
+          <div class="imd-conector-body">
+            <div class="imd-conector-title">Evaluadores del kinesiólogo</div>
+            <div class="imd-conector-desc">Auditoría / seguimiento de la evolución del plan de FKT</div>
+          </div>
+          <button class="imd-btn imd-btn-sm" onclick="mailEvaluadoresKinesiologoIMD()">✉️ Mail</button>
+        </div>
+      </div>
     </div>
-    <!-- F3 -->
-    <div id="imd-f3" class="imd-panel" style="display:none">
-      <div class="imd-f3-grid">
+    <!-- F4 — Evaluación (antes F3) -->
+    <div id="imd-f4" class="imd-panel" style="display:none">
+      <div class="imd-f4-grid">
         <div>
           <div class="imd-sec-header">
             <h3>📋 Evaluación Semanal</h3>
@@ -11789,15 +12527,15 @@ function renderHistItemHTML(c){
             <div class="imd-conector-title">Solicitar turno presencial</div>
             <div class="imd-conector-desc">Consulta de seguimiento con el Dr. Muratori</div>
           </div>
-          <button class="imd-btn imd-btn-wa imd-btn-sm" onclick="whatsappTurnoIMD()">📲 WhatsApp</button>
+          <button class="imd-btn imd-btn-sm" onclick="mailTurnoIMD()">✉️ Mail</button>
         </div>
         <div class="imd-conector-card">
           <div class="imd-conector-icon">📹</div>
           <div class="imd-conector-body">
             <div class="imd-conector-title">Teleconsulta 5 minutos</div>
-            <div class="imd-conector-desc"><strong>Requiere pago previo por Mercado Pago.</strong> Sin pago confirmado no se recibe respuesta.</div>
+            <div class="imd-conector-desc"><strong>Es una opción paga.</strong> Antes de coordinar el horario se envía el link de pago por Mercado Pago.</div>
           </div>
-          <button class="imd-btn imd-btn-mp imd-btn-sm" onclick="whatsappVideollamadaIMD()">📹 Solicitar</button>
+          <button class="imd-btn imd-btn-mp imd-btn-sm" onclick="mailVideollamadaIMD()">✉️ Mail</button>
         </div>
       </div>
     </div>
@@ -11805,7 +12543,7 @@ function renderHistItemHTML(c){
       <span style="font-size:10px;color:var(--muted)">RMYT v12 · Dr. Luis A. Muratori · M.P. 9943 · M.N. 100.540</span>
       <div style="display:flex;gap:8px">
         <button class="btn btn-primary" id="imd-btn-concluir" onclick="concluirYEnviarRMYT()">✅ Concluir y Enviar RMYT</button>
-        <button class="btn btn-ghost" onclick="cerrarModal('modal-imdcmyt')">Cerrar</button>
+        <button class="btn btn-ghost" onclick="cerrarModal('modal-recomendaciones-regiones')">Cerrar</button>
       </div>
     </div>
   </div>
@@ -12194,21 +12932,11 @@ async function enviarDocumentoQXPorMail(tituloRp, cuerpoTexto, destinatarioMail)
 async function cargarPacientePorDNI(dni){
   if(!dni) return;
   try{
-    const local = await buscarPacientesDB(dni);
-    let pac = local.find(p=>String(p.dni||'')===String(dni));
-    if(!pac){
-      const resp = await fetch(SHEETS_URL+'?action=search&query='+encodeURIComponent(dni)+tokenQS_(), {signal:AbortSignal.timeout(6000)});
-      const data = await resp.json();
-      const c = (data.data||[]).find(c=>String(c.DNI||'')===String(dni));
-      if(c){
-        pac = {
-          dni:c.DNI||'', apellido:c.Apellido||'', nombre:c.Nombre||'', fecha_nac:c.Fecha_Nac||'',
-          obra_social:c.Obra_Social||'', plan:c.Plan||'', nro_afiliado:c.N_Afiliado||'',
-          telefono:c.Telefono||'', mail:c.Email||'', direccion:c.Domicilio||'',
-          localidad:c.Localidad||'', lugar_atencion:c.Lugar_Atencion||'', centro_derivador:c.Centro_Derivador||''
-        };
-      }
-    }
+    // BUGFIX (sept 2026): antes esta función volvía a buscar el paciente
+    // desde cero (local+nube) en paralelo con autoAbrirPacientePorDNI() —
+    // ver el comentario grande junto a esa función, más arriba en este
+    // archivo. Ahora reusa la misma búsqueda compartida y memoizada.
+    const pac = await buscarPacienteCompartidoPorDNI_(dni);
     if(pac){ seleccionarPacienteQX(pac); }
     else{ toast('No se encontró un paciente con ese DNI','err'); renderPacBarSinPaciente(); }
   }catch(e){
@@ -12218,6 +12946,7 @@ async function cargarPacientePorDNI(dni){
 }
 function seleccionarPacienteQX(p){
   pacienteActivo=p;
+  resetConsinfFirmaUI_(); // evita que el estado de firma de un paciente anterior quede visible con el nuevo
   const bar=document.getElementById('pacbar');
   bar.innerHTML=`<span class="pac-chip">👤 <b>${p.apellido||''}, ${p.nombre||''}</b> · DNI ${p.dni||'—'} · ${p.obra_social||'—'}${p.plan?' (Plan '+p.plan+')':''}</span>
     <button onclick="renderPacBarSinPaciente()" style="background:#f1f5f9;color:var(--azul);border:1px solid #cbd5e1;padding:6px 10px;border-radius:6px;font-size:11.5px;cursor:pointer">Cambiar paciente</button>`;
@@ -12345,6 +13074,49 @@ function agregarAChecklistLibro(itemLabel){
   libroChecklist.push({item:itemLabel, estado:'pendiente', resumen:'', fecha:'', imprimible:false});
   renderChecklistLibro();
   guardarLibroSilencioso_();
+}
+// Consulta Mini-RIMP por cada interconsulta pendiente/esperando del Libro
+// y, si ya llegó la respuesta del especialista (vía el QR — ver
+// abrirQRInterconsultaEspecialista_), actualiza el estado y el resumen
+// automáticamente en vez de tipearlo a mano. No toca ítems que no son
+// interconsultas (laboratorio, estudios propios, etc.), ni pisa un estado
+// que el médico ya haya puesto a mano en 'no_logrado' salvo que la
+// respuesta nueva sea más reciente.
+async function actualizarEstadoInterconsultasDesdeMiniRIMP_(){
+  if(!pacienteActivo || !pacienteActivo.dni) return;
+  const pendientes = libroChecklist
+    .map((c,i)=>({c,i}))
+    .filter(({c}) => c.item && c.item.indexOf('Interconsulta — ')===0 && c.estado!=='completado' && c.estado!=='no_logrado');
+  if(!pendientes.length) return;
+  let actualizados = 0;
+  for(const {c,i} of pendientes){
+    const especialidadLabel = c.item.replace('Interconsulta — ','');
+    const codigoQX = Object.keys(ESPECIALIDADES_INTERC_QX_LABEL_A_CODIGO_()).find(l=>l===especialidadLabel);
+    const claveMiniRIMP = codigoQX ? ESPECIALIDAD_QX_A_MINIRIMP[ESPECIALIDADES_INTERC_QX_LABEL_A_CODIGO_()[codigoQX]] : null;
+    if(!claveMiniRIMP) continue;
+    try{
+      const resp = await fetch(SHEETS_URL+'?action=get_minirimp&especialidad='+encodeURIComponent(claveMiniRIMP)+'&dni='+encodeURIComponent(pacienteActivo.dni), {signal:AbortSignal.timeout(8000)});
+      const data = await resp.json();
+      if(data.success && data.registros && data.registros.length){
+        const ultimo = data.registros[data.registros.length-1]; // orden de carga = más reciente al final
+        const aprobado = String(ultimo.Aprobacion||'').toLowerCase().indexOf('no apto')===-1 && String(ultimo.Aprobacion||'').trim()!=='';
+        libroChecklist[i].estado = aprobado ? 'completado' : 'no_logrado';
+        libroChecklist[i].resumen = [ultimo.Aprobacion||'', ultimo.Sugerencias_Mejora||''].filter(Boolean).join(' — ');
+        libroChecklist[i].fecha = ultimo.Fecha_Respuesta ? new Date(ultimo.Fecha_Respuesta).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR');
+        actualizados++;
+      }
+    }catch(e){ /* sin conexión o especialidad sin respuesta todavía — se reintenta en el próximo refresco */ }
+  }
+  if(actualizados){
+    renderChecklistLibro();
+    guardarLibroSilencioso_();
+    toast(`🔄 ${actualizados} interconsulta(s) actualizada(s) desde Mini-RIMP`,'ok');
+  }
+}
+function ESPECIALIDADES_INTERC_QX_LABEL_A_CODIGO_(){
+  const map={};
+  ESPECIALIDADES_INTERC_QX.forEach(e=>{ map[e.l]=e.v; });
+  return map;
 }
 function guardarLibroSilencioso_(){
   if(pacienteActivo && pacienteActivo.dni){
@@ -12648,7 +13420,7 @@ function marcarBotonesQXComoEnviados_(){
 }
 
 // agrega ítems acá, y de acá se genera UN solo documento combinado
-// (imprimir/PDF, mail, WhatsApp) o se guarda todo junto en el historial.
+// (imprimir/PDF, mail) o se guarda todo junto en el historial.
 // ══════════════════════════════════════════════════════════════════
 let itemsRecetaQX = [];
 const COLOR_CARRITO = {interq:'var(--cian)',internacq:'var(--ambar)',honorq:'var(--ambar)',implantes:'var(--azul)',consinf:'var(--oliva)',folletopre:'var(--teal)',segqx:'var(--rosa)',labqx:'var(--violeta)'};
@@ -12747,12 +13519,6 @@ async function mailRecetaQXCompleta(){
   }catch(e){
     toast('❌ No se pudo enviar: '+(e&&e.message?e.message:e),'err');
   }
-}
-function waRecetaQXCompleta(){
-  if(!itemsRecetaQX.length){ toast('⚠️ La receta quirúrgica está vacía','err'); return; }
-  const tel=(pacienteActivo&&pacienteActivo.telefono)?pacienteActivo.telefono.replace(/\D/g,''):'';
-  if(!tel){ toast('⚠️ El paciente no tiene teléfono cargado','err'); return; }
-  window.open(`https://wa.me/549${tel}?text=${encodeURIComponent(textoRecetaQXCombinado())}`,'_blank');
 }
 function guardarRecetaQXCompletaHistorial(){
   if(!itemsRecetaQX.length){ toast('⚠️ La receta quirúrgica está vacía','err'); return; }
@@ -13056,26 +13822,6 @@ function enviarFichaPlanningPorMailRecetario(){
   const texto=buildFichaPlanningTexto();
   enviarDocumentoQXPorMail(tituloFichaPlanning(), texto, mailDestinoPaciente());
 }
-function enviarFichaPlanning(destino){
-  const texto=buildFichaPlanningTexto();
-  const msg=document.getElementById('planqf-msg');
-  let dest='';
-  if(destino==='paciente'){
-    const telPac=(document.getElementById('planqf-tel').value||'').replace(/\D/g,'');
-    dest = telPac ? '549'+telPac.replace(/^549|^54|^0/,'') : '';
-  } else if(destino==='cirujano'){
-    dest = DOCTOR_WA_12;
-  } else if(destino==='equipo'){
-    const telEq=(document.getElementById('planqf-tel-equipo').value||'').replace(/\D/g,'');
-    dest = telEq ? '549'+telEq.replace(/^549|^54|^0/,'') : '';
-  }
-  if(!dest){
-    if(msg){msg.className='msg msg-error';msg.textContent='⚠️ Falta el teléfono de destino para enviar';}
-    toast('⚠️ Falta el teléfono de destino','err');
-    return;
-  }
-  window.open(`https://wa.me/${dest}?text=${encodeURIComponent(texto)}`,'_blank');
-}
 function enviarFichaPorMail(){
   const texto=buildFichaPlanningTexto();
   const msg=document.getElementById('planqf-msg');
@@ -13108,6 +13854,45 @@ const ESPECIALIDADES_INTERC_QX = [
   {v:'derma',  l:'Dermatología'},{v:'infect', l:'Infectología'},{v:'uro', l:'Urología'},
   {v:'otra',   l:'Otra especialidad…'}
 ];
+// Mapea el código corto de interconsulta de OCM-Q a la clave de hoja
+// Mini-RIMP real en Codigo.gs (MINIRIMP_NOMBRE_HOJA_) — 'otra' no tiene
+// hoja propia, así que no se ofrece QR para ese caso.
+const ESPECIALIDAD_QX_A_MINIRIMP = {
+  odon:'odontologia', card:'cardiologia', pedi:'pediatria', clinico:'clinico',
+  anest:'anestesiologia', neuro:'neurologia', nutri:'nutricion', hemato:'hematologia',
+  psiq:'psiquiatria', derma:'dermatologia', infect:'infectologia_ortopedia', uro:'urologia'
+};
+// Arma el link a la página que completa el especialista y abre el
+// Generador de QR (ya existente en el sistema) con ese link precargado,
+// listo para escanear o imprimir. Reusa la misma infraestructura QR que
+// ya usan SSQ y QR_Generador — no se duplica ninguna librería nueva.
+function abrirQRInterconsultaEspecialista_(codigoEspQX, especialidadLabel){
+  if(!pacienteActivo || !pacienteActivo.dni){ toast('Elegí un paciente primero','err'); return; }
+  const claveMiniRIMP = ESPECIALIDAD_QX_A_MINIRIMP[codigoEspQX];
+  if(!claveMiniRIMP){ toast('Esta especialidad no tiene checklist de Mini-RIMP propio todavía','err'); return; }
+  const nombrePaciente = `${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}`.replace(/^,\s*/,'').replace(/,\s*$/,'');
+  // Mini resumen del procedimiento quirúrgico: se le pide al médico que lo
+  // confirme/edite acá (no hay forma confiable de traerlo solo, porque el
+  // planning quirúrgico vive en el historial local del dispositivo, no en
+  // Sheets). Precarga con lo que ya esté escrito en Diagnóstico/CIE-10 de
+  // la receta en pantalla, si hay algo. Este texto es el que después le
+  // llega por mail al interconsultor junto con su resumen completado.
+  const dxActual = (document.getElementById('rf-dx')?.textContent||'').trim();
+  const cieActual = (document.getElementById('rf-cie')?.textContent||'').trim();
+  const resumenSugerido = [dxActual, cieActual?('CIE-10: '+cieActual):''].filter(Boolean).join(' — ');
+  const resumenQuirurgico = prompt('Mini resumen del procedimiento quirúrgico (se le va a enviar al interconsultor junto a su respuesta):', resumenSugerido);
+  if(resumenQuirurgico===null) return; // canceló
+  const base = window.location.href.replace(/\/[^/]*(\?.*)?$/,'/') + 'MiniRIMP_Interconsulta_QR.html';
+  const linkInterconsulta = base + '?dni=' + encodeURIComponent(pacienteActivo.dni) +
+    '&paciente=' + encodeURIComponent(nombrePaciente) +
+    '&especialidad=' + encodeURIComponent(claveMiniRIMP) +
+    '&especialidad_label=' + encodeURIComponent(especialidadLabel) +
+    '&resumen=' + encodeURIComponent(resumenQuirurgico||'');
+  const generadorQR = window.location.href.replace(/\/[^/]*(\?.*)?$/,'/') + 'QR_Generador.html' +
+    '?modo=personalizado&link=' + encodeURIComponent(linkInterconsulta) +
+    '&titulo=' + encodeURIComponent(especialidadLabel + ' — ' + nombrePaciente);
+  window.open(generadorQR, '_blank');
+}
 function renderInterqForm(){
   const cont=document.getElementById('interq-form');
   if(cont.children.length) return;
@@ -13126,6 +13911,7 @@ function renderInterqForm(){
 
   const preview=document.createElement('div');preview.className='preview-box';preview.style.marginTop='10px';
   const btnCarrito=document.createElement('button');btnCarrito.className='btn btn-primary';btnCarrito.style.marginTop='10px';btnCarrito.textContent='➕ Agregar a la receta';
+  const btnQR=document.createElement('button');btnQR.className='btn btn-ghost';btnQR.style.cssText='margin-top:10px;margin-left:8px';btnQR.textContent='📱 QR para que complete el especialista';
 
   let textoActual='';
   let especialidadActual='';
@@ -13140,6 +13926,7 @@ function renderInterqForm(){
     textoActual=texto;
     especialidadActual=nombreEsp;
     preview.textContent=texto;
+    btnQR.style.display = ESPECIALIDAD_QX_A_MINIRIMP[espV] ? 'inline-block' : 'none';
   }
   sel.onchange=()=>{ otraWrap.style.display = sel.value==='otra' ? 'block':'none'; actualizar(); };
   otraInput.oninput=actualizar;
@@ -13150,10 +13937,15 @@ function renderInterqForm(){
     agregarAChecklistLibro('Interconsulta — '+especialidadActual);
     toast('✅ Agregado a la receta y anotado en el Libro Quirúrgico','ok');
   };
+  btnQR.onclick=()=>{
+    if(!especialidadActual){toast('Elegí una especialidad primero','err');return;}
+    agregarAChecklistLibro('Interconsulta — '+especialidadActual);
+    abrirQRInterconsultaEspecialista_(sel.value, especialidadActual);
+  };
 
   wrap.appendChild(selLbl);wrap.appendChild(sel);wrap.appendChild(otraWrap);
   wrap.appendChild(notaLbl);wrap.appendChild(nota);
-  wrap.appendChild(preview);wrap.appendChild(btnCarrito);
+  wrap.appendChild(preview);wrap.appendChild(btnCarrito);wrap.appendChild(btnQR);
   cont.appendChild(wrap);
   actualizar(); // pre-carga el texto de la primera especialidad de la lista
 }
@@ -13958,24 +14750,99 @@ const CONSINF_GROUPS=[
     'CONSENTIMIENTO INFORMADO — PROCEDIMIENTO QUIRÚRGICO GENERAL (Art. 19 Ley 17.132, Ley 26.529 de Derechos del Paciente). Además de la información oral brindada por su médico, el presente documento tiene por finalidad que el paciente conozca el procedimiento propuesto, sus riesgos habituales, complicaciones posibles y alternativas terapéuticas. RIESGOS GENERALES: infección de la herida quirúrgica, sangrado, lesión de estructuras vasculares o nerviosas, trombosis venosa profunda y tromboembolismo pulmonar, reacciones anestésicas, necesidad de reintervención. El paciente declara haber sido informado, haber podido formular preguntas, y ser consciente de que la medicina no es una ciencia exacta ni garantiza un resultado determinado. Otorga su consentimiento para la realización de la intervención. Firma del paciente: _____________ Aclaración: _____________ DNI: _____________ Firma del médico: _____________ Lugar y fecha: _____________.'
   ]}
 ];
+let consinfTextoActual_='';
+let consinfProcedimientoActual_='';
+let consinfFirmado_=false;
+let consinfFirmaFecha_='';
 function renderConsinfForm(){
   const cont=document.getElementById('consinf-form');
   if(cont.children.length) return;
   const preview=document.createElement('div');preview.className='preview-box';preview.textContent='El consentimiento elegido va a aparecer acá…';
   const btnCarrito=document.createElement('button');btnCarrito.className='btn btn-primary';btnCarrito.style.marginTop='10px';btnCarrito.textContent='➕ Agregar a la receta';
-  let textoActual='';
-  btnCarrito.onclick=()=>{ if(!textoActual){toast('Elegí un modelo primero','err');return;} addToReceta(textoActual,'consinf'); toast('✅ Agregado a la receta','ok'); };
+  btnCarrito.onclick=()=>{
+    if(!consinfTextoActual_){toast('Elegí un modelo primero','err');return;}
+    const nota = consinfFirmado_ ? `\n\n[Firmado digitalmente por el paciente el ${consinfFirmaFecha_}]` : '';
+    addToReceta(consinfTextoActual_+nota,'consinf');
+    toast('✅ Agregado a la receta','ok');
+  };
 
   CONSINF_GROUPS.forEach(g=>{
     const lbl=document.createElement('div');lbl.className='sm-grp-lbl';lbl.textContent=g.n;
     cont.appendChild(lbl);
     g.items.forEach(item=>{
       const el=document.createElement('div');el.className='sm-item';el.textContent=item.slice(0,90)+'…';el.title=item;
-      el.onclick=()=>{ textoActual=item; preview.textContent=item; };
+      el.onclick=()=>{ consinfTextoActual_=item; consinfProcedimientoActual_=g.n; preview.textContent=item; resetConsinfFirmaUI_(); };
       cont.appendChild(el);
     });
   });
   cont.appendChild(preview);cont.appendChild(btnCarrito);
+
+  // ── Firma táctil del paciente — extiende el mismo mecanismo del Resumen de
+  //    Historia Clínica al Consentimiento Informado, para que quede firmado
+  //    digitalmente y forme parte del Libro Quirúrgico en vez de quedar
+  //    separado como información sin firmar (pedido del Dr. Muratori). ──
+  const firmaBox=document.createElement('div');
+  firmaBox.style.cssText='margin-top:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px';
+  firmaBox.innerHTML=`
+    <div style="font-weight:700;font-size:12.5px;color:#92400e;margin-bottom:6px">🖊 Firma del paciente</div>
+    <button type="button" class="btn-mini" onclick="generarLinkFirmaConsentimiento()">Generar link para firma</button>
+    <button type="button" class="btn-mini" onclick="verificarFirmaConsentimiento()" style="margin-left:6px">Verificar si ya firmó</button>
+    <div id="consinf-link-resultado" style="margin-top:8px;font-size:11.5px"></div>
+    <div id="consinf-firma-resultado" style="margin-top:6px;font-size:11.5px"></div>
+  `;
+  cont.appendChild(firmaBox);
+}
+function resetConsinfFirmaUI_(){
+  consinfFirmado_=false; consinfFirmaFecha_='';
+  const l=document.getElementById('consinf-link-resultado'); if(l) l.textContent='';
+  const f=document.getElementById('consinf-firma-resultado'); if(f) f.textContent='';
+}
+async function generarLinkFirmaConsentimiento(){
+  if(!pacienteActivo || !pacienteActivo.dni){ toast('⚠️ Elegí un paciente primero','err'); return; }
+  if(!consinfTextoActual_){ toast('⚠️ Elegí un modelo de consentimiento primero','err'); return; }
+  const cont=document.getElementById('consinf-link-resultado');
+  cont.textContent='Generando…';
+  try{
+    const resp=await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'guardar_consentimiento_para_firma', dni:pacienteActivo.dni, apellido:pacienteActivo.apellido||'', nombre:pacienteActivo.nombre||'', procedimiento:consinfProcedimientoActual_||'', texto:consinfTextoActual_})});
+    const data=await resp.json();
+    if(!data.success) throw new Error(data.error||'Error del servidor');
+    const link='https://lmuratori.github.io/smm-acceso-temporal/Autorizacion_ConsentimientoQx_v1.html?dni='+encodeURIComponent(pacienteActivo.dni);
+    cont.innerHTML=`✅ Link generado — mandáselo al paciente por mail (o copialo):<br>
+      <input type="text" readonly value="${link}" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;font-size:11.5px" onclick="this.select()">`;
+    // Queda anotado en el Libro Quirúrgico, igual que cualquier otro ítem del checklist
+    agregarAChecklistLibro('Consentimiento informado firmado');
+  }catch(e){
+    cont.textContent='⚠️ No se pudo generar el link: '+e.message;
+  }
+}
+async function verificarFirmaConsentimiento(){
+  if(!pacienteActivo || !pacienteActivo.dni) return;
+  const cont=document.getElementById('consinf-firma-resultado');
+  cont.textContent='Consultando…';
+  try{
+    const resp=await fetch(SHEETS_URL+'?action=get_estado_firma_consentimiento&dni='+encodeURIComponent(pacienteActivo.dni),{signal:AbortSignal.timeout(8000)});
+    const data=await resp.json();
+    if(!data.success || !data.encontrado){ cont.textContent='Todavía no se generó un link de firma para este paciente.'; return; }
+    if(data.firmado){
+      consinfFirmado_=true; consinfFirmaFecha_=new Date().toLocaleDateString('es-AR');
+      cont.innerHTML='✅ El paciente ya firmó el consentimiento — al agregarlo a la receta queda anotado que está firmado.';
+      marcarChecklistLibroCompletado_('Consentimiento informado firmado', 'Firmado por el paciente el '+consinfFirmaFecha_);
+    } else {
+      cont.textContent='⏳ Todavía no firmó.';
+    }
+  }catch(e){
+    cont.textContent='⚠️ No se pudo consultar el estado de la firma.';
+  }
+}
+function marcarChecklistLibroCompletado_(itemLabel, resumen){
+  const idx = libroChecklist.findIndex(c=>c.item===itemLabel);
+  if(idx===-1) return;
+  libroChecklist[idx].estado='completado';
+  libroChecklist[idx].resumen=resumen||'';
+  libroChecklist[idx].fecha=new Date().toLocaleDateString('es-AR');
+  renderChecklistLibro();
+  guardarLibroSilencioso_();
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -14126,6 +14993,25 @@ function enviarChecklistPorMail(tipo){
   const dni = params.get('dni');
   if(dni){ try{ await cargarPacientePorDNI(dni); }catch(e){ console.warn('⚠️ cargarPacientePorDNI falló:', e); } }
   else{ safePaso_('renderPacBarSinPaciente', renderPacBarSinPaciente); }
+
+  // Deep-link desde la carátula (index.html) — abre un modal puntual al
+  // entrar a OCM en vez de dejar al usuario en la pantalla general.
+  // Aditivo: si no viene el parámetro, OCM se comporta exactamente igual
+  // que antes.
+  const abrir = params.get('abrir');
+  if(abrir === 'plantillas'){ try{ abrirModal_plantillas(); }catch(e){ console.warn('⚠️ abrirModal_plantillas falló:', e); } }
+  else if(abrir === 'dashboard'){ try{ abrirDashboardRSG(); }catch(e){ console.warn('⚠️ abrirDashboardRSG falló:', e); } }
+  else if(abrir === 'catastro'){ try{ abrirCatastroEmpresas(); }catch(e){ console.warn('⚠️ abrirCatastroEmpresas falló:', e); } }
+  else if(abrir === 'agenda-cirugia'){ try{ abrirAgendaPacientes('programacion'); }catch(e){ console.warn('⚠️ abrirAgendaPacientes falló:', e); } }
+  else if(abrir === 'seguimiento-operados'){ try{ abrirAgendaPacientes('seguimiento'); }catch(e){ console.warn('⚠️ abrirAgendaPacientes falló:', e); } }
+  else if(abrir === 'seguimiento-tratamientos'){ try{ abrirDashboardRSG(); rsgTab('alertas'); }catch(e){ console.warn('⚠️ abrirDashboardRSG/rsgTab falló:', e); } }
+  else if(abrir === 'agenda-historia'){ try{ abrirAgendaPacientes('todos'); }catch(e){ console.warn('⚠️ abrirAgendaPacientes falló:', e); } }
+  else if(abrir === 'libro-rmyt'){ try{ abrirLibroRmyt(); }catch(e){ console.warn('⚠️ abrirLibroRmyt falló:', e); } }
+  else if(abrir === 'libro-discapacidad'){ try{ abrirLibroDiscapacidad(); }catch(e){ console.warn('⚠️ abrirLibroDiscapacidad falló:', e); } }
+
+  // Ya se abrió (o se intentó abrir) el modal puntual del deep-link: destapamos
+  // la pantalla (ver velo de carga al principio del <body>).
+  document.documentElement.classList.remove('deep-link-cargando');
 })();
 
 </script>
@@ -14159,5 +15045,6 @@ function enviarChecklistPorMail(tipo){
   setInterval(chequearTrial_, 10*60*1000);
 })();
 </script>
+<script src="efecto-lupa.js" defer></script>
 </body>
 </html>

@@ -46,6 +46,10 @@
   .voz-nota{font-size:10.5px;color:var(--muted);margin-top:4px}
   .foto-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
   .foto-nombre{font-size:11.5px;color:var(--muted)}
+  .pago-box{background:#f0f9ff;border:1.5px solid #7dd3fc;border-radius:10px;padding:12px 14px;margin:10px 0}
+  .pago-box .alias{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #bae6fd;border-radius:8px;padding:9px 12px;margin:8px 0;font-size:15px;font-weight:800;color:var(--azul-osc)}
+  .pago-box .alias button{border:1.5px solid var(--azul);background:#fff;color:var(--azul);border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .pago-copiado{font-size:11px;color:var(--verde);font-weight:700;display:none;margin-top:2px}
   .consent{display:flex;gap:9px;align-items:flex-start;margin-top:16px;font-size:11.5px;color:#334155;line-height:1.5}
   .consent input{margin-top:3px;flex-shrink:0}
   .btn{width:100%;padding:14px;border-radius:10px;border:none;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:16px}
@@ -123,12 +127,33 @@
 
   <div class="card">
     <h2>Otra opción: entrevista express de asesoramiento médico</h2>
-    <p class="sub">Una videollamada corta por Google Meet con el doctor, para orientarte sobre tu caso. No es una consulta de urgencia — es una entrevista de 5 minutos, paga, con cupos limitados.</p>
+    <p class="sub">Una videollamada corta por Google Meet con el doctor, para orientarte sobre tu caso. No es una consulta de urgencia — es una entrevista breve, paga, con cupos limitados.</p>
     <div class="express-precio">
-      <span class="monto">$20.000</span>
-      <span class="cuando">entre semana · los fines de semana el valor es mayor</span>
+      <span class="monto">$25.000</span>
+      <span class="cuando">entrevista de 5 minutos, entre semana · los fines de semana el valor es mayor</span>
     </div>
-    <p class="sub" style="margin:0">Se confirma de lunes a viernes de 5 a 6 de la mañana, y sábados y domingos de 9 a 10 — previa carga de tus datos y el pago. Si de la entrevista surge que hace falta verte en persona, se te da un turno para eso en el consultorio que te quede más cerca.</p>
+    <p class="sub" id="parrafo-precios-secundarios" style="margin:8px 0 0">También podés pedir la renovación de una receta u orden vencida sin entrevista, por <b>$15.000</b>. Si de tu consulta surge que hace falta una entrevista más larga (15 minutos), el doctor te lo va a proponer y el valor es <b>$50.000</b>.</p>
+    <p class="sub" style="margin:8px 0 0">Se confirma de lunes a viernes de 5 a 6 de la mañana, y sábados y domingos de 9 a 10 — previa carga de tus datos y el pago. Si de la entrevista surge que hace falta verte en persona, se te da un turno para eso en el consultorio que te quede más cerca.</p>
+    <div class="pago-box" id="pago-box">
+      <b style="display:block;margin-bottom:4px;color:var(--azul-osc)">💳 Cómo pagar</b>
+      Hacé una transferencia por el monto que corresponda a lo que necesitás (arriba) a este alias:
+      <div class="alias">
+        <span id="pago-alias">BUCLE.PODIAS.BALCON</span>
+        <button type="button" onclick="copiarAlias()">Copiar</button>
+      </div>
+      <div class="pago-copiado" id="pago-copiado">✅ Alias copiado</div>
+      Después contanos tu caso más abajo, contanos qué necesitás, y adjuntá el comprobante (foto y/o número de operación) en el formulario — no hace falta entrar a ningún sistema de facturación, se manda directo acá. Si todavía no pagaste, podés mandarlo más tarde por WhatsApp o mail; la atención se confirma una vez que se verifica el pago.
+    </div>
+    <div class="nota" style="margin-top:12px">
+      📲 <b style="display:block;margin-bottom:3px">Antes del horario acordado, instalá Google Meet</b>
+      La videollamada se hace por Google Meet. Si vas a conectarte desde el celular, te conviene tener la app instalada de antes para que a la hora de la entrevista no se te complique:
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.tachyon" target="_blank" style="flex:1;min-width:140px;text-align:center;background:#0369a1;color:#fff;text-decoration:none;border-radius:8px;padding:9px 10px;font-size:12px;font-weight:800">🤖 Descargar (Android)</a>
+        <a href="https://apps.apple.com/us/app/google-meet/id1096918571" target="_blank" style="flex:1;min-width:140px;text-align:center;background:#0369a1;color:#fff;text-decoration:none;border-radius:8px;padding:9px 10px;font-size:12px;font-weight:800">🍎 Descargar (iPhone)</a>
+      </div>
+      <div style="margin-top:8px">Si te vas a conectar desde una computadora, no hace falta instalar nada — se abre directo en Google Chrome.</div>
+      <div style="margin-top:8px;font-style:italic">Esto es solo si tu consulta termina siendo una entrevista o consulta por videollamada. Si lo que necesitás es la renovación de una receta u orden vencida, no hace falta instalar nada.</div>
+    </div>
   </div>
 
   <div class="card" id="card-form">
@@ -136,6 +161,14 @@
     <p class="sub">Esto es gratuito y no te compromete a nada — con esto el doctor evalúa tu situación y te va a decir cuál es el paso recomendado.</p>
 
     <form id="form-qr" onsubmit="return false;">
+      <label>¿Qué necesitás? *</label>
+      <select id="f-tipo-solicitud" required>
+        <option value="">Elegí una opción</option>
+        <option value="Entrevista express de asesoramiento (5 min · $25.000)">Entrevista express de asesoramiento (5 min · $25.000)</option>
+        <option value="Renovación de receta u orden vencida ($15.000)">Renovación de receta u orden vencida ($15.000)</option>
+        <option value="No estoy seguro, que el doctor me diga qué me conviene">No estoy seguro, que el doctor me diga qué me conviene</option>
+      </select>
+
       <label>Nombre completo *</label>
       <input type="text" id="f-nombre" required>
 
@@ -203,6 +236,13 @@
       </div>
       <div class="foto-nombre" id="foto-nombre" style="display:none"></div>
 
+      <label>Comprobante de pago de la entrevista express <span class="opt">(si ya transferiste — opcional)</span></label>
+      <div class="foto-row">
+        <input type="file" id="f-comprobante" accept="image/*" onchange="onComprobanteElegido(event)">
+      </div>
+      <div class="foto-nombre" id="comprobante-nombre" style="display:none"></div>
+      <input type="text" id="f-comprobante-datos" placeholder="Número de operación / referencia de la transferencia (opcional)" style="margin-top:6px">
+
       <div class="consent">
         <input type="checkbox" id="f-consiente">
         <span>Entiendo que esto <b>no es una consulta de urgencia</b>, sino una orientación / entrevista express de asesoramiento médico que no reemplaza una atención presencial de urgencia, y doy mi consentimiento para el uso de mis datos de salud, conforme a la Ley 25.326 de Protección de Datos Personales.</span>
@@ -264,21 +304,65 @@ function onFotoElegida(e){
 }
 
 // ══════════════════════════════════════════════════════════════
+// Comprobante de pago — mientras Mercado Pago no esté calibrado (ver
+// Codigo.gs), el paciente transfiere a un alias y manda el comprobante
+// (foto y/o número de operación) desde acá mismo. Nunca bloquea el envío:
+// si no lo adjuntó todavía, igual se manda la solicitud y puede mandarlo
+// después por WhatsApp o mail.
+// ══════════════════════════════════════════════════════════════
+let comprobanteBase64_ = '';
+function onComprobanteElegido(e){
+  const f = e.target.files && e.target.files[0];
+  const nombreEl = document.getElementById('comprobante-nombre');
+  comprobanteBase64_ = '';
+  if(!f){ nombreEl.style.display='none'; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    comprobanteBase64_ = reader.result;
+    nombreEl.textContent = '📎 ' + f.name;
+    nombreEl.style.display = 'block';
+  };
+  reader.onerror = () => { comprobanteBase64_ = ''; };
+  reader.readAsDataURL(f);
+}
+
+function copiarAlias(){
+  const alias = document.getElementById('pago-alias').textContent.trim();
+  const avisoEl = document.getElementById('pago-copiado');
+  const mostrarAviso = () => {
+    avisoEl.style.display = 'block';
+    setTimeout(() => { avisoEl.style.display = 'none'; }, 2500);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(alias).then(mostrarAviso).catch(() => {});
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // Contar el motivo por voz (opcional — se puede escribir directamente)
 // ══════════════════════════════════════════════════════════════
 let recognition = null;
 let micOn = false;
+// FIX 2 (sept 2026): el fix anterior (contador finalesProcesados) no alcanzaba.
+// En Android, el modo continuous puede emitir varias veces un resultado
+// "final" que en realidad es una revisión CRECIENTE de la misma frase (no un
+// fragmento nuevo), y cada revisión ocupa un índice nuevo del array — el
+// contador las trataba a todas como texto nuevo y las iba concatenando,
+// duplicando/repitiendo la frase varias veces. Solución robusta: NO usar
+// continuous=true. Se reconoce una frase por sesión (continuous=false) y se
+// reinicia el motor solo al terminar cada frase — así cada sesión entrega un
+// único resultado final, sin repetirse.
 
 function crearRecognition_(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) return null;
   const r = new SR();
   r.lang = 'es-AR';
-  r.continuous = true;
+  r.continuous = false;
   r.interimResults = true;
   r.onresult = (e) => {
     let final = '', interim = '';
-    for(let i = e.resultIndex; i < e.results.length; i++){
+    for(let i = 0; i < e.results.length; i++){
       const t = e.results[i][0].transcript;
       if(e.results[i].isFinal) final += t;
       else interim += t;
@@ -290,6 +374,8 @@ function crearRecognition_(){
     document.getElementById('interim').textContent = interim;
   };
   r.onend = () => {
+    // Con continuous=false, onend llega al terminar cada frase — si el
+    // micrófono sigue prendido, arrancamos una sesión nueva para la próxima.
     if(micOn){ try{ r.start(); }catch(e){} }
     else { document.getElementById('interim').textContent = ''; }
   };
@@ -321,6 +407,7 @@ async function enviarSolicitud(){
   const errEl = document.getElementById('err-msg');
   errEl.style.display = 'none';
 
+  const tipoSolicitud = document.getElementById('f-tipo-solicitud').value;
   const nombre = document.getElementById('f-nombre').value.trim();
   const dni = document.getElementById('f-dni').value.trim();
   const telefono = document.getElementById('f-telefono').value.trim();
@@ -332,8 +419,10 @@ async function enviarSolicitud(){
   const vioMedico = document.getElementById('f-vio-medico').value;
   const diagnosticoPrevio = document.getElementById('f-diagnostico-previo').value.trim();
   const medicacionRecibida = document.getElementById('f-medicacion').value.trim();
+  const comprobanteDatos = document.getElementById('f-comprobante-datos').value.trim();
   const consiente = document.getElementById('f-consiente').checked;
 
+  if(!tipoSolicitud){ return mostrarError_('Elegí qué necesitás'); }
   if(!nombre){ return mostrarError_('Falta tu nombre completo'); }
   if(!telefono && !email){ return mostrarError_('Dejá al menos un teléfono o un mail de contacto'); }
   if(!segmento){ return mostrarError_('Elegí qué segmento del cuerpo se afectó'); }
@@ -348,9 +437,11 @@ async function enviarSolicitud(){
       method: 'POST', headers: {'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({
         action: 'qr_solicitud_consulta',
-        nombre, dni, telefono, email, obraSocial, segmento, cuando, motivo,
+        tipoSolicitud, nombre, dni, telefono, email, obraSocial, segmento, cuando, motivo,
         vioMedico, diagnosticoPrevio, medicacionRecibida,
         fotoBase64: fotoBase64_ || undefined,
+        comprobanteBase64: comprobanteBase64_ || undefined,
+        comprobanteDatos: comprobanteDatos || undefined,
         origen: origenDesdeUrl_()
       })
     });
@@ -380,6 +471,12 @@ function mostrarError_(msg){
 function mostrarExito_(data){
   const card = document.getElementById('card-exito');
   const esGuardia = !!(data && data.recomendacion === 'guardia');
+  // El recordatorio de instalar Meet solo tiene sentido si la consulta va a
+  // terminar en una videollamada. La renovación de receta u orden vencida no
+  // usa Meet, así que ahí no corresponde mostrarlo (Luis, sep 2026: evitar
+  // que se confunda a quien solo pidió la renovación).
+  const tipoSolicitud = (document.getElementById('f-tipo-solicitud') || {}).value || '';
+  const esRenovacionReceta = /renovaci[oó]n de receta/i.test(tipoSolicitud);
   card.classList.add(esGuardia ? 'guardia' : 'entrevista');
   document.getElementById('exito-ico').textContent = esGuardia ? '⚠️' : '✅';
   document.getElementById('exito-titulo').textContent = esGuardia
@@ -388,10 +485,79 @@ function mostrarExito_(data){
   const aviso = document.getElementById('exito-aviso');
   const mensaje = (data && data.mensaje_paciente) ||
     'Recibimos tu consulta. Nos vamos a comunicar a la brevedad para coordinar la entrevista express de asesoramiento médico.';
-  aviso.innerHTML = '<b>' + (esGuardia ? 'Te recomendamos no esperar' : 'Cómo sigue esto') + '</b>' + mensaje;
+  const recordatorioMeet = (esGuardia || esRenovacionReceta) ? '' : `
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(12,74,110,.15)">
+      <b style="display:block;margin-bottom:4px">📲 Si tu consulta termina siendo una videollamada, instalá Google Meet antes del horario acordado</b>
+      Si de tu consulta surge que hace falta una entrevista por videollamada, se hace por Google Meet y te va a llegar el link por mail o WhatsApp — para que no se te complique a último momento, instalá la app ahora si vas a usar el celular:
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.tachyon" target="_blank" style="flex:1;min-width:130px;text-align:center;background:#0369a1;color:#fff;text-decoration:none;border-radius:8px;padding:8px 10px;font-size:11.5px;font-weight:800">🤖 Android</a>
+        <a href="https://apps.apple.com/us/app/google-meet/id1096918571" target="_blank" style="flex:1;min-width:130px;text-align:center;background:#0369a1;color:#fff;text-decoration:none;border-radius:8px;padding:8px 10px;font-size:11.5px;font-weight:800">🍎 iPhone</a>
+      </div>
+      Desde una computadora no hace falta instalar nada, se abre en Chrome.
+    </div>`;
+  aviso.innerHTML = '<b>' + (esGuardia ? 'Te recomendamos no esperar' : 'Cómo sigue esto') + '</b>' + mensaje + recordatorioMeet;
   card.style.display = 'block';
 }
+
+// ══════════════════════════════════════════════════════════════
+// Precio de fin de semana de la entrevista express (Dr. Muratori, sep 2026):
+// valores fijos y redondos, no porcentaje — $25.000 entre semana, $35.000
+// el sábado (todo el día), $40.000 el domingo. La renovación de receta
+// ($15.000) y la consulta de 15 minutos ($50.000) NO cambian de precio el
+// fin de semana — eso quedó así a pedido expreso del Dr. Muratori.
+// Se calcula con la hora del propio celular/compu del paciente (mismo
+// criterio que ya usa el resto del sistema, ej. RIDM) — no hay reloj de
+// servidor involucrado. El precio final queda en el texto que se manda a
+// Codigo.gs como "tipoSolicitud", así el doctor ve en Agenda_Mensajes el
+// monto real que corresponde cobrar.
+// ══════════════════════════════════════════════════════════════
+const PRECIO_EXPRESS_SEMANA = 25000;
+const PRECIO_EXPRESS_SABADO = 35000;
+const PRECIO_EXPRESS_DOMINGO = 40000;
+const PRECIO_CONSULTA15 = 50000; // fijo, no cambia el fin de semana
+const PRECIO_RECETA = 15000;     // fijo, no cambia el fin de semana
+
+function precioExpressHoy_(fecha){
+  fecha = fecha || new Date();
+  const dia = fecha.getDay(); // 0=domingo … 6=sábado
+  if(dia === 0) return PRECIO_EXPRESS_DOMINGO;
+  if(dia === 6) return PRECIO_EXPRESS_SABADO;
+  return PRECIO_EXPRESS_SEMANA;
+}
+function formatearPrecio_(n){
+  return '$' + n.toLocaleString('es-AR');
+}
+
+function actualizarPreciosFinDeSemana_(){
+  const dia = new Date().getDay();
+  const esFinde = dia === 0 || dia === 6;
+  const precioExpress = precioExpressHoy_();
+
+  const montoEl = document.querySelector('.express-precio .monto');
+  if(montoEl) montoEl.textContent = formatearPrecio_(precioExpress);
+  const cuandoEl = document.querySelector('.express-precio .cuando');
+  if(cuandoEl){
+    cuandoEl.textContent = esFinde
+      ? 'entrevista de 5 minutos · precio de fin de semana'
+      : 'entrevista de 5 minutos, entre semana';
+  }
+
+  const parrafoPrecios = document.getElementById('parrafo-precios-secundarios');
+  if(parrafoPrecios){
+    parrafoPrecios.innerHTML = `También podés pedir la renovación de una receta u orden vencida sin entrevista, por <b>${formatearPrecio_(PRECIO_RECETA)}</b>. Si de tu consulta surge que hace falta una entrevista más larga (15 minutos), el doctor te lo va a proponer y el valor es <b>${formatearPrecio_(PRECIO_CONSULTA15)}</b>.`;
+  }
+
+  const sel = document.getElementById('f-tipo-solicitud');
+  if(sel && sel.options.length >= 3){
+    sel.options[1].value = `Entrevista express de asesoramiento (5 min · ${formatearPrecio_(precioExpress)})`;
+    sel.options[1].textContent = sel.options[1].value;
+    sel.options[2].value = `Renovación de receta u orden vencida (${formatearPrecio_(PRECIO_RECETA)})`;
+    sel.options[2].textContent = sel.options[2].value;
+  }
+}
+actualizarPreciosFinDeSemana_();
 </script>
 
+<script src="efecto-lupa.js" defer></script>
 </body>
 </html>

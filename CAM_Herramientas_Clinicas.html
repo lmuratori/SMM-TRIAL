@@ -67,6 +67,22 @@
   .gonio-display{font-size:52px;font-weight:800;text-align:center;color:var(--violeta);margin:14px 0}
   .gonio-sub{text-align:center;font-size:11px;color:var(--muted);margin-top:-8px}
   .not-found{padding:20px;text-align:center;color:var(--muted);font-size:12px}
+  .mg-table{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:11.5px}
+  .mg-table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--azul);padding:4px 6px;border-bottom:1.5px solid var(--border2)}
+  .mg-table td{padding:5px 6px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .mg-table td:first-child{font-weight:600;color:var(--azul);white-space:nowrap}
+  .mg-table select{padding:5px;font-size:11.5px}
+  .mg-r1r2{display:flex;gap:4px;align-items:center}
+  .mg-r1r2 input{width:56px;padding:5px;font-size:11.5px;text-align:center}
+  .mg-r1r2 span{font-size:9.5px;color:var(--muted);font-weight:700}
+  /* NUEVO (2026-09-21): modal "Ver historia clínica completa" (misma nube que OCM) */
+  .hc-modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
+  .hc-modal-overlay.abierto{display:flex}
+  .hc-modal-box{background:#fff;border-radius:12px;max-width:600px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+  .hc-modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--azul)}
+  .hc-modal-header button{border:none;background:transparent;font-size:16px;cursor:pointer;color:var(--muted)}
+  .hc-modal-body{padding:14px 18px;overflow-y:auto}
+  .hc-modal-footer{padding:10px 18px;border-top:1px solid var(--border);text-align:right}
 </style>
 </head>
 <body>
@@ -81,6 +97,12 @@
       <a href="Lector_CUD.html" class="simm-nav-item">🪪 Lector CUD</a>
       <a href="Agenda_Mensajes.html" class="simm-nav-item">✉️ Agenda de Mensajes</a>
       <a href="Panel_Especialistas.html" class="simm-nav-item">🔐 Panel de Especialistas</a>
+      <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 10px 2px;border-top:1px solid var(--border);margin-top:4px">GONIO</div>
+      <a href="GONIO_ValgoVaro_v1.html" class="simm-nav-item">📐 Valgo / Varo (retropié)</a>
+      <a href="GONIO_CostaBartani_v1.html" class="simm-nav-item">📐 Costa-Bartani (lateral)</a>
+      <a href="GONIO_Podoscopia_v1.html" class="simm-nav-item">📐 Podoscopía</a>
+      <a href="GONIO_AnguloFrente_v1.html" class="simm-nav-item">📐 Ángulo Frente</a>
+      <a href="GONIO_SeguimientoCientifico_v1.html" class="simm-nav-item">📐 Seguimiento Científico</a>
       <a href="#" class="simm-nav-item" onclick="configurarTokenCAM();return false">⚙️ Token de acceso</a>
     </div>
   </div>
@@ -90,6 +112,16 @@
   <span style="font-size:11.5px;color:var(--muted)">Cargando paciente…</span>
 </div>
 
+<!-- NUEVO (2026-09-21): modal "Ver historia clínica completa" — trae la misma
+     Historia_Clinica de la nube que ya muestra OCM, buscando por DNI. -->
+<div class="hc-modal-overlay" id="hc-modal">
+  <div class="hc-modal-box">
+    <div class="hc-modal-header"><span id="hc-modal-titulo">Historia clínica</span><button onclick="cerrarHistoriaClinicaCloud()">✕</button></div>
+    <div class="hc-modal-body" id="hc-modal-body"></div>
+    <div class="hc-modal-footer"><button class="btn btn-ghost" onclick="cerrarHistoriaClinicaCloud()">Cerrar</button></div>
+  </div>
+</div>
+
 <div class="tabs" id="tabs">
   <button class="tab-btn active" data-tab="interrogatorio" onclick="cambiarTab('interrogatorio')">📝 Interrogatorio</button>
   <button class="tab-btn" data-tab="abreviada" onclick="cambiarTab('abreviada')" style="color:#b45309">⚡ Consultas Abreviadas</button>
@@ -97,6 +129,7 @@
   <button class="tab-btn" data-tab="examenfisico" onclick="cambiarTab('examenfisico')">🔍 Examen Físico</button>
   <button class="tab-btn" data-tab="podoscopio" onclick="cambiarTab('podoscopio')">🦶 Podoscopio y Ángulos</button>
   <button class="tab-btn" data-tab="escoliosis" onclick="cambiarTab('escoliosis')">🦴 Columna</button>
+  <button class="tab-btn" data-tab="neuroortopedia" onclick="cambiarTab('neuroortopedia')">🧠 Parálisis Cerebral</button>
   <button class="tab-btn" data-tab="goniometro" onclick="cambiarTab('goniometro')">📐 Goniómetro (giroscopio)</button>
   <button class="tab-btn" data-tab="estudios" onclick="cambiarTab('estudios')">🧪 Estudios</button>
   <button class="tab-btn" data-tab="historial" onclick="cambiarTab('historial')">📁 Historial</button>
@@ -674,6 +707,114 @@
     </div>
   </div>
 
+  <!-- ═══ TAB: NEURO-ORTOPEDIA / PARÁLISIS CEREBRAL ═══
+       Escalas pedidas por el Dr. Muratori (sep 2026) en base al nomenclador
+       de SANeO: GMFCS y MACS (función motora/manual), Índice de Reimers
+       (vigilancia de cadera), Ashworth y Tardieu Modificadas (tono/
+       espasticidad por grupo muscular), y Thomas-Stonell y Greenberg
+       (babeo). Además de la nota de texto de siempre, esto también manda
+       un registro estructurado a la hoja Neuroortopedia_PC (ver
+       guardarNeuroortopedia en Codigo.gs) para poder ver la EVOLUCIÓN en
+       el tiempo — el Índice de Reimers en particular hay que vigilarlo
+       seriado. -->
+  <div class="panel" id="tab-neuroortopedia">
+    <div class="panel-title">🧠 Neuro-ortopedia — Parálisis Cerebral</div>
+    <div class="panel-desc">Escalas de seguimiento según el nomenclador de SANeO. Cada evaluación se guarda aparte (no se pisan entre sí) para poder ver la evolución en el tiempo — clave para el Índice de Reimers (vigilancia de cadera) y para Ashworth/Tardieu después de toxina botulínica o yesos seriados.</div>
+
+    <div id="neuro-previas" class="info-box" style="display:none"></div>
+
+    <div class="sm-grp-lbl" style="margin-top:0">Clasificación y función global</div>
+    <div class="form-grid">
+      <div class="fg1"><label>Fecha de esta evaluación</label><input id="neuro-fecha" type="date"></div>
+      <div class="fg1"><label>Clasificación anatómica</label>
+        <select id="neuro-clasificacion">
+          <option value="">Seleccionar…</option>
+          <option>Diplejía espástica</option>
+          <option>Hemiplejía espástica derecha</option>
+          <option>Hemiplejía espástica izquierda</option>
+          <option>Cuadriplejía espástica</option>
+          <option>Forma discinética</option>
+          <option>Forma atáxica</option>
+          <option>Forma mixta</option>
+        </select>
+      </div>
+      <div class="fg1"><label>GMFCS — Función motora gruesa</label>
+        <select id="neuro-gmfcs">
+          <option value="">Seleccionar…</option>
+          <option value="I">I — Camina sin restricciones</option>
+          <option value="II">II — Camina sin dispositivos, con limitaciones en exteriores/comunidad</option>
+          <option value="III">III — Camina con dispositivo de apoyo (andador, muletas)</option>
+          <option value="IV">IV — Movilidad autónoma limitada; usa silla de ruedas la mayor parte del tiempo</option>
+          <option value="V">V — Transportado en silla de ruedas; control cefálico/de tronco muy limitado</option>
+        </select>
+      </div>
+      <div class="fg1"><label>MACS — Habilidad manual</label>
+        <select id="neuro-macs">
+          <option value="">Seleccionar…</option>
+          <option value="I">I — Manipula objetos fácilmente y con éxito</option>
+          <option value="II">II — Manipula la mayoría de los objetos, con algo menos de calidad/velocidad</option>
+          <option value="III">III — Manipula objetos con dificultad; necesita ayuda para preparar la actividad</option>
+          <option value="IV">IV — Manipula un grupo limitado de objetos fáciles, en situaciones adaptadas</option>
+          <option value="V">V — No manipula objetos; capacidad muy limitada para acciones simples</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sm-grp-lbl">Índice de Reimers (% de migración de cadera) — vigilancia de subluxación</div>
+    <div class="form-grid">
+      <div class="fg1"><label>Cadera derecha (%)</label><input id="neuro-reimers-d" type="number" step="1" min="0" max="100" oninput="evaluarReimers_()"></div>
+      <div class="fg1"><label>Cadera izquierda (%)</label><input id="neuro-reimers-i" type="number" step="1" min="0" max="100" oninput="evaluarReimers_()"></div>
+    </div>
+    <div id="neuro-reimers-alerta" style="display:none"></div>
+
+    <div class="sm-grp-lbl">Escala de Ashworth Modificada (tono) — por grupo muscular</div>
+    <table class="mg-table">
+      <thead><tr><th>Grupo muscular</th><th>Derecha</th><th>Izquierda</th></tr></thead>
+      <tbody id="neuro-ashworth-tbody"></tbody>
+    </table>
+
+    <div class="sm-grp-lbl">Escala de Tardieu Modificada — R1 (ángulo de captura rápida) / R2 (rango pasivo), en grados</div>
+    <table class="mg-table">
+      <thead><tr><th>Grupo muscular</th><th>Derecha</th><th>Izquierda</th></tr></thead>
+      <tbody id="neuro-tardieu-tbody"></tbody>
+    </table>
+    <div class="panel-desc" style="margin-top:2px">Cuanto mayor la diferencia R2−R1, mayor el componente dinámico (espasticidad); si R1≈R2, predomina la contractura fija sobre la espasticidad.</div>
+
+    <div class="sm-grp-lbl">Escala de Thomas-Stonell y Greenberg — severidad del babeo</div>
+    <div class="form-grid">
+      <div class="fg1"><label>Severidad</label>
+        <select id="neuro-babeo-severidad">
+          <option value="">Seleccionar…</option>
+          <option value="I">I — Seco, nunca babea</option>
+          <option value="II">II — Leve, solo labios húmedos</option>
+          <option value="III">III — Moderado, hasta el mentón/labios</option>
+          <option value="IV">IV — Severo, moja la ropa</option>
+          <option value="V">V — Profuso, moja ropa, manos, objetos</option>
+        </select>
+      </div>
+      <div class="fg1"><label>Frecuencia</label>
+        <select id="neuro-babeo-frecuencia">
+          <option value="">Seleccionar…</option>
+          <option value="1">1 — Nunca babea</option>
+          <option value="2">2 — Ocasionalmente</option>
+          <option value="3">3 — Frecuentemente</option>
+          <option value="4">4 — Constantemente</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fg2" style="margin-top:8px"><label>Observaciones adicionales</label><textarea id="neuro-obs" rows="2"></textarea></div>
+
+    <div class="row-btns">
+      <button class="btn btn-primary" onclick="generarInformeNeuroortopedia()">📄 Generar informe</button>
+    </div>
+    <div id="neuro-preview" class="preview-box">El informe va a aparecer acá…</div>
+    <div class="row-btns">
+      <button class="btn btn-ghost" onclick="guardarTextoEnHistorialBeta('neuro-preview','Neuro-ortopedia / Parálisis cerebral')">💾 Guardar en el historial</button>
+      <button class="btn btn-primary" onclick="guardarEvaluacionNeuroortopedia()">☁ Guardar evaluación (para seguimiento)</button>
+    </div>
+  </div>
+
   <!-- ═══ TAB: GONIÓMETRO ═══ -->
   <div class="panel" id="tab-goniometro">
     <div class="panel-title">📐 Goniómetro con el giroscopio del celular</div>
@@ -737,6 +878,8 @@
     <div class="panel-desc">Sacá una foto del segmento (o de la radiografía) y tocá, en orden, 3 puntos: <b>1</b> el punto de referencia proximal, <b>2</b> el vértice/eje articular, y <b>3</b> el punto de referencia distal. El ángulo se calcula solo.</div>
 
     <input type="file" id="gonio3-file" accept="image/*" capture="environment" onchange="cargarFotoGonio3(event)">
+    <div style="font-size:10.5px;color:var(--muted);margin:4px 0 2px">o elegí una foto ya guardada (galería, Descargas, una que llegó por mail):</div>
+    <input type="file" id="gonio3-file-galeria" accept="image/*" onchange="cargarFotoGonio3(event)">
 
     <div class="gonio3-canvas-wrap">
       <canvas id="gonio3-canvas" width="600" height="450"></canvas>
@@ -1222,18 +1365,52 @@ function renderPacBarSinPaciente(){
   bar.innerHTML=`<input id="beta-buscar" placeholder="Buscar paciente por apellido o DNI…" oninput="buscarPacBeta(this.value)">
     <div id="beta-buscar-results" style="display:flex;gap:6px;flex-wrap:wrap"></div>`;
 }
+// FIX (2026-09-21): esta búsqueda antes SOLO miraba la base local de este
+// navegador (buscarPacientesDB), sin consultar nunca la planilla en la nube.
+// Por eso un apellido que existe en Pacientes pero todavía no se cargó en
+// esta misma computadora no aparecía al buscarlo en CAM. Ahora, si la
+// búsqueda local no alcanza, también se consulta la nube (misma acción
+// "search" que usa OCM), igual que ya se hacía para buscar por DNI.
+async function buscarEnSheetsCAM_(q){
+  try{
+    const r = await fetch(SHEETS_URL+'?action=search&query='+encodeURIComponent(q)+tokenQS_(), {signal:AbortSignal.timeout(6000)});
+    if(!r.ok) return [];
+    const json = await r.json();
+    const data = Array.isArray(json) ? json : (json && Array.isArray(json.data) ? json.data : []);
+    return data.map(c=>({
+      dni:c.DNI||c.dni||'', apellido:c.Apellido||c.apellido||'', nombre:c.Nombre||c.nombre||'',
+      fecha_nac:c.Fecha_Nac||c.fecha_nac||'', obra_social:c.Obra_Social||c.obra_social||'',
+      plan:c.Plan||c.plan||'', nro_afiliado:c.N_Afiliado||c.nro_afiliado||'',
+      telefono:c.Telefono||c.telefono||'', mail:c.Email||c.email||'', direccion:c.Domicilio||c.direccion||'',
+      _nube:true
+    }));
+  }catch(e){ console.warn('Error buscando en la nube (CAM):', e); return []; }
+}
 async function buscarPacBeta(q){
   const cont=document.getElementById('beta-buscar-results');
   if(!cont) return;
   if(q.length<2){cont.innerHTML='';return;}
-  const res=await buscarPacientesDB(q);
-  cont.innerHTML = res.map(p=>`<button onclick='seleccionarPacienteBeta(${JSON.stringify(p).replace(/'/g,"&#39;")})' style="font-size:11px;padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;cursor:pointer">${p.apellido||''}, ${p.nombre||''} — ${p.dni||'s/DNI'}</button>`).join('') || '<span style="font-size:11px;color:var(--muted)">Sin resultados</span>';
+  const local = await buscarPacientesDB(q);
+  const dnisLocal = new Set(local.map(p=>String(p.dni||'')));
+  let nube = [];
+  try{ nube = (await buscarEnSheetsCAM_(q)).filter(p=>!dnisLocal.has(String(p.dni||''))); }catch(e){}
+  const res = [...local, ...nube].slice(0,8);
+  cont.innerHTML = res.map(p=>`<button onclick='seleccionarPacienteBeta(${JSON.stringify(p).replace(/'/g,"&#39;")})' style="font-size:11px;padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;cursor:pointer">${p.apellido||''}, ${p.nombre||''} — ${p.dni||'s/DNI'}${p._nube?' <span style=\"color:#0369a1\">☁</span>':''}</button>`).join('') || '<span style="font-size:11px;color:var(--muted)">Sin resultados</span>';
 }
-function seleccionarPacienteBeta(p){
+async function seleccionarPacienteBeta(p){
+  if(p._nube){
+    // Vino de la nube (no estaba guardado en esta computadora todavía):
+    // lo guardamos localmente para que la próxima búsqueda ya lo encuentre
+    // sin depender de internet, igual que hace OCM.
+    const {_nube,...datos}=p;
+    try{ const id=await dbAdd('pacientes',{...datos,created_at:new Date().toISOString()}); p={...datos,id}; }
+    catch(e){ p=datos; }
+  }
   pacienteActivo=p;
   const bar=document.getElementById('pacbar');
   bar.innerHTML=`<span class="pac-chip">👤 <b>${p.apellido||''}, ${p.nombre||''}</b> · DNI ${p.dni||'—'}</span>
-    <button onclick="renderPacBarSinPaciente()" style="background:#f1f5f9;color:var(--azul);border:1px solid #cbd5e1;padding:6px 10px;border-radius:6px;font-size:11.5px;cursor:pointer">Cambiar paciente</button>`;
+    <button onclick="renderPacBarSinPaciente()" style="background:#f1f5f9;color:var(--azul);border:1px solid #cbd5e1;padding:6px 10px;border-radius:6px;font-size:11.5px;cursor:pointer">Cambiar paciente</button>
+    <button onclick="verHistoriaClinicaCloud()" style="background:#eef6ff;color:#0369a1;border:1px solid #bcdcf6;padding:6px 10px;border-radius:6px;font-size:11.5px;cursor:pointer">📖 Historia clínica completa</button>`;
   const datosBox = document.getElementById('interr-datos-paciente');
   if(datosBox){
     let edad = '';
@@ -1248,6 +1425,7 @@ function seleccionarPacienteBeta(p){
   }
   cargarHistorialBeta();
   precargarAntecedentesBeta(p.dni);
+  cargarHistorialNeuroortopedia(p.dni);
 }
 
 // ── Trae los antecedentes que el paciente ya completó por RIMP (enfermedades,
@@ -1380,6 +1558,58 @@ async function cargarHistorialBeta(){
       <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px">${c.fecha||''}</div>
       <div style="font-size:11.5px;white-space:pre-wrap">${c.cuerpo||''}</div>
     </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// VER HISTORIA CLÍNICA COMPLETA (2026-09-21) — antes, la solapa "Historial"
+// de acá arriba SOLO mostraba notas guardadas en esta misma computadora
+// (base local), y nunca mostraba la Historia_Clinica real que se ve en OCM.
+// Este botón nuevo trae esa misma historia clínica de la nube (acción
+// "get_historial", igual que usa OCM), buscando por DNI — así no hace
+// falta cambiar de programa para consultarla.
+// ══════════════════════════════════════════════════════════════════
+function parseFechaHistAR_(s){
+  if(!s) return 0;
+  const m=String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1]).getTime();
+  const d=new Date(s); return isNaN(d)?0:d.getTime();
+}
+function renderHistoriaClinicaCloudHTML_(data){
+  const filas=(data&&data.historial)||[];
+  if(!filas.length) return '<p style="color:var(--muted);padding:16px;text-align:center">Sin consultas registradas en la historia clínica.</p>';
+  const ordenadas=filas.slice().sort((a,b)=>parseFechaHistAR_(b.Fecha)-parseFechaHistAR_(a.Fecha));
+  return ordenadas.map(h=>`
+    <div style="border-left:3px solid var(--azul);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="font-weight:700;font-size:12.5px;color:var(--azul)">${h.Fecha||'—'}</div>
+      ${h.Diagnostico?`<div style="font-size:12px;margin-top:4px"><b>Diagnóstico:</b> ${h.Diagnostico}</div>`:''}
+      ${h.Medicamentos?`<div style="font-size:12px;margin-top:2px"><b>Medicamentos:</b> ${h.Medicamentos}</div>`:''}
+      ${(h.Estudios_Realizados||h.Estudios_Reali)?`<div style="font-size:12px;margin-top:2px"><b>Estudios realizados:</b> ${h.Estudios_Realizados||h.Estudios_Reali}</div>`:''}
+      ${(h.Estudios_Pendientes||h.Estudios_Pend)?`<div style="font-size:12px;margin-top:2px"><b>Estudios pendientes:</b> ${h.Estudios_Pendientes||h.Estudios_Pend}</div>`:''}
+      ${h.Indicaciones?`<div style="font-size:12px;margin-top:2px"><b>Indicaciones:</b> ${h.Indicaciones}</div>`:''}
+      ${h.Observaciones?`<div style="font-size:12px;margin-top:2px"><b>Observaciones:</b> ${h.Observaciones}</div>`:''}
+      ${(h.Proximo_Control||h.Proximo_Contr)?`<div style="font-size:12px;margin-top:2px"><b>Próximo control:</b> ${h.Proximo_Control||h.Proximo_Contr}</div>`:''}
+    </div>`).join('');
+}
+async function verHistoriaClinicaCloud(){
+  if(!pacienteActivo){ toast('⚠️ Seleccioná un paciente primero','err'); return; }
+  document.getElementById('hc-modal-titulo').textContent=`Historia clínica — ${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}`;
+  const body=document.getElementById('hc-modal-body');
+  body.innerHTML='<p style="text-align:center;color:var(--muted);padding:20px">Cargando…</p>';
+  document.getElementById('hc-modal').classList.add('abierto');
+  if(!pacienteActivo.dni){
+    body.innerHTML='<p style="color:var(--muted);padding:16px;text-align:center">Este paciente no tiene DNI cargado — sin DNI no se puede buscar la historia clínica en la planilla.</p>';
+    return;
+  }
+  try{
+    const resp=await fetch(SHEETS_URL+'?action=get_historial&dni='+encodeURIComponent(pacienteActivo.dni)+tokenQS_(), {signal:AbortSignal.timeout(10000)});
+    const data=await resp.json();
+    body.innerHTML=renderHistoriaClinicaCloudHTML_(data);
+  }catch(e){
+    body.innerHTML='<p style="color:#dc2626;padding:16px;text-align:center">No se pudo conectar con Google Sheets. Verificá la conexión a internet e intentá de nuevo.</p>';
+  }
+}
+function cerrarHistoriaClinicaCloud(){
+  document.getElementById('hc-modal').classList.remove('abierto');
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1564,6 +1794,168 @@ function generarInformeEscoliosis(){
   if(!lineas.length){ toast('⚠️ Complete al menos un dato','err'); return; }
   const texto = `EVALUACIÓN DE ESCOLIOSIS Y BALANCE SAGITAL\n\n${lineas.join('\n\n')}`;
   document.getElementById('esco-preview').textContent = texto;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NEURO-ORTOPEDIA / PARÁLISIS CEREBRAL — GMFCS, MACS, Índice de Reimers,
+// Ashworth y Tardieu Modificadas, Thomas-Stonell y Greenberg (SANeO, sep 2026)
+// ══════════════════════════════════════════════════════════════════
+const ASHWORTH_OPCIONES_ = [
+  {v:'',t:'—'}, {v:'0',t:'0 — sin aumento de tono'}, {v:'1',t:'1 — mínimo, catch y liberación'},
+  {v:'1+',t:'1+ — catch + mínima resistencia en <½ del recorrido'},
+  {v:'2',t:'2 — aumento marcado en la mayor parte del recorrido'},
+  {v:'3',t:'3 — aumento considerable, movimiento pasivo difícil'},
+  {v:'4',t:'4 — rígido en flexión o extensión'}
+];
+const NEURO_GRUPOS_MUSCULARES_ = [
+  {key:'aductores', label:'Aductores de cadera'},
+  {key:'isquiotibiales', label:'Isquiotibiales'},
+  {key:'rectofemoral', label:'Recto femoral (test de Ely)'},
+  {key:'tricepssural', label:'Tríceps sural (gemelos-sóleo)'},
+  {key:'flexorescodo', label:'Flexores de codo'}
+];
+function renderTablasNeuroortopedia_(){
+  const opciones = ASHWORTH_OPCIONES_.map(o=>`<option value="${o.v}">${o.t}</option>`).join('');
+  const ashBody = document.getElementById('neuro-ashworth-tbody');
+  const tarBody = document.getElementById('neuro-tardieu-tbody');
+  if(ashBody) ashBody.innerHTML = NEURO_GRUPOS_MUSCULARES_.map(g=>`
+    <tr><td>${g.label}</td>
+      <td><select id="ash-${g.key}-d">${opciones}</select></td>
+      <td><select id="ash-${g.key}-i">${opciones}</select></td>
+    </tr>`).join('');
+  if(tarBody) tarBody.innerHTML = NEURO_GRUPOS_MUSCULARES_.map(g=>`
+    <tr><td>${g.label}</td>
+      <td class="mg-r1r2"><span>R1</span><input type="number" step="1" id="tard-${g.key}-d-r1"><span>R2</span><input type="number" step="1" id="tard-${g.key}-d-r2"></td>
+      <td class="mg-r1r2"><span>R1</span><input type="number" step="1" id="tard-${g.key}-i-r1"><span>R2</span><input type="number" step="1" id="tard-${g.key}-i-r2"></td>
+    </tr>`).join('');
+}
+renderTablasNeuroortopedia_();
+
+// Umbrales orientativos de la bibliografía (no reemplazan el criterio
+// clínico): por encima del 30% se suele indicar vigilancia más estrecha;
+// por encima del 50%, valorar indicación quirúrgica junto al resto del cuadro.
+function evaluarReimers_(){
+  const box = document.getElementById('neuro-reimers-alerta');
+  if(!box) return;
+  const d = parseFloat(document.getElementById('neuro-reimers-d').value);
+  const i = parseFloat(document.getElementById('neuro-reimers-i').value);
+  const partes = [];
+  [['Derecha', d],['Izquierda', i]].forEach(([lado, val])=>{
+    if(isNaN(val)) return;
+    if(val > 50) partes.push(`⚠️ Cadera ${lado} ${val}% — rango habitualmente asociado a indicación quirúrgica; valorar con el resto del cuadro clínico.`);
+    else if(val >= 30) partes.push(`🔶 Cadera ${lado} ${val}% — por encima del umbral de vigilancia estrecha habitual (30%); considerar control más frecuente.`);
+  });
+  if(partes.length){
+    box.innerHTML = partes.join('<br>');
+    box.style.cssText = 'display:block;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;font-size:11.5px;margin-top:-4px;margin-bottom:10px;color:#92400e';
+  } else box.style.display = 'none';
+}
+
+function generarInformeNeuroortopedia(){
+  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const gTxt = id => { const el = document.getElementById(id); return (el && el.selectedIndex>0) ? el.options[el.selectedIndex].text : ''; };
+  const lineas = [];
+
+  if(g('neuro-fecha')) lineas.push(`Fecha de evaluación: ${g('neuro-fecha')}`);
+  if(g('neuro-clasificacion')) lineas.push(`Clasificación anatómica: ${g('neuro-clasificacion')}`);
+  if(gTxt('neuro-gmfcs')) lineas.push(`GMFCS: ${gTxt('neuro-gmfcs')}`);
+  if(gTxt('neuro-macs')) lineas.push(`MACS: ${gTxt('neuro-macs')}`);
+
+  const reimersD = g('neuro-reimers-d'), reimersI = g('neuro-reimers-i');
+  if(reimersD || reimersI){
+    const partes = [];
+    if(reimersD) partes.push(`Derecha ${reimersD}%`);
+    if(reimersI) partes.push(`Izquierda ${reimersI}%`);
+    lineas.push(`Índice de Reimers (migración de cadera): ${partes.join(' · ')}`);
+  }
+
+  const ashworthLineas = [], tardieuLineas = [];
+  NEURO_GRUPOS_MUSCULARES_.forEach(grp=>{
+    const ad = gTxt(`ash-${grp.key}-d`), ai = gTxt(`ash-${grp.key}-i`);
+    if(ad || ai) ashworthLineas.push(`${grp.label}: D ${ad||'—'} / I ${ai||'—'}`);
+
+    const r1d=g(`tard-${grp.key}-d-r1`), r2d=g(`tard-${grp.key}-d-r2`);
+    const r1i=g(`tard-${grp.key}-i-r1`), r2i=g(`tard-${grp.key}-i-r2`);
+    if(r1d||r2d||r1i||r2i){
+      const fmt = (r1,r2) => (r1||r2) ? `R1=${r1||'—'}° R2=${r2||'—'}°${(r1&&r2)?` (componente dinámico ${(parseFloat(r2)-parseFloat(r1)).toFixed(0)}°)`:''}` : '';
+      const partesD = fmt(r1d,r2d), partesI = fmt(r1i,r2i);
+      tardieuLineas.push(`${grp.label} — ${[partesD&&('D: '+partesD), partesI&&('I: '+partesI)].filter(Boolean).join(' · ')}`);
+    }
+  });
+  if(ashworthLineas.length) lineas.push(`── ASHWORTH MODIFICADA (tono) ──\n${ashworthLineas.join('\n')}`);
+  if(tardieuLineas.length) lineas.push(`── TARDIEU MODIFICADA (R1 = ángulo de captura rápida, R2 = rango pasivo) ──\n${tardieuLineas.join('\n')}`);
+
+  if(gTxt('neuro-babeo-severidad') || gTxt('neuro-babeo-frecuencia')){
+    lineas.push(`Babeo (Thomas-Stonell y Greenberg): Severidad ${gTxt('neuro-babeo-severidad')||'—'} · Frecuencia ${gTxt('neuro-babeo-frecuencia')||'—'}`);
+  }
+
+  if(g('neuro-obs')) lineas.push(`Observaciones: ${g('neuro-obs')}`);
+
+  if(!lineas.length){ toast('⚠️ Complete al menos un dato','err'); return; }
+  const texto = `EVALUACIÓN DE NEURO-ORTOPEDIA — PARÁLISIS CEREBRAL\n\n${lineas.join('\n\n')}`;
+  document.getElementById('neuro-preview').textContent = texto;
+}
+
+// Además de la nota de texto (guardarTextoEnHistorialBeta, igual que el
+// resto de CAM), esto manda un registro ESTRUCTURADO a Neuroortopedia_PC
+// en Sheets — para que se pueda ver la evolución en el tiempo (ej. Reimers
+// subiendo de una consulta a la siguiente) sin depender de releer texto libre.
+async function guardarEvaluacionNeuroortopedia(){
+  if(!pacienteActivo || !pacienteActivo.dni){ toast('⚠️ Seleccioná un paciente con DNI cargado primero','err'); return; }
+  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const ashworth = {}, tardieu = {};
+  NEURO_GRUPOS_MUSCULARES_.forEach(grp=>{
+    const ad=g(`ash-${grp.key}-d`), ai=g(`ash-${grp.key}-i`);
+    if(ad||ai) ashworth[grp.key] = { d:ad, i:ai };
+    const r1d=g(`tard-${grp.key}-d-r1`), r2d=g(`tard-${grp.key}-d-r2`), r1i=g(`tard-${grp.key}-i-r1`), r2i=g(`tard-${grp.key}-i-r2`);
+    if(r1d||r2d||r1i||r2i) tardieu[grp.key] = { r1_d:r1d, r2_d:r2d, r1_i:r1i, r2_i:r2i };
+  });
+  const payload = {
+    action:'guardar_neuroortopedia', token:APP_TOKEN,
+    dni: pacienteActivo.dni,
+    paciente: `${pacienteActivo.apellido||''}, ${pacienteActivo.nombre||''}`,
+    fechaEvaluacion: g('neuro-fecha') || new Date().toLocaleDateString('es-AR'),
+    clasificacionAnatomica: g('neuro-clasificacion'),
+    gmfcs: g('neuro-gmfcs'), macs: g('neuro-macs'),
+    reimersD: g('neuro-reimers-d'), reimersI: g('neuro-reimers-i'),
+    ashworth: Object.keys(ashworth).length ? ashworth : undefined,
+    tardieu: Object.keys(tardieu).length ? tardieu : undefined,
+    babeoSeveridad: g('neuro-babeo-severidad'), babeoFrecuencia: g('neuro-babeo-frecuencia'),
+    observaciones: g('neuro-obs')
+  };
+  try{
+    const resp = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload), signal:AbortSignal.timeout(8000)});
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error||'Error del servidor');
+    toast('☁ Evaluación guardada para seguimiento','ok');
+    cargarHistorialNeuroortopedia(pacienteActivo.dni);
+  }catch(e){
+    toast('❌ No se pudo guardar la evaluación: '+(e&&e.message?e.message:e),'err');
+  }
+}
+
+// Muestra las últimas evaluaciones ya cargadas para este paciente, para ver
+// la evolución de un vistazo (sobre todo GMFCS/MACS/Reimers) sin ir a la planilla.
+async function cargarHistorialNeuroortopedia(dni){
+  const box = document.getElementById('neuro-previas');
+  if(!box) return;
+  if(!dni){ box.style.display='none'; return; }
+  try{
+    const resp = await fetch(SHEETS_URL+'?action=get_neuroortopedia&dni='+encodeURIComponent(dni)+tokenQS_(), {signal:AbortSignal.timeout(6000)});
+    const data = await resp.json();
+    if(!data || !data.success || !data.evaluaciones || !data.evaluaciones.length){ box.style.display='none'; return; }
+    const ultimas = data.evaluaciones.slice(0,3);
+    box.innerHTML = '<span class="k">Evaluaciones previas de neuro-ortopedia</span><br>' + ultimas.map(ev=>{
+      const fecha = ev.Fecha_Evaluacion || (ev.Timestamp instanceof Date ? ev.Timestamp.toLocaleDateString('es-AR') : ev.Timestamp);
+      const partes = [];
+      if(ev.GMFCS) partes.push('GMFCS '+ev.GMFCS);
+      if(ev.MACS) partes.push('MACS '+ev.MACS);
+      if(ev.Reimers_Cadera_D!=='' || ev.Reimers_Cadera_I!=='') partes.push(`Reimers D${ev.Reimers_Cadera_D||'—'}%/I${ev.Reimers_Cadera_I||'—'}%`);
+      return `${fecha}: ${partes.join(' · ')||'(sin datos numéricos)'}`;
+    }).join('<br>');
+    box.style.display = 'block';
+  }catch(e){ box.style.display='none'; }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1776,6 +2168,7 @@ function abrirGonio3(targetFieldId){
   gonio3Target=targetFieldId;
   gonio3Img=null; gonio3Puntos=[];
   document.getElementById('gonio3-file').value='';
+  document.getElementById('gonio3-file-galeria').value='';
   document.getElementById('gonio3-valor').textContent='—°';
   document.getElementById('gonio3-estado').textContent='Cargá una foto y marcá los 3 puntos.';
   const cv=document.getElementById('gonio3-canvas');
@@ -1910,5 +2303,6 @@ function confirmarGonio3(){
   }catch(e){}
 })();
 </script>
+<script src="efecto-lupa.js" defer></script>
 </body>
 </html>

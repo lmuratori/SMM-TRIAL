@@ -1,0 +1,1518 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAM V — Consulta por voz + herramientas</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<style>
+  :root{--azul:#0369a1;--azul-osc:#0c4a6e;--verde:#16a34a;--ambar:#d97706;--rojo:#dc2626;--violeta:#7c2d92;--muted:#64748b;--border:#e2e8f0;--bg:#f4fbfd;--surface:#fff;--panel:#f8fafc}
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);margin:0;color:#0f172a;padding-bottom:60px}
+  .topbar{background:linear-gradient(135deg,var(--azul),var(--azul-osc));color:#fff;padding:16px 18px}
+  .topbar-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .topbar h1{margin:0 0 2px;font-size:18px}
+  .topbar p{margin:0;font-size:11.5px;opacity:.9}
+  .badge{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:5px;margin-left:6px;vertical-align:middle;background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+
+  .simm-nav-wrap{position:relative}
+  .simm-nav-btn{cursor:pointer;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;border-radius:7px;padding:6px 10px;font-size:11.5px;font-weight:700}
+  .simm-nav-dropdown{display:none;position:absolute;top:100%;right:0;margin-top:6px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);min-width:220px;max-height:70vh;overflow-y:auto;z-index:200;padding:4px;text-align:left}
+  .simm-nav-item{display:block;padding:7px 10px;font-size:12px;color:#0f172a;text-decoration:none;border-radius:6px;white-space:nowrap}
+  .simm-nav-item:hover{background:#f1f5f9}
+
+  .pacbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:10px;flex-wrap:wrap}
+  .pacbar input{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;flex:1;min-width:140px}
+
+  .layout{max-width:1320px;margin:0 auto;padding:14px 12px;display:grid;grid-template-columns:230px 1fr 340px;gap:12px}
+  @media (max-width:980px){ .layout{grid-template-columns:1fr} }
+
+  .col-titulo{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+  .card h3{margin:0 0 8px;font-size:13px;color:var(--azul-osc)}
+  label{font-size:10.5px;font-weight:700;color:var(--muted);display:block;margin-bottom:3px}
+  input[type=text],input[type=tel],input[type=number],textarea,select{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;font-family:inherit;background:#fff}
+  textarea{resize:vertical;line-height:1.5}
+  .fg{margin-bottom:8px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:110px}
+
+  .btn{border:none;border-radius:7px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-primary{background:var(--azul);color:#fff}
+  .btn-ghost{background:#eef2f7;color:#0f172a}
+  .btn-ia{background:var(--violeta);color:#fff}
+  .btn-ok{background:var(--verde);color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn-mic{background:#fef2f2;color:var(--rojo);border:1px solid #fca5a5}
+  .btn-mic.on{background:var(--rojo);color:#fff;animation:pulse 1.2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}70%{box-shadow:0 0 0 8px rgba(220,38,38,0)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}}
+  .btn-herr{width:100%;text-align:left;background:#faf5ff;border:1px solid #e9d5ff;color:var(--violeta);padding:10px 12px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;margin-bottom:8px}
+  .btn-herr.abierta{background:var(--violeta);color:#fff}
+  .fila-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+
+  .panel-herr{display:none;border-top:2px solid #e9d5ff;padding-top:8px;margin:-2px 0 10px;font-size:12px}
+  .panel-herr.abierta{display:block}
+
+  .consulta-box{border:1.5px solid var(--border);border-radius:9px;margin-bottom:10px;overflow:hidden}
+  .consulta-box.activo{border-color:var(--azul)}
+  .consulta-head{background:var(--panel);padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--azul-osc);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  .consulta-box.activo .consulta-head{background:var(--azul);color:#fff}
+  .consulta-body{padding:10px 12px}
+  .interim{font-size:11.5px;color:var(--muted);font-style:italic;min-height:15px}
+
+  .resumen-box{white-space:pre-wrap;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.55;max-height:340px;overflow-y:auto}
+  .clasif-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.55;color:#9a3412;min-height:20px}
+  .clasif-nota{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:4px;margin-bottom:8px;font-style:italic}
+  #clasif-diagrama{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;margin-top:6px}
+  .cd-anio{font-size:11px;color:var(--azul-osc);font-weight:700;margin-bottom:8px}
+  .cd-barra{display:flex;gap:4px;flex-wrap:wrap}
+  .cd-seg{flex:1;min-width:78px;background:#fff;border:1px solid #7dd3fc;border-radius:6px;padding:6px 7px;font-size:10px;text-align:center;color:#0c4a6e;font-weight:600;line-height:1.35}
+  .cd-seg.cd-activo{background:#0369a1;color:#fff;border-color:#0369a1}
+
+  .toast-cont{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:6px;align-items:center}
+  .toast{background:#0f172a;color:#fff;padding:9px 16px;border-radius:8px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  .toast.err{background:#dc2626}
+  .toast.ok{background:#16a34a}
+  .spin{display:inline-block;width:10px;height:10px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:5px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .maniobra-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--border)}
+  .maniobra-row input[type=text]{flex:1.4;min-width:110px}
+  .maniobra-row select{flex:1;min-width:100px}
+  .sug-rationale{font-size:10px;color:var(--muted);margin-top:-2px;margin-bottom:2px}
+  .info-box{background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.55;margin-top:8px}
+  .info-box .k{font-weight:700;color:var(--violeta)}
+  /* NUEVO (2026-09-21): modal "Ver historia clínica completa" (misma nube que OCM) */
+  .hc-modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
+  .hc-modal-overlay.abierto{display:flex}
+  .hc-modal-box{background:#fff;border-radius:12px;max-width:600px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+  .hc-modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--azul)}
+  .hc-modal-header button{border:none;background:transparent;font-size:16px;cursor:pointer;color:var(--muted)}
+  .hc-modal-body{padding:14px 18px;overflow-y:auto}
+  .hc-modal-footer{padding:10px 18px;border-top:1px solid var(--border);text-align:right}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-top">
+    <h1>🎙️🧬 CAM V</h1>
+    <div class="simm-nav-wrap">
+      <button type="button" class="simm-nav-btn" onclick="toggleSimmNav()">🔀 Ir a…</button>
+      <div id="simm-nav-dropdown" class="simm-nav-dropdown">
+        <a href="index.html" class="simm-nav-item">🏠 Portada de SIM-M</a>
+        <a href="OCM_Muratori_v14_0_26.html" class="simm-nav-item">🗂️ OCM — Historia Clínica</a>
+        <a href="CAM_Herramientas_Clinicas.html" class="simm-nav-item">🧬 CAM — Herramientas Clínicas (manual)</a>
+        <a href="Consulta_Guiada_Beta_v1.html" class="simm-nav-item">🎙️ Consulta Guiada — Beta</a>
+      </div>
+    </div>
+  </div>
+  <p>Herramientas de examen a la izquierda, dictado por voz manual en el centro, recuadros de consulta a la derecha — con resumen final para copiar a otros sistemas.</p>
+</div>
+
+<div class="pacbar">
+  <input type="text" id="pac-nombre" placeholder="Apellido y nombre">
+  <input type="text" id="pac-dni" placeholder="DNI (para guardar en historia clínica)">
+  <button type="button" class="btn btn-ghost" onclick="verHistoriaClinicaCloud()">📖 Ver historia clínica</button>
+</div>
+
+<!-- NUEVO (2026-09-21): modal "Ver historia clínica completa" — trae la misma
+     Historia_Clinica de la nube que ya muestra OCM, buscando por el DNI escrito arriba. -->
+<div class="hc-modal-overlay" id="hc-modal">
+  <div class="hc-modal-box">
+    <div class="hc-modal-header"><span id="hc-modal-titulo">Historia clínica</span><button onclick="cerrarHistoriaClinicaCloud()">✕</button></div>
+    <div class="hc-modal-body" id="hc-modal-body"></div>
+    <div class="hc-modal-footer"><button class="btn btn-ghost" onclick="cerrarHistoriaClinicaCloud()">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- ═══ COLUMNA IZQUIERDA: HERRAMIENTAS DE EXAMEN FÍSICO ═══ -->
+  <div>
+    <div class="col-titulo">🛠️ Herramientas de examen físico</div>
+
+    <button type="button" class="btn-herr" id="btn-herr-podo" onclick="toggleHerramienta('podo')">🦶 Podoscopía</button>
+    <div class="panel-herr" id="panel-herr-podo">
+      <div class="row"><div class="fg"><label>Retropié — lado</label><select id="podo-lado-vv"><option>Derecho</option><option>Izquierdo</option><option>Bilateral</option></select></div>
+        <div class="fg"><label>Ángulo (+valgo / −varo)</label><input id="podo-angulo-vv" type="number" step="0.1"></div></div>
+      <div class="row"><div class="fg"><label>Índice Chippaux-Smirak (%)</label><input id="podo-chippaux" type="number" step="0.1"></div>
+        <div class="fg"><label>Hernández-Corvo</label><input id="podo-hcorvo" type="text" placeholder="Grado I a IV"></div></div>
+      <div class="fg"><label>Arch Index (Cavanagh-Rodgers)</label><input id="podo-archindex" type="number" step="0.01"></div>
+      <div class="fg"><label>Observaciones</label><textarea id="podo-obs" rows="2"></textarea></div>
+      <div class="fila-btns">
+        <button type="button" class="btn btn-ghost" onclick="generarInformePodoscopia()">📄 Generar informe</button>
+        <button type="button" class="btn btn-primary" onclick="enviarHerramientaAExamen('podo')">⬇️ Enviar a Examen físico</button>
+      </div>
+      <div class="resumen-box" id="podo-preview" style="margin-top:8px;display:none"></div>
+    </div>
+
+    <button type="button" class="btn-herr" id="btn-herr-sind" onclick="toggleHerramienta('sind')">🧬 Consulta de síndromes</button>
+    <div class="panel-herr" id="panel-herr-sind">
+      <div class="fg"><label>Síndrome</label><select id="sind-select" onchange="mostrarSindrome()"></select></div>
+      <div class="info-box" id="sind-info">Elegí un síndrome para ver su información.</div>
+      <div class="fila-btns">
+        <button type="button" class="btn btn-ghost" onclick="agregarSindromePersonalizado()">⭐ Agregar a mi diccionario</button>
+        <button type="button" class="btn btn-primary" onclick="enviarHerramientaAExamen('sind')">⬇️ Enviar a Examen físico</button>
+      </div>
+    </div>
+
+    <button type="button" class="btn-herr" id="btn-herr-man" onclick="toggleHerramienta('man')">🤲 Maniobras por segmento</button>
+    <div class="panel-herr" id="panel-herr-man">
+      <div class="fg"><label>Segmento a evaluar</label>
+        <select id="man-segmento">
+          <option value="">Seleccionar…</option>
+          <optgroup label="Columna y pelvis">
+            <option>Columna cervical</option><option>Columna dorsal</option><option>Columna lumbar</option>
+            <option>Articulación sacroilíaca / pelvis</option>
+          </optgroup>
+          <optgroup label="Miembro superior">
+            <option>Hombro</option><option>Codo</option><option>Muñeca</option><option>Mano / dedos</option>
+          </optgroup>
+          <optgroup label="Miembro inferior">
+            <option>Cadera</option><option>Rodilla</option><option>Tobillo</option><option>Pie / dedos</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="fila-btns">
+        <button type="button" class="btn btn-ia" onclick="sugerirManiobras(this)">🔎 Sugerir maniobras (IA)</button>
+        <button type="button" class="btn btn-ghost" onclick="agregarManiobraManual()">+ Manual</button>
+      </div>
+      <div id="man-lista" style="margin-top:8px"></div>
+      <button type="button" class="btn btn-primary" style="margin-top:8px;width:100%" onclick="enviarHerramientaAExamen('man')">⬇️ Enviar a Examen físico</button>
+    </div>
+
+    <div style="margin:14px 0 6px;font-size:10.5px;color:var(--muted);font-weight:700">📷 MEDICIONES GONIO (FOTO) — se abren en otra pestaña</div>
+    <button type="button" class="btn-herr" onclick="abrirGonio('GONIO_Columna_v1.html')">🩻 Columna (Cobb, Pelvis, SVA, Edad ósea, Talla diana, Riesgo de progresión…) ↗</button>
+    <button type="button" class="btn-herr" onclick="abrirGonio('GONIO_MiembroInferior_v1.html')">🦵 Miembro Inferior (Hallux, Genu, Costa-Bártani, Retropié…) ↗</button>
+  </div>
+
+  <!-- ═══ COLUMNA CENTRAL: DICTADO ═══ -->
+  <div>
+    <div class="col-titulo">🎙️ Dictado (activación manual)</div>
+    <div class="card">
+      <div class="fg" style="margin-bottom:8px"><label>🎯 Vas a dictar para…</label>
+        <select id="destino-dictado" onchange="actualizarEtiquetaDestino()">
+          <option value="">Libre (decidís después con los botones de abajo)</option>
+          <option value="motivo">Motivo de consulta y antecedentes</option>
+          <option value="interr">Interrogatorio</option>
+          <option value="examen">Examen físico</option>
+          <option value="estudios">Estudios</option>
+          <option value="diagnostico">Diagnóstico</option>
+          <option value="terapeutica">Terapéutica</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <button type="button" class="btn btn-mic" id="mic-btn" onclick="toggleMic()">🎤 Escuchar</button>
+        <span style="font-size:11px;color:var(--muted)" id="destino-hint">o escribí directo abajo</span>
+      </div>
+      <div class="interim" id="interim-centro"></div>
+      <textarea id="dictado-centro" rows="14" placeholder="Acá va apareciendo lo que dictás (o escribís)…"></textarea>
+      <div class="fila-btns">
+        <button type="button" class="btn btn-ia" onclick="pulirCentro(this)">✨ Pulir con IA</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('dictado-centro').value=''">🧹 Limpiar</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin:10px 0 4px;font-weight:700">⬇️ Enviar este texto a:</div>
+      <div class="fila-btns">
+        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('motivo')">Motivo</button>
+        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('interr')">Interrogatorio</button>
+        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('examen')">Examen físico</button>
+        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('estudios')">Estudios</button>
+        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('diagnostico')">Diagnóstico</button>
+        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('terapeutica')">Terapéutica</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ COLUMNA DERECHA: RECUADROS DE CONSULTA ═══ -->
+  <div>
+    <div class="col-titulo">📋 Consulta</div>
+
+    <div class="consulta-box" id="box-motivo">
+      <div class="consulta-head">🎯 Motivo de consulta y antecedentes</div>
+      <div class="consulta-body">
+        <textarea id="texto-motivo" rows="3"></textarea>
+        <div class="fila-btns"><button type="button" class="btn btn-ia" onclick="pulirRecuadro('motivo',this)">✨ Pulir con IA</button></div>
+      </div>
+    </div>
+
+    <div class="consulta-box" id="box-interr">
+      <div class="consulta-head">📝 Interrogatorio</div>
+      <div class="consulta-body">
+        <textarea id="texto-interr" rows="3"></textarea>
+        <div class="fila-btns"><button type="button" class="btn btn-ia" onclick="pulirRecuadro('interr',this)">✨ Pulir con IA</button></div>
+      </div>
+    </div>
+
+    <div class="consulta-box" id="box-examen">
+      <div class="consulta-head">🔎 Examen físico</div>
+      <div class="consulta-body">
+        <textarea id="texto-examen" rows="4" placeholder="Acá también caen los informes de podoscopía / síndromes / maniobras cuando los enviás desde la izquierda…"></textarea>
+        <div class="fila-btns"><button type="button" class="btn btn-ia" onclick="pulirRecuadro('examen',this)">✨ Pulir con IA</button></div>
+      </div>
+    </div>
+
+    <div class="consulta-box" id="box-estudios">
+      <div class="consulta-head">🧪 Estudios e indicaciones</div>
+      <div class="consulta-body">
+        <textarea id="texto-estudios" rows="3"></textarea>
+        <div class="fila-btns"><button type="button" class="btn btn-ia" onclick="pulirRecuadro('estudios',this)">✨ Ordenar con IA</button></div>
+      </div>
+    </div>
+
+    <div class="consulta-box" id="box-diagnostico">
+      <div class="consulta-head">🎯 Diagnóstico</div>
+      <div class="consulta-body">
+        <textarea id="texto-diagnostico" rows="2"></textarea>
+        <div class="fila-btns"><button type="button" class="btn btn-ia" onclick="pulirRecuadro('diagnostico',this)">✨ Pulir con IA</button></div>
+      </div>
+    </div>
+
+    <div class="consulta-box" id="box-clasif">
+      <div class="consulta-head">🏷️ Clasificaciones</div>
+      <div class="consulta-body">
+        <div class="fg"><label>Patología a clasificar</label>
+          <select id="clasif-patologia" onchange="mostrarCamposClasificacion()">
+            <option value="">Seleccionar…</option>
+            <option value="escoliosis">Escoliosis (Ángulo de Cobb)</option>
+            <option value="listesis">Espondilolistesis (Meyerding)</option>
+            <option value="pie">Pie plano / cavo (Hernández-Corvo)</option>
+            <option value="artrosis">Artrosis de rodilla/cadera (Kellgren-Lawrence)</option>
+            <option value="hallux">Hallux valgus (Mann &amp; Coughlin)</option>
+            <option value="manguito">Manguito rotador — infiltración grasa (Goutallier/Fuchs)</option>
+            <option value="discopatia">Discopatía lumbar / ciatalgia (Pfirrmann + hernia)</option>
+            <option value="esguince_tobillo">Esguince de tobillo (Grado I-III)</option>
+            <option value="esguince_rodilla">Esguince / lesión ligamentaria de rodilla</option>
+            <option value="menisco">Lesión meniscal</option>
+            <option value="genu">Genu valgo / varo</option>
+            <option value="pie_valgo_retropie">Pie plano del adulto — retropié valgo (Johnson &amp; Strom)</option>
+            <option value="gmfcs">Parálisis cerebral — función motora gruesa (GMFCS)</option>
+            <option value="ao_fractura">Fractura — clasificación AO/OTA</option>
+            <option value="balance_sagital">Desbalance sagital de columna (SRS-Schwab)</option>
+            <option value="edad_osea">Edad ósea (Greulich-Pyle / Tanner-Whitehouse)</option>
+            <option value="icrs">Lesión de cartílago articular (ICRS)</option>
+            <option value="otra">Otra — consultar con IA según el Diagnóstico</option>
+          </select>
+        </div>
+
+        <div id="clasif-campos-escoliosis" style="display:none">
+          <div class="row">
+            <div class="fg"><label>Ángulo de Cobb (°)</label><input id="clasif-cobb" type="number" step="0.5"></div>
+            <div class="fg"><label>Risser (opcional)</label><select id="clasif-risser">
+              <option value="">Sin especificar</option>
+              <option>0</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option>
+            </select></div>
+          </div>
+          <div class="fg"><label>Etiología (opcional)</label><select id="clasif-esco-etiologia">
+            <option value="">Sin especificar</option>
+            <option value="Idiopática infantil (inicio &lt;3 años)">Idiopática infantil (inicio &lt;3 años)</option>
+            <option value="Idiopática juvenil (inicio 3-10 años)">Idiopática juvenil (inicio 3-10 años)</option>
+            <option value="Idiopática del adolescente (desde los 10 años)">Idiopática del adolescente (desde los 10 años)</option>
+            <option value="Idiopática del adulto (tras madurez esquelética)">Idiopática del adulto (tras madurez esquelética)</option>
+            <option value="Congénita">Congénita</option>
+            <option value="Neuromuscular / neuropática">Neuromuscular / neuropática</option>
+            <option value="Sindrómica">Sindrómica</option>
+          </select></div>
+          <div class="clasif-nota">Categorías etiológicas según el glosario de la SRS (Scoliosis Research Society). En congénita, el detalle clásico es falla de formación (hemivértebra, vértebra en cuña) vs. falla de segmentación (barra no segmentada uni/bilateral) — de Winter. En neuromuscular, la severidad/progresión se correlaciona con el nivel de GMFCS más que con una escala propia.</div>
+        </div>
+
+        <div id="clasif-campos-listesis" style="display:none">
+          <div class="fg"><label>Desplazamiento (%)</label><input id="clasif-list-pct" type="number" step="1" min="0" oninput="actualizarGradoMeyerdingClasif()"></div>
+          <div class="fg"><label>Grado de Meyerding (auto)</label><input id="clasif-list-grado" type="text" readonly></div>
+          <div class="fg"><label>Tipo etiológico (Wiltse-Newman-MacNab, opcional)</label><select id="clasif-list-tipo">
+            <option value="">Sin especificar</option>
+            <option value="I — Displásica (congénita)">I — Displásica (congénita)</option>
+            <option value="IIA — Ístmica, fractura por fatiga de la pars">IIA — Ístmica, fractura por fatiga de la pars</option>
+            <option value="IIB — Ístmica, pars elongada intacta">IIB — Ístmica, pars elongada intacta</option>
+            <option value="IIC — Ístmica, fractura aguda de la pars">IIC — Ístmica, fractura aguda de la pars</option>
+            <option value="III — Degenerativa">III — Degenerativa</option>
+            <option value="IV — Traumática (no pars)">IV — Traumática (no pars)</option>
+            <option value="V — Patológica">V — Patológica</option>
+          </select></div>
+          <div class="clasif-nota">El % de desplazamiento define la severidad (Meyerding); el tipo etiológico (Wiltse-Newman-MacNab, 1976) define la causa — son dos ejes independientes, se documentan juntos.</div>
+        </div>
+
+        <div id="clasif-campos-discopatia" style="display:none">
+          <div class="fg"><label>Grado de degeneración discal — Pfirrmann (RM)</label><select id="clasif-disco-pfirrmann">
+            <option value="">Seleccionar…</option>
+            <option value="I">Grado I — disco homogéneo, blanco brillante, altura normal</option>
+            <option value="II">Grado II — inhomogéneo ± bandas horizontales, altura normal</option>
+            <option value="III">Grado III — inhomogéneo, gris, altura normal a levemente disminuida</option>
+            <option value="IV">Grado IV — inhomogéneo, gris a negro, altura disminuida moderadamente</option>
+            <option value="V">Grado V — disco negro, colapsado</option>
+          </select></div>
+          <div class="fg"><label>Morfología de la hernia (opcional)</label><select id="clasif-disco-morfologia">
+            <option value="">Sin hernia / no evaluado</option>
+            <option value="Abombamiento (bulging), extensión difusa no focal">Abombamiento (bulging) — extensión difusa, no focal</option>
+            <option value="Protrusión — base más ancha que el material desplazado">Protrusión — base más ancha que el material desplazado</option>
+            <option value="Extrusión — material desplazado más ancho que la base">Extrusión — material desplazado más ancho que la base</option>
+            <option value="Secuestro — fragmento libre sin continuidad con el disco">Secuestro — fragmento libre, sin continuidad con el disco</option>
+          </select></div>
+          <div class="clasif-nota">Pfirrmann (2001, RM) para grado de degeneración; nomenclatura de hernia según la Versión 2.0 del Combined Task Force NASS/ASSR/ASNR (2014). La ciatalgia/cervicobraquialgia es la correlación clínica (dolor irradiado) — no tiene clasificación propia, se documenta junto al hallazgo de imagen que la explica. Sirve igual para discopatía cervical/dorsal/lumbar, cambiando el segmento en el Diagnóstico.</div>
+        </div>
+
+        <div id="clasif-campos-esguince_tobillo" style="display:none">
+          <div class="fg"><label>Grado</label><select id="clasif-est-grado">
+            <option value="">Seleccionar…</option>
+            <option value="Grado I — distensión del LPAA, sin inestabilidad, apoyo conservado">Grado I — distensión del LPAA, sin inestabilidad, apoyo conservado</option>
+            <option value="Grado II — rotura parcial (LPAA ± LPC), inestabilidad leve, apoyo dificultoso">Grado II — rotura parcial (LPAA ± LPC), inestabilidad leve, apoyo dificultoso</option>
+            <option value="Grado III — rotura completa (LPAA + LPC ± LPAP), inestabilidad mecánica, sin apoyo">Grado III — rotura completa (LPAA + LPC ± LPAP), inestabilidad mecánica, sin apoyo</option>
+          </select></div>
+          <div class="clasif-nota">Convención de uso extendido (esquema tipo "West Point"); ninguna sociedad la regula de forma única — una revisión de 2022 relevó 26 sistemas distintos publicados, sin datos de validez que respalden uno sobre otro. Se ofrece como referencia clínica habitual, no como estándar único validado.</div>
+        </div>
+
+        <div id="clasif-campos-esguince_rodilla" style="display:none">
+          <div class="row">
+            <div class="fg"><label>Ligamento afectado</label><select id="clasif-esr-ligamento">
+              <option value="LCM">LCM (colateral medial)</option>
+              <option value="LCL">LCL (colateral lateral)</option>
+              <option value="LCA">LCA (cruzado anterior)</option>
+              <option value="LCP">LCP (cruzado posterior)</option>
+            </select></div>
+            <div class="fg"><label>Grado clínico</label><select id="clasif-esr-grado">
+              <option value="">Seleccionar…</option>
+              <option value="Grado I — distensión, ligamento íntegro, tope firme">Grado I — distensión, ligamento íntegro, tope firme</option>
+              <option value="Grado II — rotura parcial, laxitud con tope definido">Grado II — rotura parcial, laxitud con tope definido</option>
+              <option value="Grado III — rotura completa, laxitud sin tope">Grado III — rotura completa, laxitud sin tope</option>
+            </select></div>
+          </div>
+          <div class="fg"><label>IKDC (opcional, con artrómetro KT-1000/2000)</label><select id="clasif-esr-ikdc">
+            <option value="">Sin especificar</option>
+            <option value="A — Normal (diferencia 0-2mm)">A — Normal (diferencia 0-2mm)</option>
+            <option value="B — Casi normal (diferencia 3-5mm)">B — Casi normal (diferencia 3-5mm)</option>
+            <option value="C — Anormal (diferencia 6-10mm)">C — Anormal (diferencia 6-10mm)</option>
+            <option value="D — Muy anormal (diferencia &gt;10mm)">D — Muy anormal (diferencia &gt;10mm)</option>
+          </select></div>
+          <div class="clasif-nota">El grado I-III es convención clínica de uso extendido, sin sociedad única que la regule (igual que en tobillo). El IKDC (1993/2000, ESKA/AOSSM) sí es un estándar objetivo instrumentado — usalo cuando tengas medición con artrómetro.</div>
+        </div>
+
+        <div id="clasif-campos-menisco" style="display:none">
+          <div class="fg"><label>Grado de señal — Stoller (RM)</label><select id="clasif-men-stoller">
+            <option value="">Seleccionar…</option>
+            <option value="Grado 0 — menisco normal">Grado 0 — menisco normal</option>
+            <option value="Grado I — foco intrasustancia, no llega a la superficie">Grado I — foco intrasustancia, no llega a la superficie</option>
+            <option value="Grado II — señal lineal intrasustancia, no llega a la superficie articular">Grado II — señal lineal intrasustancia, no llega a la superficie articular</option>
+            <option value="Grado III — señal que llega a la superficie articular (rotura verdadera)">Grado III — señal que llega a la superficie articular (rotura verdadera)</option>
+          </select></div>
+          <div class="fg"><label>Patrón de rotura (si Grado III)</label><select id="clasif-men-patron">
+            <option value="">No aplica / no evaluado</option>
+            <option value="Longitudinal / asa de balde">Longitudinal / asa de balde</option>
+            <option value="Radial">Radial</option>
+            <option value="Horizontal">Horizontal</option>
+            <option value="Compleja / degenerativa">Compleja / degenerativa</option>
+          </select></div>
+          <div class="fg"><label>Zona vascular</label><select id="clasif-men-zona">
+            <option value="">Sin especificar</option>
+            <option value="Roja-roja (periférica, buena vascularización)">Roja-roja (periférica, buena vascularización)</option>
+            <option value="Roja-blanca (intermedia)">Roja-blanca (intermedia)</option>
+            <option value="Blanca-blanca (central, avascular)">Blanca-blanca (central, avascular)</option>
+          </select></div>
+          <div class="clasif-nota">Stoller/Crues para grado de señal en RM; patrón y zona vascular son descriptores clínico-quirúrgicos estándar (relevantes para decidir sutura vs. meniscectomía). No reemplaza la evaluación artroscópica directa.</div>
+        </div>
+
+        <div id="clasif-campos-genu" style="display:none">
+          <div class="row">
+            <div class="fg"><label>Tipo</label><select id="clasif-genu-tipo">
+              <option value="valgo">Genu valgo</option>
+              <option value="varo">Genu varo</option>
+            </select></div>
+            <div class="fg"><label>Edad del paciente</label><select id="clasif-genu-edad">
+              <option value="pediatrico">Pediátrico (en crecimiento)</option>
+              <option value="adulto">Adulto</option>
+            </select></div>
+          </div>
+          <div class="row">
+            <div class="fg"><label>Distancia intermaleolar/intercondílea (cm, opcional)</label><input id="clasif-genu-dist" type="number" step="0.5"></div>
+            <div class="fg"><label>Eje mecánico — desviación (°, opcional)</label><input id="clasif-genu-eje" type="number" step="0.5"></div>
+          </div>
+          <div class="clasif-nota">No existe una escala de gravedad única avalada por sociedad (AAOS/POSNA) — se documenta como hallazgo descriptivo, no como "grado". En pediatría, el valgo fisiológico normal alcanza un pico de ~10-20° a los 3-4 años y se estabiliza en ~5-8° hacia los 6-7 años (curva de Salenius-Vankka, 1975, con variación poblacional descripta en estudios posteriores); valgo que persiste o empeora después de los 7-8 años, o asimétrico, amerita evaluación. En adultos se describe por distancia (cm) o por desviación del eje mecánico (°), sin puntos de corte estandarizados de gravedad.</div>
+        </div>
+
+        <div id="clasif-campos-pie_valgo_retropie" style="display:none">
+          <div class="fg"><label>Estadio (Johnson &amp; Strom / Myerson)</label><select id="clasif-pvr-estadio">
+            <option value="">Seleccionar…</option>
+            <option value="I — Tenosinovitis del tibial posterior, tendón de longitud normal, talón flexible">I — Tenosinovitis del tibial posterior, tendón de longitud normal, talón flexible</option>
+            <option value="IIA — Tendón elongado/degenerado, pie plano flexible, sin/mínima abducción del antepié">IIA — Tendón elongado/degenerado, pie plano flexible, sin/mínima abducción del antepié</option>
+            <option value="IIB — Ídem IIA + abducción del antepié ('demasiados dedos')">IIB — Ídem IIA + abducción del antepié ("demasiados dedos")</option>
+            <option value="III — Tendón roto/atenuado, retropié RÍGIDO en valgo, antepié en abducción rígida, artrosis subastragalina">III — Tendón roto/atenuado, retropié RÍGIDO en valgo, antepié en abducción rígida, artrosis subastragalina</option>
+            <option value="IV (Myerson) — Ídem III + valgo de tobillo por falla del ligamento deltoideo">IV (Myerson) — Ídem III + valgo de tobillo por falla del ligamento deltoideo</option>
+          </select></div>
+          <div class="clasif-nota">Clasificación de Johnson &amp; Strom (1989), con la ampliación de Myerson (estadio IV). Es específica de la deformidad progresiva del adulto con disfunción del tibial posterior (retropié en VALGO). Para retropié en VARO no existe una escala de gravedad estandarizada — se evalúa clínicamente con la prueba del bloque de Coleman (flexible vs. rígido) y se describe de forma cualitativa, no numérica.</div>
+        </div>
+
+        <div id="clasif-campos-gmfcs" style="display:none">
+          <div class="fg"><label>Nivel GMFCS</label><select id="clasif-gmfcs-nivel">
+            <option value="">Seleccionar…</option>
+            <option value="I — camina sin limitaciones en todos los entornos">I — camina sin limitaciones en todos los entornos</option>
+            <option value="II — camina sin dispositivos, con limitaciones en exteriores/distancias largas/escaleras">II — camina sin dispositivos, con limitaciones en exteriores/distancias largas/escaleras</option>
+            <option value="III — camina con dispositivo manual (andador/muletas) en interiores; usa silla de ruedas para trayectos largos">III — camina con dispositivo manual (andador/muletas) en interiores; usa silla de ruedas para trayectos largos</option>
+            <option value="IV — automovilidad limitada; usa movilidad motorizada o es transportado">IV — automovilidad limitada; usa movilidad motorizada o es transportado</option>
+            <option value="V — automovilidad muy limitada incluso con tecnología asistencial; control de cabeza/tronco limitado">V — automovilidad muy limitada incluso con tecnología asistencial; control de cabeza/tronco limitado</option>
+          </select></div>
+          <div class="clasif-nota">GMFCS-E&amp;R (Palisano et al. — CanChild, Universidad McMaster; la AACPDM lo adopta clínicamente pero no es la autora). Guía la vigilancia de cadera: a mayor nivel, mayor riesgo de migración femoral y mayor frecuencia de control radiográfico recomendada.</div>
+        </div>
+
+        <div id="clasif-campos-pie" style="display:none">
+          <div class="fg"><label>Grado de Hernández-Corvo</label><input id="clasif-hcorvo" type="text" placeholder="Ej: Grado I a IV — lo que hayas cargado en Podoscopía"></div>
+        </div>
+
+        <div id="clasif-campos-artrosis" style="display:none">
+          <div class="row">
+            <div class="fg"><label>Articulación</label><select id="clasif-art-articulacion">
+              <option value="Rodilla">Rodilla</option>
+              <option value="Cadera">Cadera</option>
+            </select></div>
+            <div class="fg"><label>Grado radiográfico</label><select id="clasif-art-grado">
+              <option value="">Seleccionar…</option>
+              <option value="0">Grado 0 — sin signos radiográficos de artrosis</option>
+              <option value="1">Grado 1 — dudoso (osteofitos incipientes/dudosos)</option>
+              <option value="2">Grado 2 — mínimo (osteofitos definidos, posible pinzamiento)</option>
+              <option value="3">Grado 3 — moderado (osteofitos múltiples, pinzamiento definido, algo de esclerosis)</option>
+              <option value="4">Grado 4 — severo (osteofitos grandes, pinzamiento severo, esclerosis marcada, deformidad ósea)</option>
+            </select></div>
+          </div>
+          <div class="clasif-nota">Clasificación de Kellgren-Lawrence (1957). El texto exacto de cada grado varía levemente entre fuentes bibliográficas — este redactado sigue la versión más citada (CORR "Classifications in Brief"). El OARSI tiene además un atlas propio que puntúa cada signo por separado (0–3); no reemplaza a Kellgren-Lawrence, es un complemento más granular para investigación.</div>
+        </div>
+
+        <div id="clasif-campos-hallux" style="display:none">
+          <div class="row">
+            <div class="fg"><label>Ángulo de Hallux Valgus — HVA (°)</label><input id="clasif-hv-hva" type="number" step="0.5"></div>
+            <div class="fg"><label>Ángulo intermetatarsiano 1°-2° — IMA (°)</label><input id="clasif-hv-ima" type="number" step="0.5"></div>
+          </div>
+          <div class="clasif-nota">Clasificación de Mann &amp; Coughlin (la más citada en la bibliografía). AOFAS no publica un umbral angular propio para gravedad — su "escala AOFAS" es un score clínico/funcional distinto (dolor y función), no esta clasificación angular. Los cortes exactos varían algo según el autor.</div>
+        </div>
+
+        <div id="clasif-campos-manguito" style="display:none">
+          <div class="fg"><label>Técnica de imagen</label><select id="clasif-mr-tecnica">
+            <option value="RM">Resonancia Magnética (adaptación de Fuchs)</option>
+            <option value="TC">Tomografía Computada (Goutallier original)</option>
+          </select></div>
+          <div class="fg"><label>Estadio de infiltración grasa</label><select id="clasif-mr-estadio">
+            <option value="">Seleccionar…</option>
+            <option value="0">Estadio 0 — músculo normal, sin estrías grasas</option>
+            <option value="1">Estadio 1 — algunas estrías grasas</option>
+            <option value="2">Estadio 2 — infiltración grasa presente, predomina el músculo (grasa &lt;50%)</option>
+            <option value="3">Estadio 3 — cantidades iguales de grasa y músculo (~50/50)</option>
+            <option value="4">Estadio 4 — predomina la grasa sobre el músculo</option>
+          </select></div>
+          <div class="clasif-nota">Los estadios verbales son iguales en la versión original de Goutallier (TC, 1994) y en la adaptación de Fuchs (RM, 1999) — lo que cambia es la técnica de imagen y el corte evaluado. Ninguna sociedad (SECEC-ESSSE/ASES) fijó formalmente cuál usar; en la práctica actual predomina la versión por RM porque es la técnica más usada para el hombro.</div>
+        </div>
+
+        <div id="clasif-campos-ao_fractura" style="display:none">
+          <div class="fg"><label>Segmento óseo</label><select id="clasif-ao-segmento" onchange="actualizarTiposAO()">
+            <option value="">Seleccionar…</option>
+            <option value="11">11 — Húmero proximal</option>
+            <option value="12">12 — Húmero diafisario</option>
+            <option value="23">23 — Radio distal</option>
+            <option value="31">31 — Fémur proximal</option>
+            <option value="32">32 — Fémur diafisario</option>
+            <option value="33">33 — Fémur distal</option>
+            <option value="41">41 — Tibia proximal (platillos)</option>
+            <option value="42">42 — Tibia diafisaria</option>
+            <option value="43">43 — Tibia distal (pilón)</option>
+            <option value="44">44 — Maleolar / tobillo (≈ Danis-Weber)</option>
+          </select></div>
+          <div class="fg"><label>Tipo</label><select id="clasif-ao-tipo">
+            <option value="">Elegí primero el segmento…</option>
+          </select></div>
+          <div class="clasif-nota">AO/OTA Fracture and Dislocation Classification Compendium, revisión 2018 (Meinberg, Agel, Roberts, Karam, Kellam — <i>J Orthop Trauma</i>). Código general: hueso-segmento.tipo (A/B/C). Esto muestra el nivel general de tipo; el detalle de grupo/subgrupo específico de cada fractura se completa en el Diagnóstico si hace falta más precisión.</div>
+        </div>
+
+        <div id="clasif-campos-balance_sagital" style="display:none">
+          <div class="row">
+            <div class="fg"><label>Incidencia pélvica — PI (°)</label><input id="clasif-bs-pi" type="number" step="0.5" oninput="calcularModificadoresSagitales()"></div>
+            <div class="fg"><label>Lordosis lumbar — LL (°)</label><input id="clasif-bs-ll" type="number" step="0.5" oninput="calcularModificadoresSagitales()"></div>
+          </div>
+          <div class="row">
+            <div class="fg"><label>SVA (cm)</label><input id="clasif-bs-sva" type="number" step="0.1" oninput="calcularModificadoresSagitales()"></div>
+            <div class="fg"><label>Pelvic Tilt — PT (°)</label><input id="clasif-bs-pt" type="number" step="0.5" oninput="calcularModificadoresSagitales()"></div>
+          </div>
+          <div class="fg"><label>Tipo de curva coronal (opcional)</label><select id="clasif-bs-curva">
+            <option value="">Sin especificar</option>
+            <option value="T (torácica, ápex T9 o más alto)">T (torácica, ápex T9 o más alto)</option>
+            <option value="L (lumbar/toracolumbar, ápex T10 o más bajo)">L (lumbar/toracolumbar, ápex T10 o más bajo)</option>
+            <option value="D (doble curva mayor)">D (doble curva mayor)</option>
+            <option value="N (sin curva coronal mayor >30°)">N (sin curva coronal mayor &gt;30°)</option>
+          </select></div>
+          <div id="clasif-bs-preview" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+          <div class="clasif-nota">Clasificación SRS-Schwab de deformidad espinal del adulto (Schwab et al., 2012). Modificadores: desajuste PI-LL (0 &lt;10° · + 10-20° · ++ &gt;20°), SVA (0 &lt;4cm · + 4-9.5cm · ++ &gt;9.5cm), PT (0 &lt;20° · + 20-30° · ++ &gt;30°). El "pelvic tilt test" clínico y la "inclinación sacra" postural no son lo mismo que estos parámetros radiográficos — no los confundas en la documentación.</div>
+        </div>
+
+        <div id="clasif-campos-edad_osea" style="display:none">
+          <div class="fg"><label>Método utilizado</label><select id="clasif-eo-metodo">
+            <option value="Greulich-Pyle">Greulich-Pyle (comparación con atlas)</option>
+            <option value="Tanner-Whitehouse 3 (TW3)">Tanner-Whitehouse 3 — TW3 (puntaje por hueso)</option>
+          </select></div>
+          <div class="fg"><label>Edad ósea determinada</label><input id="clasif-eo-edad" type="text" placeholder="Ej: 13 años y 6 meses"></div>
+          <div class="clasif-nota">Greulich-Pyle (atlas, 1959) es el método más usado en la práctica diaria por su rapidez; Tanner-Whitehouse (TW2 1975 → TW3, revisión de 2001) puntúa hueso por hueso y se reserva para casos dudosos o donde se necesita más precisión. Este campo es de carga manual — vos determinás la edad ósea con el método que prefieras y acá queda registrada.</div>
+        </div>
+
+        <div id="clasif-campos-icrs" style="display:none">
+          <div class="fg"><label>Contexto</label><select id="clasif-icrs-contexto" onchange="mostrarGradoICRS()">
+            <option value="general">Lesión condral (general)</option>
+            <option value="ocd">Osteocondritis disecante (OCD)</option>
+          </select></div>
+          <div id="clasif-icrs-grado-general">
+            <div class="fg"><label>Grado</label><select id="clasif-icrs-grado">
+              <option value="">Seleccionar…</option>
+              <option value="0 — Normal">0 — Normal</option>
+              <option value="1 — Casi normal (1A ablandamiento; 1B fisuras superficiales)">1 — Casi normal (1A ablandamiento; 1B fisuras superficiales)</option>
+              <option value="2 — Anormal, &lt;50% del espesor, sin hueso expuesto">2 — Anormal, &lt;50% del espesor, sin hueso expuesto</option>
+              <option value="3 — Severamente anormal, &gt;50% del espesor, hueso subcondral intacto">3 — Severamente anormal, &gt;50% del espesor, hueso subcondral intacto</option>
+              <option value="4 — Defecto osteocondral de espesor completo, atraviesa el hueso subcondral">4 — Defecto osteocondral de espesor completo, atraviesa el hueso subcondral</option>
+            </select></div>
+          </div>
+          <div id="clasif-icrs-grado-ocd" style="display:none">
+            <div class="fg"><label>Grado (OCD)</label><select id="clasif-icrs-grado-ocd-sel">
+              <option value="">Seleccionar…</option>
+              <option value="I — Estable, área reblandecida, cartílago íntegro">I — Estable, área reblandecida, cartílago íntegro</option>
+              <option value="II — Discontinuidad parcial, estable al probar">II — Discontinuidad parcial, estable al probar</option>
+              <option value="III — Discontinuidad completa, no desplazado, inestable ('muerto in situ')">III — Discontinuidad completa, no desplazado, inestable ("muerto in situ")</option>
+              <option value="IV — Defecto vacío o fragmento desplazado/suelto">IV — Defecto vacío o fragmento desplazado/suelto</option>
+            </select></div>
+          </div>
+          <div class="clasif-nota">ICRS (International Cartilage Regeneration &amp; Joint Preservation Society) — estandarizada en el taller ICRS 2000, publicada por Brittberg &amp; Winalski en 2003. La confiabilidad interobservador es solo moderada (Puhakka et al., 2021) — es una guía, no un dato absoluto.</div>
+        </div>
+
+        <div class="fila-btns" id="clasif-btn-generar" style="display:none;margin-top:6px">
+          <button type="button" class="btn btn-primary" onclick="generarClasificacionEstructurada()">📐 Calcular clasificación</button>
+        </div>
+        <div class="fila-btns" id="clasif-btn-ia" style="display:none;margin-top:6px">
+          <button type="button" class="btn btn-ia" onclick="actualizarClasificacion(this)">🔄 Actualizar clasificación</button>
+        </div>
+        <div class="fila-btns" id="clasif-btn-diagrama" style="display:none;margin-top:6px">
+          <button type="button" class="btn btn-ghost" onclick="verDiagramaClasif()">📊 Ver escala completa y año de referencia</button>
+        </div>
+        <div id="clasif-diagrama" style="display:none"></div>
+        <div class="clasif-box" id="clasif-resultado" style="margin-top:8px">Elegí arriba qué patología clasificar.</div>
+      </div>
+    </div>
+
+    <div class="consulta-box" id="box-terapeutica">
+      <div class="consulta-head">💊 Terapéutica</div>
+      <div class="consulta-body">
+        <textarea id="texto-terapeutica" rows="2" placeholder="Plan terapéutico: medicación, reposo, kinesiología, etc."></textarea>
+        <div class="fila-btns"><button type="button" class="btn btn-ia" onclick="pulirRecuadro('terapeutica',this)">✨ Pulir con IA</button></div>
+      </div>
+    </div>
+
+    <div class="consulta-box" id="box-cierre">
+      <div class="consulta-head">✅ Cierre y resumen</div>
+      <div class="consulta-body">
+        <button type="button" class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="armarResumenCompleto(this)">🔄 Actualizar resumen</button>
+        <div class="resumen-box" id="resumen-completo">Tocá "Actualizar resumen" para armarlo con todo lo cargado hasta ahora.</div>
+        <div class="fila-btns" style="margin-top:8px">
+          <button type="button" class="btn btn-ghost" onclick="copiarResumen()">📋 Copiar para otros sistemas</button>
+          <button type="button" class="btn btn-ok" id="btn-guardar-hc" onclick="guardarEnHistoriaClinica()">💾 Guardar en historia clínica</button>
+        </div>
+
+        <div class="fg" style="margin-top:14px"><label>Próximo control (opcional)</label><input type="date" id="prox-control"></div>
+        <div style="font-size:10.5px;color:var(--muted);margin:8px 0 4px;font-weight:700">🔀 Otras acciones</div>
+        <div class="fila-btns">
+          <button type="button" class="btn btn-ghost" onclick="irAAgendarControl()">📅 Agendar control</button>
+          <button type="button" class="btn btn-ghost" onclick="irAOCM()">🗂️ Pasar a OCM</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast-cont" id="toast-cont"></div>
+
+<script>
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxC2fXVUdidzoAyDCGzPBCUoLa1btEGRZxH-S4wAEt71FlQ4Y1Mx1Uy7OsepgSe3i-5/exec';
+
+function toggleSimmNav(){
+  const dd = document.getElementById('simm-nav-dropdown');
+  if(!dd) return;
+  dd.style.display = dd.style.display==='none' || !dd.style.display ? 'block' : 'none';
+}
+document.addEventListener('click', e=>{
+  const wrap = document.querySelector('.simm-nav-wrap');
+  const dd = document.getElementById('simm-nav-dropdown');
+  if(wrap && dd && !wrap.contains(e.target)) dd.style.display='none';
+});
+
+function toast(msg, tipo){
+  const el = document.createElement('div');
+  el.className = 'toast' + (tipo?(' '+tipo):'');
+  el.textContent = msg;
+  document.getElementById('toast-cont').appendChild(el);
+  setTimeout(()=>el.remove(), 3800);
+}
+
+async function llamarBackend(action, payload){
+  const resp = await fetch(SHEETS_URL, {
+    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(Object.assign({action}, payload))
+  });
+  return resp.json();
+}
+
+// ══════════════════════════════════════════════════════════════
+// VER HISTORIA CLÍNICA COMPLETA (2026-09-21) — CAM V no tenía ninguna forma
+// de consultar la historia clínica ya cargada de un paciente, solo podía
+// guardar una nota nueva. Este botón trae la misma Historia_Clinica de la
+// nube que ya muestra OCM (acción "get_historial"), buscando por el DNI
+// escrito arriba en "pac-dni".
+// ══════════════════════════════════════════════════════════════
+function parseFechaHistAR_(s){
+  if(!s) return 0;
+  const m=String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1]).getTime();
+  const d=new Date(s); return isNaN(d)?0:d.getTime();
+}
+function renderHistoriaClinicaCloudHTML_(data){
+  const filas=(data&&data.historial)||[];
+  if(!filas.length) return '<p style="color:var(--muted);padding:16px;text-align:center">Sin consultas registradas en la historia clínica.</p>';
+  const ordenadas=filas.slice().sort((a,b)=>parseFechaHistAR_(b.Fecha)-parseFechaHistAR_(a.Fecha));
+  return ordenadas.map(h=>`
+    <div style="border-left:3px solid var(--azul);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="font-weight:700;font-size:12.5px;color:var(--azul)">${h.Fecha||'—'}</div>
+      ${h.Diagnostico?`<div style="font-size:12px;margin-top:4px"><b>Diagnóstico:</b> ${h.Diagnostico}</div>`:''}
+      ${h.Medicamentos?`<div style="font-size:12px;margin-top:2px"><b>Medicamentos:</b> ${h.Medicamentos}</div>`:''}
+      ${(h.Estudios_Realizados||h.Estudios_Reali)?`<div style="font-size:12px;margin-top:2px"><b>Estudios realizados:</b> ${h.Estudios_Realizados||h.Estudios_Reali}</div>`:''}
+      ${(h.Estudios_Pendientes||h.Estudios_Pend)?`<div style="font-size:12px;margin-top:2px"><b>Estudios pendientes:</b> ${h.Estudios_Pendientes||h.Estudios_Pend}</div>`:''}
+      ${h.Indicaciones?`<div style="font-size:12px;margin-top:2px"><b>Indicaciones:</b> ${h.Indicaciones}</div>`:''}
+      ${h.Observaciones?`<div style="font-size:12px;margin-top:2px"><b>Observaciones:</b> ${h.Observaciones}</div>`:''}
+      ${(h.Proximo_Control||h.Proximo_Contr)?`<div style="font-size:12px;margin-top:2px"><b>Próximo control:</b> ${h.Proximo_Control||h.Proximo_Contr}</div>`:''}
+    </div>`).join('');
+}
+async function verHistoriaClinicaCloud(){
+  const dni = document.getElementById('pac-dni').value.trim();
+  const nombre = document.getElementById('pac-nombre').value.trim();
+  document.getElementById('hc-modal-titulo').textContent = 'Historia clínica' + (nombre?(' — '+nombre):'');
+  const body=document.getElementById('hc-modal-body');
+  if(!dni){
+    body.innerHTML='<p style="color:var(--muted);padding:16px;text-align:center">Escribí el DNI del paciente arriba para poder buscar su historia clínica.</p>';
+    document.getElementById('hc-modal').classList.add('abierto');
+    return;
+  }
+  // Evita disparar una búsqueda vacía si el DNI todavía está incompleto
+  // (DNI argentino: 6 a 9 dígitos).
+  if(!/^\d{6,9}$/.test(dni)){
+    body.innerHTML='<p style="color:var(--muted);padding:16px;text-align:center">Ese DNI no parece completo (debe tener solo números, entre 6 y 9 dígitos). Revisalo y volvé a intentar.</p>';
+    document.getElementById('hc-modal').classList.add('abierto');
+    return;
+  }
+  body.innerHTML='<p style="text-align:center;color:var(--muted);padding:20px">Cargando…</p>';
+  document.getElementById('hc-modal').classList.add('abierto');
+  try{
+    const resp=await fetch(SHEETS_URL+'?action=get_historial&dni='+encodeURIComponent(dni), {signal:AbortSignal.timeout(10000)});
+    const data=await resp.json();
+    body.innerHTML=renderHistoriaClinicaCloudHTML_(data);
+  }catch(e){
+    body.innerHTML='<p style="color:#dc2626;padding:16px;text-align:center">No se pudo conectar con Google Sheets. Verificá la conexión a internet e intentá de nuevo.</p>';
+  }
+}
+function cerrarHistoriaClinicaCloud(){
+  document.getElementById('hc-modal').classList.remove('abierto');
+}
+
+async function correrIAEnBoton(btn, fn){
+  const original = btn ? btn.innerHTML : null;
+  if(btn){ btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Procesando…'; }
+  try{ await fn(); }
+  finally{ if(btn){ btn.disabled = false; btn.innerHTML = original; } }
+}
+
+// ══════════════════════════════════════════════════════════════
+// ACORDEÓN de herramientas de examen físico (columna izquierda)
+// ══════════════════════════════════════════════════════════════
+function toggleHerramienta(k){
+  ['podo','sind','man'].forEach(otro=>{
+    const panel = document.getElementById('panel-herr-'+otro);
+    const btn = document.getElementById('btn-herr-'+otro);
+    if(otro===k){
+      const abrir = !panel.classList.contains('abierta');
+      panel.classList.toggle('abierta', abrir);
+      btn.classList.toggle('abierta', abrir);
+    } else {
+      panel.classList.remove('abierta');
+      btn.classList.remove('abierta');
+    }
+  });
+}
+
+// Abre las herramientas GONIO completas (Columna / Miembro Inferior) en una
+// pestaña nueva, pasando el DNI ya cargado arriba (si hay) para que la
+// herramienta cargue directo el historial de ese paciente.
+function abrirGonio(archivo){
+  let dni = '';
+  try{
+    const campo = document.getElementById('pac-dni');
+    if(campo) dni = campo.value.trim();
+  }catch(e){}
+  const url = archivo + (dni ? ('?dni=' + encodeURIComponent(dni)) : '');
+  window.open(url, '_blank');
+}
+
+function enviarHerramientaAExamen(cual){
+  const destino = document.getElementById('texto-examen');
+  let texto = '';
+  if(cual==='podo'){
+    texto = document.getElementById('podo-preview').textContent.trim();
+    if(!texto){ toast('⚠️ Generá primero el informe de podoscopía','err'); return; }
+  } else if(cual==='sind'){
+    const idx = document.getElementById('sind-select').value;
+    if(idx===''){ toast('⚠️ Elegí un síndrome primero','err'); return; }
+    const s = SINDROMES_TODOS[idx];
+    texto = `${s.n} — Herencia: ${s.h}. ${s.gen}. ${s.d}`;
+  } else if(cual==='man'){
+    const filas = textoManiobras_();
+    if(!filas.length){ toast('⚠️ No hay maniobras cargadas todavía','err'); return; }
+    const segmento = document.getElementById('man-segmento').value;
+    texto = (segmento ? `Maniobras — ${segmento}:\n` : 'Maniobras:\n') + filas.join('\n');
+  }
+  destino.value = destino.value.trim() ? destino.value.trim()+'\n\n'+texto : texto;
+  toast('✅ Enviado a Examen físico','ok');
+}
+
+// ══════════════════════════════════════════════════════════════
+// PODOSCOPÍA (mismos cálculos que CAM_Herramientas_Clinicas.html,
+// sin el sub-módulo de medición con giroscopio — acá son campos
+// manuales para no duplicar esa pieza aparte).
+// ══════════════════════════════════════════════════════════════
+function generarInformePodoscopia(){
+  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const lineas = [];
+  if(g('podo-angulo-vv')) lineas.push(`Retropié (${g('podo-lado-vv')}): ${parseFloat(g('podo-angulo-vv'))>=0?'Valgo':'Varo'} de ${Math.abs(parseFloat(g('podo-angulo-vv')))}°`);
+  if(g('podo-chippaux')) lineas.push(`Índice de Chippaux-Smirak: ${g('podo-chippaux')}%`);
+  if(g('podo-hcorvo')) lineas.push(`Índice de Hernández-Corvo: ${g('podo-hcorvo')}`);
+  if(g('podo-archindex')) lineas.push(`Arch Index (Cavanagh-Rodgers): ${g('podo-archindex')}`);
+  if(g('podo-obs')) lineas.push(`Observaciones: ${g('podo-obs')}`);
+  const box = document.getElementById('podo-preview');
+  if(!lineas.length){ toast('⚠️ Completá al menos un dato','err'); box.style.display='none'; return; }
+  box.textContent = `PODOSCOPÍA\n${lineas.join('\n')}`;
+  box.style.display = 'block';
+}
+
+// ══════════════════════════════════════════════════════════════
+// SÍNDROMES (mismo diccionario y lógica que CAM_Herramientas_Clinicas.html)
+// ══════════════════════════════════════════════════════════════
+const SINDROMES = [
+  {n:'Acondroplasia', h:'Autosómico Dominante', gen:'Gen FGFR3 — cromosoma 4p16.3', d:'Predomina: rizomelia (acortamiento proximal de miembros), macrocefalia relativa, lordosis lumbar. Buscar: estenosis del canal espinal, genu varo, hipoplasia del tercio medio facial.'},
+  {n:'Síndrome de Marfan', h:'Autosómico Dominante', gen:'Gen FBN1 — cromosoma 15q21.1', d:'Predomina: aracnodactilia, hiperlaxitud, hábito longilíneo, deformidades torácicas. Buscar: escoliosis, luxación del cristalino, dilatación de la raíz aórtica (derivar a cardiología/oftalmología).'},
+  {n:'Síndrome de Ehlers-Danlos', h:'Autosómico Dominante (mayoría de subtipos) o Recesivo (algunos subtipos)', gen:'Varios genes de colágeno según subtipo', d:'Predomina: hiperlaxitud articular generalizada, piel hiperextensible y frágil. Buscar: inestabilidad articular recurrente, escoliosis, cicatrización anómala.'},
+  {n:'Síndrome de Down (Trisomía 21)', h:'Cromosómico', gen:'Trisomía del cromosoma 21', d:'Predomina: hipotonía, hiperlaxitud ligamentaria, facies característica. Buscar: inestabilidad atlantoaxoidea (radiografía cervical dinámica antes de deporte/anestesia), pie plano, displasia de cadera.'},
+  {n:'Osteogénesis Imperfecta', h:'Autosómico Dominante (mayoría) o Recesivo (formas graves)', gen:'Genes COL1A1 / COL1A2, entre otros', d:'Predomina: fragilidad ósea con fracturas a bajo impacto, escleras azuladas. Buscar: escoliosis, deformidades progresivas en huesos largos, hipoacusia.'},
+  {n:'Artrogriposis Múltiple Congénita', h:'Multifactorial / esporádica', gen:'Variable según etiología', d:'Predomina: contracturas articulares múltiples desde el nacimiento. Buscar: pie equinovaro, luxación de cadera, escoliosis, compromiso de miembros superiores.'},
+  {n:'Síndrome de Larsen', h:'Autosómico Dominante', gen:'Gen FLNB', d:'Predomina: luxaciones articulares múltiples congénitas, facies característica. Buscar: luxación de rodilla/cadera/codo, inestabilidad cervical.'},
+  {n:'Displasia del desarrollo de la cadera', h:'Multifactorial', gen:'No monogénica — herencia poligénica/ambiental', d:'Predomina: inestabilidad o displasia acetabular en el neonato/lactante. Buscar: signo de Ortolani/Barlow, asimetría de pliegues, limitación de la abducción.'},
+  {n:'Neurofibromatosis tipo 1', h:'Autosómico Dominante', gen:'Gen NF1 — cromosoma 17q11.2', d:'Predomina: manchas café con leche, neurofibromas cutáneos. Buscar: escoliosis distrófica, pseudoartrosis congénita de tibia, displasias óseas focales.'},
+  {n:'Síndrome de Prader-Willi', h:'Cromosómico', gen:'Región 15q11-q13', d:'Predomina: hipotonía neonatal marcada, obesidad de inicio en la infancia. Buscar: escoliosis, displasia de cadera.'},
+  {n:'Síndrome de Turner', h:'Cromosómico', gen:'Monosomía total o parcial del cromosoma X (45,X)', d:'Predomina: talla baja, cuello alado, cubitus valgo. Buscar: escoliosis, displasia de cadera, luxación rotuliana.'},
+  {n:'Síndrome de Noonan', h:'Autosómico Dominante', gen:'Gen PTPN11, entre otros', d:'Predomina: talla baja, cuello alado, cardiopatía congénita. Buscar: deformidades torácicas (pectus), escoliosis.'},
+  {n:'Síndrome de Klippel-Feil', h:'Esporádico', gen:'Variable — genes GDF6/GDF3 en algunas familias', d:'Predomina: fusión congénita de vértebras cervicales, cuello corto. Buscar: escoliosis asociada, anomalías renales y auditivas.'},
+  {n:'Displasia Espondiloepifisaria (SED)', h:'Autosómico Dominante', gen:'Gen COL2A1, entre otros', d:'Predomina: tronco corto desproporcionado, epífisis irregulares. Buscar: inestabilidad atlantoaxoidea, coxa vara, escoliosis.'},
+  {n:'Displasia Diastrófica', h:'Autosómico Recesivo', gen:'Gen SLC26A2', d:'Predomina: talla baja, pulgar en autoestop, orejas en "coliflor". Buscar: pie equinovaro rígido bilateral, escoliosis cervical.'},
+  {n:'Mucopolisacaridosis (Hurler, Hunter, Morquio, etc.)', h:'Autosómico Recesivo (mayoría) o Ligado al X (Hunter)', gen:'Genes de enzimas lisosomales, según tipo', d:'Predomina: rigidez articular progresiva, rasgos faciales toscos, talla baja. Buscar: inestabilidad atlantoaxoidea (especialmente Morquio), displasia de cadera, deformidades espinales.'},
+  {n:'Síndrome de Rett', h:'Ligado al X (predomina en niñas)', gen:'Gen MECP2', d:'Predomina: regresión del desarrollo, estereotipias manuales. Buscar: escoliosis progresiva de aparición temprana.'},
+  {n:'Atrofia Muscular Espinal (AME)', h:'Autosómico Recesivo', gen:'Gen SMN1', d:'Predomina: debilidad muscular proximal progresiva, hipotonía. Buscar: escoliosis neuromuscular, contracturas articulares, luxación de cadera.'},
+  {n:'Distrofia Muscular de Duchenne', h:'Ligado al X recesivo (varones)', gen:'Gen DMD', d:'Predomina: debilidad muscular proximal progresiva, pseudohipertrofia de pantorrillas. Buscar: escoliosis neuromuscular, contracturas en equino, signo de Gowers.'},
+  {n:'Displasia Cleidocraneal', h:'Autosómico Dominante', gen:'Gen RUNX2', d:'Predomina: hipoplasia/aplasia de clavículas, hombros hipermóviles. Buscar: hipermovilidad de hombros, talla baja, escoliosis.'},
+  {n:'Parálisis Cerebral', h:'No genética — adquirida perinatal / multifactorial', gen:'No aplica (lesión del SNC en desarrollo)', d:'Predomina: espasticidad y alteración del tono, patrón de marcha variable según topografía. Buscar: luxación de cadera progresiva, escoliosis neuromuscular, contracturas en equino.'}
+];
+let SINDROMES_TODOS = [...SINDROMES];
+async function cargarSindromesPersonalizados(){
+  try{
+    const resp = await fetch(SHEETS_URL+'?action=get_lista_quirurgico&tipo=SindromePersonalizado');
+    const data = await resp.json();
+    const lista = (data.success && data.data) ? data.data : [];
+    return lista.map(v=>{
+      const partes = v.split('|').map(p=>p.trim());
+      return {n:partes[0]||'(sin nombre)', h:partes[1]||'—', gen:partes[2]||'—', d:partes[3]||'—', personalizado:true};
+    });
+  }catch(e){ return []; }
+}
+async function inicializarSindromes(){
+  const custom = await cargarSindromesPersonalizados();
+  SINDROMES_TODOS = [...SINDROMES, ...custom];
+  poblarSelectSindromes();
+}
+function poblarSelectSindromes(){
+  const sel=document.getElementById('sind-select');
+  const actual=sel.value;
+  sel.innerHTML='<option value="">Seleccionar…</option>'+SINDROMES_TODOS.map((s,i)=>`<option value="${i}">${s.n}${s.personalizado?' ⭐':''}</option>`).join('');
+  if(actual) sel.value=actual;
+}
+function mostrarSindrome(){
+  const idx=document.getElementById('sind-select').value;
+  const info=document.getElementById('sind-info');
+  if(idx===''){ info.innerHTML='Elegí un síndrome para ver su información.'; return; }
+  const s=SINDROMES_TODOS[idx];
+  info.innerHTML=`<div><span class="k">Herencia:</span> ${s.h}</div>
+    <div style="margin-top:4px"><span class="k">Hallazgo genético:</span> ${s.gen}</div>
+    <div style="margin-top:4px"><span class="k">Predomina / a buscar:</span> ${s.d}</div>`;
+}
+async function agregarSindromePersonalizado(){
+  const nombre = prompt('Nombre del síndrome:');
+  if(!nombre || !nombre.trim()) return;
+  const herencia = prompt('Patrón de herencia:')||'—';
+  const gen = prompt('Hallazgo genético o cromosómico:')||'—';
+  const desc = prompt('Qué predomina y qué buscar en el examen:')||'—';
+  const valor = `${nombre.trim()} | ${herencia.trim()} | ${gen.trim()} | ${desc.trim()}`;
+  try{
+    const resp = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'guardar_item_quirurgico', tipo:'SindromePersonalizado', valor})});
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error||'Error del servidor');
+    toast('✅ Síndrome agregado a tu diccionario','ok');
+    await inicializarSindromes();
+  }catch(e){
+    toast('❌ No se pudo agregar: '+(e&&e.message?e.message:e),'err');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MANIOBRAS POR SEGMENTO (mismo motor que Consulta_Guiada_Beta_v1.html)
+// ══════════════════════════════════════════════════════════════
+let maniobraCount = 0;
+async function sugerirManiobras(btnEl){
+  const segmento = document.getElementById('man-segmento').value;
+  const motivo = document.getElementById('texto-motivo').value || '';
+  if(!segmento && !motivo.trim()){
+    toast('⚠️ Elegí un segmento o completá primero el motivo de consulta','err');
+    return;
+  }
+  const prompt_ = 'Sos un médico especialista en traumatología/ortopedia. ' +
+    (segmento ? `El segmento a evaluar es: ${segmento}. ` : '') +
+    'En base a esto y al motivo de consulta, sugerí entre 3 y 6 MANIOBRAS de examen físico específicas y pertinentes ' +
+    '(nombres reales de maniobras semiológicas, ej: Lachman, Thomas, Ober, Phalen, Finkelstein, Lasègue, McMurray, etc., ' +
+    'según corresponda a la zona). Devolvé SOLO un JSON válido, sin texto adicional ni markdown: ' +
+    '[{"nombre":"...","motivo":"por qué tiene sentido en este caso, una frase corta"}]\n\n' +
+    'Motivo de consulta: ' + motivo;
+
+  await correrIAEnBoton(btnEl, async ()=>{
+    const res = await llamarBackend('asistente_consulta_ia', {prompt: prompt_});
+    if(!res || !res.success || !res.texto){
+      toast('❌ ' + ((res&&res.error)||'No se pudo sugerir maniobras'), 'err');
+      return;
+    }
+    let lista = [];
+    try{
+      const limpio = res.texto.replace(/```json|```/g,'').trim();
+      lista = JSON.parse(limpio);
+    }catch(e){
+      toast('❌ La IA no devolvió una lista válida — probá de nuevo','err');
+      return;
+    }
+    lista.forEach(m => agregarFilaManiobra(m.nombre||'', m.motivo||''));
+    toast('✅ ' + lista.length + ' maniobras sugeridas');
+  });
+}
+function agregarManiobraManual(){ agregarFilaManiobra('', ''); }
+function agregarFilaManiobra(nombre, rationale){
+  const i = maniobraCount++;
+  const cont = document.getElementById('man-lista');
+  const wrap = document.createElement('div');
+  wrap.id = 'man-wrap-'+i;
+  wrap.innerHTML = `
+    ${rationale ? `<div class="sug-rationale">💡 ${rationale}</div>` : ''}
+    <div class="maniobra-row">
+      <input type="checkbox" id="man-check-${i}" checked>
+      <input type="text" id="man-nombre-${i}" value="${(nombre||'').replace(/"/g,'&quot;')}" placeholder="Maniobra">
+      <select id="man-resultado-${i}"><option value="">Resultado…</option><option>Positiva</option><option>Negativa</option><option>Dudosa</option></select>
+      <span style="cursor:pointer;color:var(--muted);padding:0 4px" onclick="document.getElementById('man-wrap-${i}').remove()">✕</span>
+    </div>`;
+  cont.appendChild(wrap);
+}
+function textoManiobras_(){
+  const filas = [];
+  document.querySelectorAll('#man-lista [id^="man-wrap-"]').forEach(wrap=>{
+    const i = wrap.id.replace('man-wrap-','');
+    const check = document.getElementById('man-check-'+i);
+    const nombre = document.getElementById('man-nombre-'+i)?.value.trim();
+    if(!nombre || (check && !check.checked)) return;
+    const resultado = document.getElementById('man-resultado-'+i)?.value || '';
+    filas.push(`• ${nombre}${resultado?' — '+resultado:''}`);
+  });
+  return filas;
+}
+
+// ══════════════════════════════════════════════════════════════
+// MICRÓFONO MANUAL — dictado en el centro (mismo motor que
+// Consulta_Guiada_Beta_v1.html: continuous+interim, es-AR).
+// ══════════════════════════════════════════════════════════════
+let recognition = null;
+let micActivo = false;
+// FIX 2 (sept 2026): el fix anterior (contador finalesProcesados) no alcanzaba.
+// En Android, el modo continuous puede emitir varias veces un resultado
+// "final" que en realidad es una revisión CRECIENTE de la misma frase (no un
+// fragmento nuevo), y cada revisión ocupa un índice nuevo del array — el
+// contador las trataba a todas como texto nuevo y las iba concatenando,
+// duplicando/repitiendo la frase varias veces. Solución robusta: NO usar
+// continuous=true. Se reconoce una frase por sesión (continuous=false) y se
+// reinicia el motor solo al terminar cada frase — así cada sesión entrega un
+// único resultado final, sin repetirse.
+function crearRecognition(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast('⚠️ Este navegador no soporta reconocimiento de voz — usá Chrome','err'); return null; }
+  const r = new SR();
+  r.lang = 'es-AR';
+  r.continuous = false;
+  r.interimResults = true;
+  return r;
+}
+function toggleMic(){
+  if(micActivo){ detenerMic(); return; }
+  micActivo = true;
+  actualizarBotonMic(true);
+  iniciarSesionMic();
+}
+function iniciarSesionMic(){
+  recognition = crearRecognition();
+  if(!recognition){ detenerMic(); return; }
+  recognition.onresult = (ev)=>{
+    let interim = '', final = '';
+    for(let i = 0; i < ev.results.length; i++){
+      const t = ev.results[i][0].transcript;
+      if(ev.results[i].isFinal) final += t + ' ';
+      else interim += t;
+    }
+    const interimEl = document.getElementById('interim-centro');
+    if(interimEl) interimEl.textContent = interim;
+    if(final.trim()){
+      const ta = document.getElementById('dictado-centro');
+      if(ta) ta.value = (ta.value.trim() ? ta.value.trim()+' ' : '') + final.trim();
+      // Si hay un destino elegido arriba, el dictado va cargando en vivo esa
+      // pantalla directamente (además de quedar en el centro) — así no hace
+      // falta tocar "Enviar a X" después de cada frase. Igual podés seguir
+      // escribiendo/corrigiendo a mano en cualquier recuadro en cualquier momento.
+      const destino = document.getElementById('destino-dictado').value;
+      if(destino && DESTINO_MAP_[destino]){
+        const destEl = document.getElementById(DESTINO_MAP_[destino]);
+        if(destEl) destEl.value = (destEl.value.trim() ? destEl.value.trim()+' ' : '') + final.trim();
+      }
+      if(interimEl) interimEl.textContent = '';
+    }
+  };
+  recognition.onerror = (e)=>{
+    if(e.error === 'no-speech'){ if(micActivo){ try{ iniciarSesionMic(); }catch(_){ detenerMic(); } } return; }
+    toast('⚠️ Error de voz: ' + e.error, 'err');
+    detenerMic();
+  };
+  recognition.onend = ()=>{
+    // Con continuous=false, onend llega al terminar cada frase — si el
+    // micrófono sigue prendido, arrancamos una sesión nueva para la próxima.
+    if(micActivo){ try{ iniciarSesionMic(); }catch(_){ detenerMic(); } }
+  };
+  try{ recognition.start(); }catch(_){ toast('No se pudo iniciar el micrófono','err'); detenerMic(); }
+}
+function detenerMic(){
+  micActivo = false;
+  if(recognition){ try{ recognition.onend=null; recognition.onerror=null; recognition.stop(); }catch(_){ } }
+  actualizarBotonMic(false);
+  const interimEl = document.getElementById('interim-centro');
+  if(interimEl) interimEl.textContent = '';
+}
+function actualizarBotonMic(on){
+  const btn = document.getElementById('mic-btn');
+  if(!btn) return;
+  btn.textContent = on ? '⏹ Detener' : '🎤 Escuchar';
+  btn.classList.toggle('on', on);
+}
+
+async function pulirCentro(btnEl){
+  const ta = document.getElementById('dictado-centro');
+  if(!ta.value.trim()){ toast('⚠️ Todavía no hay texto para pulir','err'); return; }
+  const prompt_ = 'Sos un asistente médico. Redactá en prosa clínica breve y prolija, en español rioplatense, ' +
+    'a partir de este dictado textual (puede tener muletillas o desorden, arreglalo sin inventar datos que no estén). ' +
+    'No agregues encabezados ni markdown, solo el párrafo:\n\n' + ta.value.trim();
+  await correrIAEnBoton(btnEl, async ()=>{
+    const res = await llamarBackend('asistente_consulta_ia', {prompt: prompt_});
+    if(res && res.success && res.texto){ ta.value = res.texto; toast('✅ Redactado con IA'); }
+    else{ toast('❌ ' + ((res&&res.error)||'No se pudo procesar con IA'), 'err'); }
+  });
+}
+const DESTINO_MAP_ = {motivo:'texto-motivo', interr:'texto-interr', examen:'texto-examen', diagnostico:'texto-diagnostico', terapeutica:'texto-terapeutica', estudios:'texto-estudios'};
+const DESTINO_NOMBRES_ = {motivo:'Motivo de consulta', interr:'Interrogatorio', examen:'Examen físico', estudios:'Estudios', diagnostico:'Diagnóstico', terapeutica:'Terapéutica'};
+function actualizarEtiquetaDestino(){
+  const destino = document.getElementById('destino-dictado').value;
+  const hint = document.getElementById('destino-hint');
+  hint.textContent = destino
+    ? `🎙️ Dictando directo a: ${DESTINO_NOMBRES_[destino]} — igual podés escribir/corregir a mano en cualquier recuadro`
+    : 'o escribí directo abajo';
+}
+function enviarCentroA(destino){
+  const centro = document.getElementById('dictado-centro');
+  const texto = centro.value.trim();
+  if(!texto){ toast('⚠️ No hay texto en el centro para enviar','err'); return; }
+  const destinoEl = document.getElementById(DESTINO_MAP_[destino]);
+  if(!destinoEl) return;
+  destinoEl.value = destinoEl.value.trim() ? destinoEl.value.trim()+' '+texto : texto;
+  centro.value = '';
+  toast('✅ Enviado');
+}
+
+// ══════════════════════════════════════════════════════════════
+// PULIR CON IA cada recuadro de consulta (motivo/interr/examen/
+// diagnóstico/estudios) — mismo patrón que Consulta Guiada Beta.
+// ══════════════════════════════════════════════════════════════
+async function pulirRecuadro(cual, btnEl){
+  const ta = document.getElementById('texto-'+cual);
+  if(!ta || !ta.value.trim()){ toast('⚠️ Todavía no hay nada escrito en este recuadro','err'); return; }
+  const motivo = document.getElementById('texto-motivo')?.value || '';
+  const tareas = {
+    motivo: 'Sos un asistente médico. Redactá en prosa clínica breve y prolija, en español rioplatense, el MOTIVO DE CONSULTA y ANTECEDENTES a partir de este dictado (arreglá muletillas/desorden sin inventar datos). Sin encabezados ni markdown:\n\n',
+    interr: 'Sos un asistente médico especialista en traumatología/ortopedia. Redactá el DESARROLLO DEL INTERROGATORIO en prosa clínica prolija (mecanismo, evolución, factores agravantes/atenuantes, tratamientos previos, impacto funcional), sin inventar datos. Sin markdown:\n\nMotivo de consulta: '+motivo+'\n\nDictado: ',
+    examen: 'Sos un asistente médico especialista en traumatología/ortopedia. Redactá los HALLAZGOS DEL EXAMEN FÍSICO en prosa clínica prolija a partir de este dictado, sin inventar datos. Sin markdown:\n\n',
+    diagnostico: 'Sos un médico especialista en traumatología/ortopedia. Redactá el DIAGNÓSTICO de forma breve y precisa (una o dos líneas), en términos clínicos correctos, a partir de este texto. No inventes datos que no estén dichos. Sin markdown:\n\n',
+    terapeutica: 'Sos un médico especialista en traumatología/ortopedia. Redactá el PLAN TERAPÉUTICO (medicación, reposo, kinesiología/rehabilitación, otras indicaciones de tratamiento) en prosa clínica breve y prolija, a partir de este dictado, sin inventar datos que no estén. Sin markdown:\n\n',
+    estudios: 'Sos un asistente médico. Ordená este dictado de ESTUDIOS A SOLICITAR E INDICACIONES en una lista prolija con "- " al inicio de cada línea. Sin markdown de títulos:\n\n'
+  };
+  const prompt_ = (tareas[cual]||'Redactá en prosa clínica prolija, sin inventar datos:\n\n') + ta.value.trim();
+  await correrIAEnBoton(btnEl, async ()=>{
+    const res = await llamarBackend('asistente_consulta_ia', {prompt: prompt_});
+    if(res && res.success && res.texto){ ta.value = res.texto; toast('✅ Redactado con IA'); }
+    else{ toast('❌ ' + ((res&&res.error)||'No se pudo procesar con IA'), 'err'); }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// CLASIFICACIONES — según la patología seleccionada. Para Escoliosis y
+// Espondilolistesis se usan criterios objetivos fijos (bandas de Cobb,
+// grado de Meyerding — este último es el MISMO cálculo exacto que ya usa
+// CAM_Herramientas_Clinicas.html, no una reinvención); para Pie plano/cavo
+// se muestra tal cual el grado de Hernández-Corvo que cargue el médico
+// (no se inventa una tabla de gravedad para eso). "Otra" patología cae al
+// modo anterior: consulta libre a la IA en base al texto del Diagnóstico.
+// ══════════════════════════════════════════════════════════════
+const CLASIF_ESTRUCTURADAS_ = ['escoliosis','listesis','pie','artrosis','hallux','manguito',
+  'discopatia','esguince_tobillo','esguince_rodilla','menisco','genu','pie_valgo_retropie','gmfcs',
+  'ao_fractura','balance_sagital','edad_osea','icrs'];
+function mostrarCamposClasificacion(){
+  const val = document.getElementById('clasif-patologia').value;
+  CLASIF_ESTRUCTURADAS_.forEach(k=>{
+    document.getElementById('clasif-campos-'+k).style.display = (val===k) ? 'block' : 'none';
+  });
+  document.getElementById('clasif-btn-generar').style.display = CLASIF_ESTRUCTURADAS_.indexOf(val)>-1 ? 'flex' : 'none';
+  document.getElementById('clasif-btn-ia').style.display = (val==='otra') ? 'flex' : 'none';
+  document.getElementById('clasif-btn-diagrama').style.display = CLASIF_META_[val] ? 'flex' : 'none';
+  document.getElementById('clasif-diagrama').style.display = 'none';
+  const box = document.getElementById('clasif-resultado');
+  if(!val) box.textContent = 'Elegí arriba qué patología clasificar.';
+  else if(val==='otra') box.textContent = 'Escribí el diagnóstico arriba y tocá "Actualizar clasificación".';
+  else box.textContent = 'Completá los campos y tocá "Calcular clasificación".';
+}
+
+// ══════════════════════════════════════════════════════════════
+// Año/fuente de cada clasificación + escala completa, para que el médico
+// pueda corroborar visualmente contra qué está comparando (pedido explícito:
+// "poder corroborar con certeza" + "año de vigencia"). No son imágenes de
+// atlas (esas son material con derechos de las sociedades/revistas) — es
+// la escala propia armada con los datos investigados, no de memoria.
+// ══════════════════════════════════════════════════════════════
+const CLASIF_META_ = {
+  escoliosis: {anio:'Cobb: 1948 (John R. Cobb) · Categorías etiológicas: glosario vigente de la SRS (Scoliosis Research Society)', escala:['Leve <25°','Moderada 25-40°','Grave >40°']},
+  listesis: {anio:'Meyerding: 1932 · Wiltse-Newman-MacNab (tipo etiológico): 1976', escala:['I ≤25%','II ≤50%','III ≤75%','IV ≤100%','V >100% (espondiloptosis)']},
+  pie: {anio:'Hernández-Corvo: 1989', escala:['Pie plano','Plano-normal','Normal','Cavo-normal','Pie cavo','Cavo extremo']},
+  artrosis: {anio:'Kellgren-Lawrence: 1957 (Ann Rheum Dis)', escala:['Grado 0','Grado 1','Grado 2','Grado 3','Grado 4']},
+  hallux: {anio:'Mann & Coughlin — clasificación de uso extendido en la bibliografía (no fijada por año único ni por AOFAS)', escala:['Normal','Leve','Moderado','Severo']},
+  manguito: {anio:'Goutallier (TC): 1994 · Fuchs (adaptación a RM): 1999', escala:['Estadio 0','Estadio 1','Estadio 2','Estadio 3','Estadio 4']},
+  discopatia: {anio:'Pfirrmann: 2001 · Nomenclatura de hernia discal — Versión 2.0 (NASS/ASSR/ASNR): 2014, actualiza la de 2001', escala:['Grado I','Grado II','Grado III','Grado IV','Grado V']},
+  esguince_tobillo: {anio:'Convención de uso extendido ("West Point") — sin autor/año único fijado; AAOS la usa en su lenguaje mild/moderate/severe', escala:['Grado I','Grado II','Grado III']},
+  esguince_rodilla: {anio:'Grado clínico I-III: convención sin año único · IKDC: 1993, revisado 2000', escala:['Grado I','Grado II','Grado III']},
+  menisco: {anio:'Stoller/Crues: 1987', escala:['Grado 0','Grado I','Grado II','Grado III']},
+  genu: {anio:'Curva de Salenius-Vankka (pediátrica): 1975 — sin escala de gravedad única en adultos', escala:['Varo','Normal','Valgo']},
+  pie_valgo_retropie: {anio:'Johnson & Strom: 1989 · ampliación de Myerson (estadio IV): 1997', escala:['I','IIA','IIB','III','IV']},
+  gmfcs: {anio:'GMFCS original: 1997 · GMFCS-E&R (vigente): 2007 (CanChild, Universidad McMaster)', escala:['I','II','III','IV','V']},
+  ao_fractura: {anio:'AO/OTA Fracture and Dislocation Classification Compendium — revisión vigente: 2018', escala:['Tipo A','Tipo B','Tipo C']},
+  balance_sagital: {anio:'SRS-Schwab: 2012', escala:['0 — sin desbalance','+ — moderado','++ — severo']},
+  edad_osea: {anio:'Greulich-Pyle: 1959 · Tanner-Whitehouse: TW2 1975 → TW3 (vigente) 2001', escala:[]},
+  icrs: {anio:'ICRS — estandarizada en el taller ICRS 2000, publicada por Brittberg & Winalski en 2003', escala:['Grado 0','Grado 1','Grado 2','Grado 3','Grado 4']}
+};
+function verDiagramaClasif(){
+  const val = document.getElementById('clasif-patologia').value;
+  const meta = CLASIF_META_[val];
+  const cont = document.getElementById('clasif-diagrama');
+  if(!meta){ cont.style.display='none'; return; }
+  const yaAbierto = cont.style.display==='block';
+  if(yaAbierto){ cont.style.display='none'; return; }
+  const barra = meta.escala.length
+    ? `<div class="cd-barra">${meta.escala.map(e=>`<div class="cd-seg">${e}</div>`).join('')}</div>`
+    : `<div style="font-size:11px;color:var(--muted)">Carga manual — no es una escala numérica de grados, sino un dato que vos determinás con el método elegido.</div>`;
+  cont.innerHTML = `<div class="cd-anio">📅 ${meta.anio}</div>${barra}`;
+  cont.style.display = 'block';
+}
+function actualizarGradoMeyerdingClasif(){
+  const pct = parseFloat(document.getElementById('clasif-list-pct').value);
+  const campo = document.getElementById('clasif-list-grado');
+  if(isNaN(pct)){ campo.value=''; return; }
+  if(pct<=25) campo.value='I';
+  else if(pct<=50) campo.value='II';
+  else if(pct<=75) campo.value='III';
+  else if(pct<=100) campo.value='IV';
+  else campo.value='V';
+}
+function generarClasificacionEstructurada(){
+  const val = document.getElementById('clasif-patologia').value;
+  const box = document.getElementById('clasif-resultado');
+  if(val==='escoliosis'){
+    const cobb = parseFloat(document.getElementById('clasif-cobb').value);
+    if(isNaN(cobb)){ toast('⚠️ Cargá el ángulo de Cobb','err'); return; }
+    let severidad;
+    if(cobb<25) severidad='leve';
+    else if(cobb<=40) severidad='moderada';
+    else severidad='grave (criterio quirúrgico habitual >40-45°, según contexto clínico)';
+    const risser = document.getElementById('clasif-risser').value;
+    const etio = document.getElementById('clasif-esco-etiologia').value;
+    box.textContent = `Escoliosis ${severidad} — Ángulo de Cobb: ${cobb}°` + (risser?` — Risser: ${risser}`:'') + (etio?` — Etiología: ${etio}`:'');
+  } else if(val==='listesis'){
+    const pct = document.getElementById('clasif-list-pct').value;
+    const grado = document.getElementById('clasif-list-grado').value;
+    if(!pct||!grado){ toast('⚠️ Cargá el porcentaje de desplazamiento','err'); return; }
+    const tipo = document.getElementById('clasif-list-tipo').value;
+    box.textContent = `Espondilolistesis — Grado de Meyerding ${grado} (desplazamiento del ${pct}%)` + (tipo?` — Tipo: ${tipo}`:'');
+  } else if(val==='pie'){
+    const g = document.getElementById('clasif-hcorvo').value.trim();
+    if(!g){ toast('⚠️ Cargá el grado de Hernández-Corvo','err'); return; }
+    box.textContent = `Pie plano/cavo — Hernández-Corvo: ${g}`;
+  } else if(val==='artrosis'){
+    const art = document.getElementById('clasif-art-articulacion').value;
+    const selGrado = document.getElementById('clasif-art-grado');
+    if(!selGrado.value){ toast('⚠️ Elegí el grado radiográfico','err'); return; }
+    const desc = selGrado.selectedOptions[0].text;
+    box.textContent = `Artrosis de ${art} — Kellgren-Lawrence: ${desc}`;
+  } else if(val==='hallux'){
+    const hva = parseFloat(document.getElementById('clasif-hv-hva').value);
+    const ima = parseFloat(document.getElementById('clasif-hv-ima').value);
+    if(isNaN(hva) && isNaN(ima)){ toast('⚠️ Cargá al menos un ángulo (HVA o IMA)','err'); return; }
+    const partes=[];
+    if(!isNaN(hva)){
+      let sev; if(hva<15) sev='normal'; else if(hva<20) sev='leve'; else if(hva<=40) sev='moderado'; else sev='severo';
+      partes.push(`HVA ${hva}° (${sev})`);
+    }
+    if(!isNaN(ima)){
+      let sev; if(ima<9) sev='normal'; else if(ima<11) sev='leve'; else if(ima<=16) sev='moderado'; else sev='severo';
+      partes.push(`IMA ${ima}° (${sev})`);
+    }
+    box.textContent = `Hallux valgus — ${partes.join(' — ')} · clasificación de Mann & Coughlin (uso más frecuente en bibliografía; los cortes exactos varían según el autor).`;
+  } else if(val==='manguito'){
+    const tec = document.getElementById('clasif-mr-tecnica').value;
+    const selEstadio = document.getElementById('clasif-mr-estadio');
+    if(!selEstadio.value){ toast('⚠️ Elegí el estadio de infiltración grasa','err'); return; }
+    const desc = selEstadio.selectedOptions[0].text;
+    const fuente = tec==='TC' ? 'Goutallier original (TC)' : 'adaptación de Fuchs (RM)';
+    box.textContent = `Manguito rotador — Infiltración grasa: ${desc} · ${fuente}`;
+  } else if(val==='discopatia'){
+    const selPf = document.getElementById('clasif-disco-pfirrmann');
+    if(!selPf.value){ toast('⚠️ Elegí el grado de Pfirrmann','err'); return; }
+    const morfo = document.getElementById('clasif-disco-morfologia').value;
+    box.textContent = `Discopatía — Pfirrmann grado ${selPf.value}` + (morfo?` — ${morfo}`:' — sin hernia asociada / no evaluada');
+  } else if(val==='esguince_tobillo'){
+    const sel = document.getElementById('clasif-est-grado');
+    if(!sel.value){ toast('⚠️ Elegí el grado','err'); return; }
+    box.textContent = `Esguince de tobillo — ${sel.value}`;
+  } else if(val==='esguince_rodilla'){
+    const lig = document.getElementById('clasif-esr-ligamento').value;
+    const selG = document.getElementById('clasif-esr-grado');
+    if(!selG.value){ toast('⚠️ Elegí el grado clínico','err'); return; }
+    const ikdc = document.getElementById('clasif-esr-ikdc').value;
+    box.textContent = `Lesión de ${lig} — ${selG.value}` + (ikdc?` — IKDC ${ikdc}`:'');
+  } else if(val==='menisco'){
+    const selS = document.getElementById('clasif-men-stoller');
+    if(!selS.value){ toast('⚠️ Elegí el grado de Stoller','err'); return; }
+    const patron = document.getElementById('clasif-men-patron').value;
+    const zona = document.getElementById('clasif-men-zona').value;
+    box.textContent = `Menisco — ${selS.value}` + (patron?` — Patrón: ${patron}`:'') + (zona?` — Zona: ${zona}`:'');
+  } else if(val==='genu'){
+    const tipo = document.getElementById('clasif-genu-tipo').value;
+    const edad = document.getElementById('clasif-genu-edad').value==='pediatrico'?'pediátrico':'adulto';
+    const dist = document.getElementById('clasif-genu-dist').value;
+    const eje = document.getElementById('clasif-genu-eje').value;
+    const partes=[];
+    if(dist) partes.push(`distancia ${dist} cm`);
+    if(eje) partes.push(`eje mecánico ${eje}°`);
+    box.textContent = `Genu ${tipo} (${edad})` + (partes.length?` — ${partes.join(', ')}`:'') + ' — sin escala de gravedad estandarizada; hallazgo descriptivo.';
+  } else if(val==='pie_valgo_retropie'){
+    const sel = document.getElementById('clasif-pvr-estadio');
+    if(!sel.value){ toast('⚠️ Elegí el estadio','err'); return; }
+    box.textContent = `Pie plano del adulto (retropié valgo) — Johnson & Strom, ${sel.value}`;
+  } else if(val==='gmfcs'){
+    const sel = document.getElementById('clasif-gmfcs-nivel');
+    if(!sel.value){ toast('⚠️ Elegí el nivel','err'); return; }
+    box.textContent = `GMFCS — Nivel ${sel.value}`;
+  } else if(val==='ao_fractura'){
+    const seg = document.getElementById('clasif-ao-segmento');
+    const tipo = document.getElementById('clasif-ao-tipo');
+    if(!seg.value||!tipo.value){ toast('⚠️ Elegí el segmento y el tipo','err'); return; }
+    box.textContent = `Fractura AO/OTA ${seg.value} (${seg.selectedOptions[0].text.split('—')[1].trim()}) — ${tipo.selectedOptions[0].text}`;
+  } else if(val==='balance_sagital'){
+    const pi = parseFloat(document.getElementById('clasif-bs-pi').value);
+    const ll = parseFloat(document.getElementById('clasif-bs-ll').value);
+    const sva = parseFloat(document.getElementById('clasif-bs-sva').value);
+    const pt = parseFloat(document.getElementById('clasif-bs-pt').value);
+    if(isNaN(pi)&&isNaN(ll)&&isNaN(sva)&&isNaN(pt)){ toast('⚠️ Cargá al menos un parámetro','err'); return; }
+    const curva = document.getElementById('clasif-bs-curva').value;
+    const partes=[];
+    if(!isNaN(pi)&&!isNaN(ll)){
+      const mismatch = Math.abs(pi-ll);
+      let mod; if(mismatch<10) mod='0'; else if(mismatch<=20) mod='+'; else mod='++';
+      partes.push(`PI-LL ${mismatch.toFixed(1)}° (${mod})`);
+    }
+    if(!isNaN(sva)){
+      let mod; if(sva<4) mod='0'; else if(sva<=9.5) mod='+'; else mod='++';
+      partes.push(`SVA ${sva}cm (${mod})`);
+    }
+    if(!isNaN(pt)){
+      let mod; if(pt<20) mod='0'; else if(pt<=30) mod='+'; else mod='++';
+      partes.push(`PT ${pt}° (${mod})`);
+    }
+    box.textContent = `Balance sagital` + (curva?` — Curva ${curva}`:'') + (partes.length?` — ${partes.join(' · ')}`:'') + ' (SRS-Schwab: 0 sin desbalance, + moderado, ++ severo)';
+  } else if(val==='edad_osea'){
+    const metodo = document.getElementById('clasif-eo-metodo').value;
+    const edad = document.getElementById('clasif-eo-edad').value.trim();
+    if(!edad){ toast('⚠️ Cargá la edad ósea determinada','err'); return; }
+    box.textContent = `Edad ósea: ${edad} — método ${metodo}`;
+  } else if(val==='icrs'){
+    const ctx = document.getElementById('clasif-icrs-contexto').value;
+    if(ctx==='ocd'){
+      const sel = document.getElementById('clasif-icrs-grado-ocd-sel');
+      if(!sel.value){ toast('⚠️ Elegí el grado','err'); return; }
+      box.textContent = `Osteocondritis disecante — ICRS ${sel.value}`;
+    } else {
+      const sel = document.getElementById('clasif-icrs-grado');
+      if(!sel.value){ toast('⚠️ Elegí el grado','err'); return; }
+      box.textContent = `Lesión de cartílago — ICRS ${sel.value}`;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// AO/OTA — Type A/B/C cambia de significado según el segmento óseo (fémur
+// proximal usa una lógica distinta a la extraarticular/parcial/completa
+// habitual, y el segmento maleolar corresponde a Danis-Weber). Se arma la
+// lista de tipos dinámicamente al elegir el segmento, en vez de mostrar
+// siempre "A/B/C" genérico sin explicar qué significa en cada hueso.
+// ══════════════════════════════════════════════════════════════
+const AO_TIPOS_ = {
+  '11': {A:'A — Extraarticular, unifocal (2 partes)', B:'B — Extraarticular, bifocal (3 partes)', C:'C — Articular (4 partes / head-split / luxación)'},
+  '12': {A:'A — Simple', B:'B — En cuña (wedge)', C:'C — Compleja / multifragmentaria'},
+  '23': {A:'A — Extraarticular', B:'B — Articular parcial', C:'C — Articular completa'},
+  '31': {A:'A — Extraarticular, trocantérica (per/intertrocantérea)', B:'B — Extraarticular, cuello femoral', C:'C — Articular, cabeza femoral (ej. Pipkin)'},
+  '32': {A:'A — Simple', B:'B — En cuña (wedge)', C:'C — Compleja'},
+  '33': {A:'A — Extraarticular', B:'B — Articular parcial (incl. fragmento de Hoffa)', C:'C — Articular completa'},
+  '41': {A:'A — Extraarticular', B:'B — Articular parcial (split / depresión / split-depresión)', C:'C — Articular completa'},
+  '42': {A:'A — Simple', B:'B — En cuña (wedge)', C:'C — Compleja / multifragmentaria'},
+  '43': {A:'A — Extraarticular', B:'B — Articular parcial', C:'C — Articular completa'},
+  '44': {A:'A — Infrasindesmal (peroné bajo la sindesmosis, ≈ Danis-Weber A)', B:'B — Transindesmal (a nivel de la sindesmosis, ≈ Danis-Weber B)', C:'C — Suprasindesmal (peroné sobre la sindesmosis, ≈ Danis-Weber C)'}
+};
+function actualizarTiposAO(){
+  const seg = document.getElementById('clasif-ao-segmento').value;
+  const sel = document.getElementById('clasif-ao-tipo');
+  if(!seg || !AO_TIPOS_[seg]){ sel.innerHTML = '<option value="">Elegí primero el segmento…</option>'; return; }
+  const t = AO_TIPOS_[seg];
+  sel.innerHTML = '<option value="">Seleccionar…</option>' +
+    `<option value="A">${t.A}</option><option value="B">${t.B}</option><option value="C">${t.C}</option>`;
+}
+function calcularModificadoresSagitales(){
+  const pi = parseFloat(document.getElementById('clasif-bs-pi').value);
+  const ll = parseFloat(document.getElementById('clasif-bs-ll').value);
+  const sva = parseFloat(document.getElementById('clasif-bs-sva').value);
+  const pt = parseFloat(document.getElementById('clasif-bs-pt').value);
+  const partes=[];
+  if(!isNaN(pi)&&!isNaN(ll)){
+    const mismatch = Math.abs(pi-ll);
+    let mod; if(mismatch<10) mod='0'; else if(mismatch<=20) mod='+'; else mod='++';
+    partes.push(`Desajuste PI-LL: ${mismatch.toFixed(1)}° (${mod})`);
+  }
+  if(!isNaN(sva)){
+    let mod; if(sva<4) mod='0'; else if(sva<=9.5) mod='+'; else mod='++';
+    partes.push(`SVA: ${sva}cm (${mod})`);
+  }
+  if(!isNaN(pt)){
+    let mod; if(pt<20) mod='0'; else if(pt<=30) mod='+'; else mod='++';
+    partes.push(`PT: ${pt}° (${mod})`);
+  }
+  document.getElementById('clasif-bs-preview').textContent = partes.join(' · ');
+}
+function mostrarGradoICRS(){
+  const ctx = document.getElementById('clasif-icrs-contexto').value;
+  document.getElementById('clasif-icrs-grado-general').style.display = (ctx==='general') ? 'block' : 'none';
+  document.getElementById('clasif-icrs-grado-ocd').style.display = (ctx==='ocd') ? 'block' : 'none';
+}
+async function actualizarClasificacion(btnEl){
+  const diag = document.getElementById('texto-diagnostico').value.trim();
+  const box = document.getElementById('clasif-resultado');
+  if(!diag){ toast('⚠️ Escribí primero el diagnóstico','err'); return; }
+  const prompt_ = 'Sos un médico especialista en traumatología/ortopedia. En base a este diagnóstico, indicá qué sistema de ' +
+    'clasificación clínica reconocido corresponde (por ejemplo, entre otros: Cobb para escoliosis, Meyerding para ' +
+    'espondilolistesis, Kellgren-Lawrence para artrosis, Garden para fractura de cadera, Salter-Harris para fracturas ' +
+    'fisarias, Gustilo-Anderson para fracturas expuestas, Tönnis para displasia de cadera) y en qué grado/estadio se ' +
+    'encuentra según lo descrito. Si no hay datos suficientes para precisar el grado, decilo así. Si no corresponde ningún ' +
+    'sistema de clasificación reconocido a este diagnóstico, decilo directamente. Respondé breve (2-3 líneas), en español ' +
+    'rioplatense, sin inventar datos que no estén en el diagnóstico:\n\nDiagnóstico: ' + diag;
+  await correrIAEnBoton(btnEl, async ()=>{
+    box.textContent = '⏳ Consultando…';
+    const res = await llamarBackend('asistente_consulta_ia', {prompt: prompt_});
+    if(res && res.success && res.texto){ box.textContent = res.texto.trim(); }
+    else{ box.textContent = '❌ ' + ((res&&res.error)||'No se pudo obtener la clasificación'); }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// RESUMEN FINAL + GUARDAR EN HISTORIA CLÍNICA + COPIAR
+// (mismo patrón que Consulta_Guiada_Beta_v1.html)
+// ══════════════════════════════════════════════════════════════
+let resumenGenerado = false;
+function materialesCrudos_(){
+  return {
+    nombre: document.getElementById('pac-nombre').value.trim(),
+    dni: document.getElementById('pac-dni').value.trim(),
+    motivo: document.getElementById('texto-motivo').value.trim(),
+    interr: document.getElementById('texto-interr').value.trim(),
+    examen: document.getElementById('texto-examen').value.trim(),
+    diagnostico: document.getElementById('texto-diagnostico').value.trim(),
+    clasificacion: document.getElementById('clasif-resultado').textContent.trim(),
+    terapeutica: document.getElementById('texto-terapeutica').value.trim(),
+    estudios: document.getElementById('texto-estudios').value.trim(),
+    proximoControl: document.getElementById('prox-control').value || '',
+    fecha: new Date().toLocaleDateString('es-AR')
+  };
+}
+function hayContenidoCargado_(m){
+  return !!(m.motivo || m.interr || m.examen || m.diagnostico || m.terapeutica || m.estudios);
+}
+function textoCompletoSegmentado_(m){
+  const bloques = [];
+  bloques.push(`CONSULTA — ${m.fecha}`);
+  bloques.push(`Paciente: ${m.nombre||'—'}${m.dni?' (DNI '+m.dni+')':''}`);
+  if(m.motivo) bloques.push(`\n── MOTIVO DE CONSULTA Y ANTECEDENTES ──\n${m.motivo}`);
+  if(m.interr) bloques.push(`\n── INTERROGATORIO ──\n${m.interr}`);
+  if(m.examen) bloques.push(`\n── EXAMEN FÍSICO ──\n${m.examen}`);
+  if(m.estudios) bloques.push(`\n── ESTUDIOS E INDICACIONES ──\n${m.estudios}`);
+  if(m.diagnostico) bloques.push(`\n── DIAGNÓSTICO ──\n${m.diagnostico}`);
+  if(m.clasificacion && !m.clasificacion.startsWith('Todavía') && !m.clasificacion.startsWith('Elegí') && !m.clasificacion.startsWith('Completá') && !m.clasificacion.startsWith('Escribí')) bloques.push(`\n── CLASIFICACIÓN ──\n${m.clasificacion}`);
+  if(m.terapeutica) bloques.push(`\n── TERAPÉUTICA ──\n${m.terapeutica}`);
+  return bloques.join('\n');
+}
+async function armarResumenCompleto(btnEl){
+  const box = document.getElementById('resumen-completo');
+  const m = materialesCrudos_();
+  if(!hayContenidoCargado_(m)){
+    box.textContent = 'Todavía no cargaste nada en las secciones anteriores.';
+    resumenGenerado = false;
+    return;
+  }
+  const prompt_ = 'Sos un médico especialista en traumatología/ortopedia redactando el resumen de una consulta para la ' +
+    'historia clínica. A partir de estos datos sueltos, escribí UN RELATO CLÍNICO CONTINUO EN PROSA — nada de títulos ni ' +
+    'viñetas — que cuente de corrido el motivo de consulta y antecedentes, el interrogatorio, los hallazgos del examen ' +
+    'físico, el diagnóstico y su clasificación si corresponde, el plan terapéutico indicado, y los estudios solicitados. ' +
+    'No inventes ningún dato que no esté en lo que te paso. Español rioplatense, tono profesional de historia clínica, ' +
+    'sin markdown.\n\n' +
+    `Paciente: ${m.nombre||'—'}${m.dni?' (DNI '+m.dni+')':''}\nFecha: ${m.fecha}\n\n` +
+    (m.motivo ? `Motivo de consulta y antecedentes: ${m.motivo}\n\n` : '') +
+    (m.interr ? `Interrogatorio: ${m.interr}\n\n` : '') +
+    (m.examen ? `Examen físico: ${m.examen}\n\n` : '') +
+    (m.estudios ? `Estudios solicitados e indicaciones: ${m.estudios}\n\n` : '') +
+    (m.diagnostico ? `Diagnóstico: ${m.diagnostico}\n\n` : '') +
+    (m.clasificacion && !m.clasificacion.startsWith('Todavía') && !m.clasificacion.startsWith('Elegí') && !m.clasificacion.startsWith('Completá') && !m.clasificacion.startsWith('Escribí') ? `Clasificación: ${m.clasificacion}\n\n` : '') +
+    (m.terapeutica ? `Plan terapéutico: ${m.terapeutica}` : '');
+
+  box.textContent = '⏳ Redactando el resumen con IA…';
+  const correr = async ()=>{
+    const res = await llamarBackend('asistente_consulta_ia', {prompt: prompt_});
+    if(res && res.success && res.texto){ box.textContent = res.texto.trim(); }
+    else{
+      toast('❌ ' + ((res&&res.error)||'No se pudo redactar el resumen con IA') + ' — se muestra por secciones', 'err');
+      box.textContent = textoCompletoSegmentado_(m);
+    }
+    resumenGenerado = true;
+  };
+  if(btnEl){ await correrIAEnBoton(btnEl, correr); } else { await correr(); }
+}
+function copiarResumen(){
+  if(!resumenGenerado){ toast('⚠️ Primero actualizá el resumen','err'); return; }
+  const texto = document.getElementById('resumen-completo').textContent;
+  navigator.clipboard.writeText(texto)
+    .then(()=>toast('📋 Resumen copiado — pegalo donde lo necesites'))
+    .catch(()=>toast('❌ No se pudo copiar','err'));
+}
+// Genera, con UN solo llamado a la IA, tres etiquetas MUY cortas (2 a 6
+// palabras) — Diagnóstico / Clasificación / Terapéutica — para que la lista
+// de "Antecedentes y consultas anteriores" en OCM (arriba del recetario)
+// pueda mostrar cada consulta en una sola línea junto a la fecha. El texto
+// completo de cada una NO se pierde: queda en Observaciones para el "ver
+// más" de esa lista. Si la IA falla, se recorta el texto propio como
+// respaldo (nunca se deja de guardar por esto).
+async function generarEtiquetasCortas_(m){
+  const fallback = {
+    diagCorto: (m.diagnostico||m.motivo||'').slice(0,60),
+    clasifCorto: (m.clasificacion && !m.clasificacion.startsWith('Todavía')) ? m.clasificacion.slice(0,60) : '',
+    terapCorto: (m.terapeutica||'').slice(0,60)
+  };
+  if(!m.diagnostico && !m.clasificacion && !m.terapeutica) return fallback;
+  const prompt_ = 'Generá tres etiquetas MUY CORTAS (entre 2 y 6 palabras cada una, sin punto final) para mostrar en una ' +
+    'lista de historia clínica junto a la fecha. Respondé EXACTAMENTE en este formato, tres líneas, sin nada más:\n' +
+    'DIAGNOSTICO: ...\nCLASIFICACION: ...\nTERAPEUTICA: ...\n\n' +
+    `Diagnóstico completo: ${m.diagnostico||'(no especificado)'}\n` +
+    `Clasificación completa: ${(m.clasificacion&&!m.clasificacion.startsWith('Todavía'))?m.clasificacion:'(no especificada)'}\n` +
+    `Plan terapéutico completo: ${m.terapeutica||'(no especificado)'}`;
+  try{
+    const res = await llamarBackend('asistente_consulta_ia', {prompt: prompt_});
+    if(!res || !res.success || !res.texto) return fallback;
+    const dx = /DIAGNOSTICO:\s*(.*)/i.exec(res.texto);
+    const cl = /CLASIFICACION:\s*(.*)/i.exec(res.texto);
+    const te = /TERAPEUTICA:\s*(.*)/i.exec(res.texto);
+    return {
+      diagCorto: (dx&&dx[1].trim()) || fallback.diagCorto,
+      clasifCorto: (cl&&cl[1].trim()) || fallback.clasifCorto,
+      terapCorto: (te&&te[1].trim()) || fallback.terapCorto
+    };
+  }catch(e){ return fallback; }
+}
+
+async function guardarEnHistoriaClinica(){
+  const dni = document.getElementById('pac-dni').value.trim();
+  if(!dni){ toast('⚠️ Falta el DNI del paciente para guardar en la historia clínica','err'); return; }
+  await armarResumenCompleto();
+  if(!resumenGenerado){ toast('⚠️ No hay nada cargado todavía para guardar','err'); return; }
+  const resumenTexto = document.getElementById('resumen-completo').textContent;
+  const m = materialesCrudos_();
+  const observaciones = [
+    m.interr ? ('Interrogatorio:\n'+m.interr) : '',
+    m.examen ? ('Examen físico:\n'+m.examen) : '',
+    (m.clasificacion && !m.clasificacion.startsWith('Todavía')) ? ('Clasificación completa:\n'+m.clasificacion) : '',
+    m.terapeutica ? ('Terapéutica completa:\n'+m.terapeutica) : ''
+  ].filter(Boolean).join('\n\n');
+
+  const btn = document.getElementById('btn-guardar-hc');
+  await correrIAEnBoton(btn, async ()=>{
+    const etiquetas = await generarEtiquetasCortas_(m);
+    const res = await llamarBackend('addHistoria', {
+      DNI: dni,
+      Diagnostico: etiquetas.diagCorto || (m.diagnostico||m.motivo).slice(0,300),
+      Clasificacion: etiquetas.clasifCorto,
+      Terapeutica: etiquetas.terapCorto,
+      Observaciones: observaciones || resumenTexto,
+      Estudios_Pendientes: m.estudios,
+      Indicaciones: m.estudios,
+      Proximo_Control: m.proximoControl
+    });
+    if(res && res.success){ toast('✅ Guardado en la historia clínica (ID '+res.id+')'); }
+    else{ toast('❌ ' + ((res&&res.error)||'No se pudo guardar'), 'err'); }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// OTRAS ACCIONES — agendar el próximo control, o pasar el paciente a OCM
+// (OCM ya sabe recibir ?dni=... y auto-abrir a ese paciente — mismo
+// mecanismo que ya usa MiniRIMP/otras páginas para "mandarle el DNI").
+// ══════════════════════════════════════════════════════════════
+function irAAgendarControl(){
+  window.location.href = 'Agenda_Mensajes.html';
+}
+function irAOCM(){
+  const dni = document.getElementById('pac-dni').value.trim();
+  window.location.href = dni ? ('OCM_Muratori_v14_0_26.html?dni='+encodeURIComponent(dni)) : 'OCM_Muratori_v14_0_26.html';
+}
+
+// ══════════════════════════════════════════════════════════════
+inicializarSindromes();
+</script>
+<script src="efecto-lupa.js" defer></script>
+</body>
+</html>

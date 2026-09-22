@@ -83,10 +83,12 @@
     <div id="modo-foto-wrap" class="oculto">
       <p class="muted">Sacale una foto a la ficha o historia vieja — con el celular, un archivo ya guardado, o la cámara web de la PC.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <button class="btn-secundario" onclick="document.getElementById('fotoHistInput').click()">🖼 Archivo / cámara del celular</button>
+        <button class="btn-secundario" onclick="document.getElementById('fotoHistInput').click()">📷 Sacar foto ahora (celular)</button>
+        <button class="btn-secundario" onclick="document.getElementById('fotoHistInputGaleria').click()">🖼 Elegir de galería / archivo</button>
         <button class="btn-secundario" onclick="abrirWebcamHistoria()">🎥 Cámara web (PC)</button>
       </div>
       <input type="file" id="fotoHistInput" accept="image/*" capture="environment" onchange="onFotoHistoriaElegida(event)" style="display:none">
+      <input type="file" id="fotoHistInputGaleria" accept="image/*" onchange="onFotoHistoriaElegida(event)" style="display:none">
       <div id="webcamHistWrap" class="oculto" style="margin-top:6px">
         <video id="webcamHistVideo" autoplay playsinline style="width:100%;max-height:320px;border-radius:8px;background:#000;object-fit:contain"></video>
         <div style="display:flex;gap:8px;margin-top:8px">
@@ -415,6 +417,7 @@ function limpiarTodo(){
   cerrarWebcamHistoria();
   fotoHistBase64 = '';
   const fotoInput = document.getElementById('fotoHistInput'); if(fotoInput) fotoInput.value = '';
+  const fotoInputGaleria = document.getElementById('fotoHistInputGaleria'); if(fotoInputGaleria) fotoInputGaleria.value = '';
   const preview = document.getElementById('fotoHistPreview'); if(preview) preview.classList.add('oculto');
   const btnFoto = document.getElementById('btnAnalizarFoto'); if(btnFoto) btnFoto.disabled = true;
   cambiarModoEntrada('texto');
@@ -450,5 +453,6 @@ if(!SHEETS_URL){
   }catch(e){}
 })();
 </script>
+<script src="efecto-lupa.js" defer></script>
 </body>
 </html>

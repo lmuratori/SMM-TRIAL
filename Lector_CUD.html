@@ -61,10 +61,12 @@
   <div class="card">
     <h2>📷 1. Foto del certificado</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <button class="btn-secundario" onclick="document.getElementById('fotoInput').click()">🖼 Archivo / cámara del celular</button>
+      <button class="btn-secundario" onclick="document.getElementById('fotoInput').click()">📷 Sacar foto ahora (celular)</button>
+      <button class="btn-secundario" onclick="document.getElementById('fotoInputGaleria').click()">🖼 Elegir de galería / archivo</button>
       <button class="btn-secundario" onclick="abrirWebcamCUD()">🎥 Cámara web (PC)</button>
     </div>
     <input type="file" id="fotoInput" accept="image/*" capture="environment" onchange="onFotoElegida(event)" style="display:none">
+    <input type="file" id="fotoInputGaleria" accept="image/*" onchange="onFotoElegida(event)" style="display:none">
     <div id="webcamCUDWrap" class="oculto">
       <video id="webcamCUDVideo" autoplay playsinline style="width:100%;max-height:320px;border-radius:8px;background:#000;object-fit:contain"></video>
       <div style="display:flex;gap:8px;margin-top:8px">
@@ -292,6 +294,7 @@ function limpiarTodo(){
   fotoBase64 = '';
   cerrarWebcamCUD();
   document.getElementById('fotoInput').value = '';
+  document.getElementById('fotoInputGaleria').value = '';
   document.getElementById('fotoPreview').classList.add('oculto');
   document.getElementById('btnAnalizar').disabled = true;
   document.getElementById('cardFormulario').classList.add('oculto');
@@ -326,5 +329,6 @@ if(!SHEETS_URL){
   }catch(e){}
 })();
 </script>
+<script src="efecto-lupa.js" defer></script>
 </body>
 </html>
