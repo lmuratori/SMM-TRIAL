@@ -1,9 +1,15 @@
-CARPETA "CELULAR" — Sistema Médico Integral Muratori (S.I.M-M)
+CARPETA "CELULAR" — Sistema Médico Integral Muratori (S.I.M-M) — VERSIÓN DEMO/TRIAL
 ════════════════════════════════════════════════════════════
+Actualizado: 22/09/2026 — se agregaron los archivos que reciben
+paciente/especialista por mail o QR (antes no estaban documentados acá).
+
+ESTA ES LA VERSIÓN DE PRUEBA: todos estos archivos apuntan al proyecto
+de Apps Script separado, solo para pruebas — no hay pacientes reales.
 
 Estos son los archivos pensados para usarse desde el teléfono (tanto
-por los kinesiólogos como por los pacientes), aunque también funcionan
-perfectamente desde una computadora o tablet.
+por los kinesiólogos y colegas como por los pacientes y especialistas
+que reciben un link), aunque también funcionan perfectamente desde una
+computadora o tablet.
 
 CONTENIDO:
 
@@ -29,9 +35,14 @@ CONTENIDO:
 3) RMYT_Autoevaluacion_Semanal_v1.html
    → Autoevaluación semanal de seguimiento (RMYT) que recibe el
      paciente por mail. Ya tiene cargada la URL real, no se tocó
-     porque ya estaba correctamente conectada.
+     porque ya estaba correctamente conectada. Cubre los 15 segmentos
+     del cuerpo (cervical, dorsal, lumbar, hombro, cadera, rodilla,
+     etc.). OJO: sacamos del paquete un archivo viejo llamado
+     "RMYT_Autoevaluacion.html" (sin "_Semanal") que había quedado sin
+     terminar — el propio Codigo.gs aclara que ese nunca se publicó, y
+     esta versión "_Semanal" es la que reemplazó y completó esa idea.
 
-4) COL_Colegas_SIMM.html  (NUEVO — tercera ronda)
+4) COL_Colegas_SIMM.html
    → Versión genérica de KSM para especialistas que NO son
      kinesiólogos (traumatólogos, nutricionistas, fonoaudiólogos,
      etc.). Se registran, aceptan la condición del sistema, y vos les
@@ -40,6 +51,49 @@ CONTENIDO:
      sesión, videollamada, facturación directa), que quedan
      reservadas a KSM.
 
-IMPORTANTE: estos cuatro archivos dependen de que el Codigo.gs de la
+── ARCHIVOS QUE RECIBE EL PACIENTE POR MAIL O QR (NUEVO en esta versión) ──
+   Estos no los abre nadie "a mano": vos (o el sistema) generás el link
+   ya armado desde OCM y se lo mandás por mail o por QR al paciente/
+   especialista. No hace falta instalarlos ni configurarlos aparte.
+
+5) RIDM_Muratori_v1.html
+   → Formulario de "datos previos a la consulta" (datos personales y/o
+     antecedentes clínicos). El link que se manda ya trae el DNI,
+     apellido, nombre y teléfono del paciente cargados.
+
+6) Recomendaciones_Medicas_Terapeuticas_v1.html
+   → El paciente ve ahí sus indicaciones médicas y terapéuticas, los
+     datos de contacto de su kinesiólogo asignado, puede completar una
+     autoevaluación de seguimiento y pedir que le reenvíen la
+     indicación por mail. El link ya trae su DNI cargado.
+
+7) Autorizacion_ConsentimientoQx_v1.html
+   → Consentimiento informado antes de una cirugía: el paciente lee el
+     texto y firma con el dedo (en el teléfono) o con el mouse. El
+     link ya trae su DNI cargado.
+
+8) Autorizacion_HC_v1.html
+   → Igual que el anterior, pero para autorizar/firmar el resumen de
+     su Historia Clínica. El link ya trae su DNI cargado.
+
+9) Asistente_Isa_Discapacidad.html
+   → Chat ("Isa") que orienta al paciente o familiar sobre trámites de
+     discapacidad (CUD, pensión no contributiva, retiro por invalidez)
+     y permite adjuntar fotos o PDF de la documentación. El paciente
+     escribe su nombre y DNI directamente ahí.
+
+10) MiniRIMP_Interconsulta_QR.html
+    → Lo recibe el ESPECIALISTA al que derivás un paciente antes de
+      una cirugía, para que indique si lo ve apto o no. El link ya
+      trae el DNI y nombre del paciente, la especialidad y un resumen.
+
+11) QR_Consulta_Virtual.html
+    → Lo ve cualquier persona que escanea uno de los carteles QR de
+      "Orientación médica" (pegados en la guardia, un comercio, un
+      club, etc. — generados con QR_Generador.html, carpeta COMPU) y
+      pide una consulta virtual sin tener turno previo. Ya sabe de qué
+      cartel vino, para que lo puedas identificar.
+
+IMPORTANTE: todos estos archivos dependen de que el Codigo.gs de la
 carpeta COMPU ya esté instalado y publicado (implementado) en el
 proyecto de Apps Script — si no, van a dar error de conexión.

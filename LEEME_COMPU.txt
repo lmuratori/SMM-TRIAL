@@ -1,17 +1,56 @@
-CARPETA "COMPU" — Sistema Médico Integral Muratori (S.I.M-M)
+CARPETA "COMPU" — Sistema Médico Integral Muratori (S.I.M-M) — VERSIÓN DEMO/TRIAL
 ════════════════════════════════════════════════════════════
+Actualizado: 22/09/2026 — incluye la carga de texto completo en
+"Recomendaciones e RMYT" (OCM) y la revisión de todos los archivos.
+
+ESTA ES LA VERSIÓN DE PRUEBA (DEMO/TRIAL), no la de producción:
+   - Todos los archivos de esta carpeta apuntan a un proyecto de Apps
+     Script SEPARADO, solo para pruebas — no toca ni ve la planilla ni
+     los pacientes reales del consultorio.
+   - No incluye la carpeta "Documentos_Pacientes_Corregidos" (esos
+     documentos son solo para la versión de producción).
+   - Sirve para mostrar el sistema o dejar que alguien lo recorra, sin
+     ningún riesgo para los datos reales.
 
 Estos son los archivos que se usan desde la computadora del consultorio.
 
+NOVEDAD DE ESTA VERSIÓN (importante):
+   En OCM, el menú "📋 Recomendaciones e RMYT" ahora carga el TEXTO
+   COMPLETO de cada recomendación (antes solo insertaba el título).
+   Se agregó el grupo "Cuidados generales" con: adaptación y cuidado de
+   plantillas ortopédicas, osteoporosis, ergonomía laboral y de carga,
+   curaciones, y cuidado del yeso (miembro superior y miembro inferior,
+   diferenciando yeso tradicional/carbonato de calcio y de fibra de
+   vidrio). "RMYT — Rehabilitación" quedó como el último de los grupos
+   RMYT y justo antes de "Cuidados generales", como pediste. Cada vez
+   que se inserta una de estas recomendaciones, además queda anotada
+   sola en el "Libro RMYT" del paciente para el seguimiento.
+   "Paciente con gastritis — recomendaciones" ya quedó cargada
+   (22/09): cubre protección gástrica al tomar antiinflamatorios
+   (AINEs) y qué hacer ante un episodio de gastritis aguda, basado en
+   Mayo Clinic, Cleveland Clinic y MedlinePlus/NIH — donde las fuentes
+   no coincidían en un número exacto (por ejemplo la edad a partir de
+   la cual conviene un protector gástrico), lo dejé como rango
+   ("60-65 años") en vez de una cifra fija. "Reacciones alérgicas a
+   medicamentos — referencia" quedó cargada, pero es un texto más para
+   consulta del profesional que para entregar al paciente — avisame si
+   preferís sacarla de este menú.
+
 CONTENIDO:
+
+── BACKEND ──────────────────────────────────────────────────────────
 
 1) Codigo.gs
    → Es el backend completo y ACTUALIZADO del sistema (Apps Script).
    → YA INCLUYE integrado en un solo archivo:
-       - RMYT (autoevaluación semanal)
+       - RMYT (autoevaluación semanal) + recomendaciones de texto
+         completo (ver "novedad" arriba)
        - Kinesiología (KSM): canal de comunicación, evoluciones,
          preguntas, informes al médico, videollamada, cobros con peaje
          al sistema (5% configurable)
+       - Turnos: reserva y disponibilidad (los usan Turnos_Secretaria.html
+         y Agenda_Mensajes.html), con protección para que dos personas
+         no reserven el mismo horario al mismo tiempo
        - Optimización de consumo de tokens de Gemini (thinkingLevel
          "minimal" — respuestas iguales, mucho menor costo)
        - Disparador automático de la bandeja de entrada
@@ -21,6 +60,10 @@ CONTENIDO:
          de Empresas, Libro de Discapacidad (CUD) y Plantillas
        - La clave de Gemini ya no está escrita en el archivo: se carga
          una vez desde la función configurarGeminiAPI() (ver PENDIENTE)
+   → OJO: se sacó del paquete un archivo suelto llamado
+     "Agenda_Turnos_ACTUALIZADO.gs" que había quedado de una versión
+     vieja — su función ya está incluida (y mejorada) dentro de este
+     Codigo.gs, así que no hace falta instalarlo aparte.
 
    CÓMO INSTALARLO (reemplaza el código actual, no crea nada nuevo):
      a) Entrar a la planilla "Sistema Medico Muratori" en Google Sheets.
@@ -42,36 +85,135 @@ CONTENIDO:
         crearTriggerProcesarBandejaEntrada() desde el editor (▶ Ejecutar)
         para que la revisión de mails quede automática cada 15 min.
 
-2) OCM_Muratori_v14_0_26.html
-   → Historia clínica / consultorio (versión más nueva, incluye el
-     módulo de Catastro de Empresas). Se usa igual que hasta ahora.
+── PORTAL / MENÚ PRINCIPAL ──────────────────────────────────────────
 
-3) Agenda_Mensajes.html
+2) index.html
+   → Es la "pantalla de entrada" del sitio publicado en GitHub Pages
+     (la que se abre con la dirección principal). Muestra un menú con
+     pestañas: agendas (turnos, seguimiento, historia clínica,
+     mensajes) a la izquierda arriba, herramientas (OCM, CAM V,
+     Investigación, Plantillas, Catastro, Libro RMYT, Libro
+     Discapacidad, Generador de QR) a la izquierda abajo, y cirugía
+     (agenda de cirugía, pacientes operados, Lector CUD) a la derecha.
+     Al elegir una pestaña, esa herramienta se abre en el medio, sin
+     salir de la página. No necesita configuración.
+
+   NOTA: también existe un archivo INDEX_SIM.html con una idea
+   parecida (otro menú/portal), pero está armado para abrirse dentro
+   de tu red local o por Tailscale (usa direcciones de red fijas en
+   vez de la dirección de GitHub). Si no sabés que lo estás usando así,
+   no hace falta tocarlo — el que se usa en la versión de GitHub es
+   "index.html".
+
+── HISTORIA CLÍNICA Y CONSULTORIO ───────────────────────────────────
+
+3) OCM_Muratori_v14_0_26.html
+   → Historia clínica / consultorio / recetario (versión más nueva,
+     incluye el módulo de Catastro de Empresas y ahora también el
+     texto completo de "Recomendaciones e RMYT"). Se usa igual que
+     hasta ahora.
+
+4) Agenda_Mensajes.html
    → Panel para revisar los borradores de respuesta que arma la IA,
      confirmar pagos y aprobar el envío. Ya apunta a la URL real del
      sistema, no necesita configuración.
 
-4) CAM_Beta_Herramientas_Clinicas_2.html
+5) Turnos_Secretaria.html
+   → Reserva de turnos presenciales. Si se abre sola (sin datos en la
+     dirección), muestra un panel para generar el cartel con código QR
+     de cada consultorio (uno por sede) — se imprime una vez y se pega
+     en la recepción de esa sede; al escanearlo, el paciente ve
+     directamente los turnos de esa sede, ya identificada.
+
+6) CAM_Herramientas_Clinicas.html  (antes "CAM_Beta_Herramientas_Clinicas_2.html")
    → Herramientas clínicas (goniometría, síndromes genéticos, etc.).
      Ya apunta a la URL real. El diccionario de síndromes propios ahora
      se guarda en la nube (antes no tenía dónde guardarse — se agregó
      la hoja "Listas_Personalizadas" al backend para esto).
 
-5) Panel_Especialistas.html
-   → Es TUYO, no de los kinesiólogos/colegas. Desde acá autorizás, uno
-     por uno, qué especialista puede usar el sistema y qué módulos ve
-     de cada paciente (Investigación, Discapacidad/CUD, Gráfica,
-     Plantillas). También cambiás el % de peaje por defecto, o uno
-     personalizado por especialista. Podoscopía nunca aparece como
-     opción acá — es de tu uso exclusivo. Se usa igual que KSM: la
-     primera vez pide la URL de Apps Script (la misma de siempre).
+7) CAM_V.html
+   → Consulta por voz + herramientas: dictado por voz durante la
+     consulta, examen físico por segmento, y accesos directos para
+     abrir las herramientas GONIO (ver más abajo) ya con el DNI del
+     paciente cargado, si lo tenés puesto en esta pantalla.
 
-6) Lector_CUD.html  (NUEVO — tercera ronda)
-   → Sacás una foto del Certificado Único de Discapacidad, la IA
-     (Gemini Vision) propone los 15 campos ya completados, los revisás/
-     corregís y recién ahí se guarda — queda conectado con la Agenda de
-     Pacientes y la Historia Clínica, igual que si lo hubieras tipeado
-     a mano. Nunca guarda nada sin que lo confirmes.
+8) Consulta_Guiada_Beta_v1.html
+   → Versión "beta" de consulta guiada por voz + IA (arma el relato de
+     la consulta por secciones y guarda un resumen para el paciente).
+     También funciona como un segundo menú de acceso a herramientas
+     que no están en el portal principal: las GONIO, Seguimiento de
+     Carpeta CUD, Isa (asistente de discapacidad), Lector de Fichas,
+     Estadísticas, Generador de QR, Panel de Especialistas y Colegas.
+
+9) GONIO_Columna_v1.html, GONIO_MiembroInferior_v1.html,
+   GONIO_AnguloFrente_v1.html, GONIO_CostaBartani_v1.html,
+   GONIO_ValgoVaro_v1.html, GONIO_Podoscopia_v1.html
+   → Conjunto de herramientas de medición por foto (columna: Cobb,
+     Nash-Moe, pelvis, etc.; miembro inferior: Hallux Valgus, Genu,
+     Costa-Bártani, retropié; podoscopía digital, etc.). No se abren
+     solas: se llega a ellas desde los menús de CAM_V.html o
+     Consulta_Guiada_Beta_v1.html. Ya tienen la URL real cargada.
+
+10) GONIO_SeguimientoCientifico_v1.html
+    → Herramienta de investigación: para armar "líneas de
+      investigación" y agregar pacientes (por DNI) a cada una para
+      hacerles seguimiento. Aparece en el portal principal como
+      "Investigación".
+
+11) Estadisticas_SMM.html
+    → Panel de estadísticas generales del consultorio. Se abre sin
+      necesidad de escribir nada, ya trae los datos.
+
+12) Lector_Historias.html
+    → Para transcribir o pasar a la ficha del paciente historias
+      clínicas viejas (en papel o ya tipeadas), con ayuda de la IA.
+      OJO: tiene un panel de "Conexión con el sistema" donde, en
+      teoría, se podría cambiar la dirección del sistema a otra
+      distinta — mejor no tocar ese panel salvo que yo te indique
+      específicamente hacerlo, porque si se cambia sin querer el
+      Lector deja de funcionar con el sistema real.
+
+13) Panel_Especialistas.html
+    → Es TUYO, no de los kinesiólogos/colegas. Desde acá autorizás, uno
+      por uno, qué especialista puede usar el sistema y qué módulos ve
+      de cada paciente (Investigación, Discapacidad/CUD, Gráfica,
+      Plantillas). También cambiás el % de peaje por defecto, o uno
+      personalizado por especialista. Podoscopía nunca aparece como
+      opción acá — es de tu uso exclusivo. Se usa igual que KSM: la
+      primera vez pide la URL de Apps Script (la misma de siempre).
+
+14) Lector_CUD.html
+    → Sacás una foto del Certificado Único de Discapacidad, la IA
+      (Gemini Vision) propone los 15 campos ya completados, los revisás/
+      corregís y recién ahí se guarda — queda conectado con la Agenda de
+      Pacientes y la Historia Clínica, igual que si lo hubieras tipeado
+      a mano. Nunca guarda nada sin que lo confirmes.
+
+15) CUD_Seguimiento_v1.html
+    → Checklist para hacer el seguimiento del trámite de la carpeta
+      del Certificado Único de Discapacidad (qué documentación falta,
+      en qué paso está). Se llega desde el menú de Consulta Guiada.
+
+16) QR_Generador.html
+    → Genera los carteles con código QR para "Orientación médica"
+      (para pegar en la guardia, un comercio, un club, etc.). Cada QR
+      apunta a QR_Consulta_Virtual.html (ver carpeta CELULAR) con el
+      nombre del lugar ya cargado, para saber de dónde vino cada
+      consulta. No necesita configuración.
+
+17) SSQ_Legajo_Integral_v1.html
+    → Legajo quirúrgico integral, pensado para que todo el equipo de
+      cirugía (camillero, instrumentadora, circulante, enfermera,
+      anestesista, cirujano, ayudante, y hasta un familiar) complete su
+      parte desde su celular o tablet, cada uno con un QR distinto por
+      rol. IMPORTANTE — este archivo es distinto a todos los demás: NO
+      guarda nada en el sistema (no tiene conexión con la planilla).
+      Cada parte se "guarda" imprimiendo o descargando un archivo
+      suelto para juntar después a mano. Y para generar los QR de cada
+      rol hay que escribir vos mismo, cada vez, la dirección donde
+      está publicado este archivo (no viene cargada de antes) — por
+      ejemplo, en la versión de GitHub sería:
+      https://lmuratori.github.io/smm-acceso-temporal/SSQ_Legajo_Integral_v1.html
 
 PENDIENTE (importante):
    Rotar la clave de Gemini. Dejó de estar escrita en Codigo.gs (antes
@@ -79,4 +221,5 @@ PENDIENTE (importante):
    desde la función configurarGeminiAPI() que está cerca del final del
    archivo, corriéndola manualmente desde el editor de Apps Script
    (▶ Ejecutar). El detalle paso a paso está en 00_LEEME_PRIMERO.txt y
-   en AUDITORIA_SIMM_16ago2026.html.
+   en AUDITORIA_SIMM_16ago2026.html (si no los tenés a mano, avisame y
+   te vuelvo a escribir esos pasos acá).
