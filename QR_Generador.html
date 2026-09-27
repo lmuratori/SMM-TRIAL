@@ -57,7 +57,7 @@
 
     <p class="sub" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">¿Ya tenés armado el link exacto (por ejemplo, una interconsulta o un formulario de otro módulo) y solo necesitás el QR imprimible? Pegalo acá en vez de escribir un lugar.</p>
     <label>Link personalizado <span style="font-weight:400;color:var(--muted);font-size:11.5px">(opcional)</span></label>
-    <input type="text" id="f-link-personalizado" placeholder="https://lmuratori.github.io/smm-acceso-temporal/..." onkeydown="if(event.key==='Enter')generarQRPersonalizado();">
+    <input type="text" id="f-link-personalizado" placeholder="https://drmuratorisalud.ar/..." onkeydown="if(event.key==='Enter')generarQRPersonalizado();">
     <div class="row">
       <button class="btn btn-primary" onclick="generarQRPersonalizado()">Generar QR de este link</button>
     </div>
@@ -2392,7 +2392,7 @@ var qrcode = function() {
 // ═══════════════════════════════════════════════════════════════════
 // Lógica propia de esta página
 // ═══════════════════════════════════════════════════════════════════
-const BASE_URL = 'https://lmuratori.github.io/smm-acceso-temporal/QR_Consulta_Virtual.html';
+const BASE_URL = 'https://drmuratorisalud.ar/QR_Consulta_Virtual.html';
 const STORAGE_KEY = 'simm_qr_generados';
 
 function linkPara_(lugar){

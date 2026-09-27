@@ -1912,6 +1912,7 @@ html.deep-link-cargando #deep-link-veil{display:flex}
           <div class="view-title">👥 Administración de Pacientes</div>
           <div class="pac-search-bar">
             <input type="text" id="pac-buscar" placeholder="🔍  Buscar por apellido, DNI u obra social…" oninput="cargarListaPacientes()">
+            <button class="btn btn-sm" id="btn-sync-nube" onclick="sincronizarTodosPacientesDesdeNube()" title="Esta lista solo muestra los pacientes ya vistos en esta computadora. Usá este botón para traer TODOS los pacientes guardados en la planilla (Google Sheets) — hace falta una sola vez por computadora, o cuando falten pacientes nuevos cargados desde otra máquina.">☁ Traer todos de la nube</button>
             <button class="btn btn-primary btn-sm" onclick="abrirModalNuevoPaciente()">+ Nuevo paciente</button>
           </div>
           <div class="pac-table-wrap">
@@ -2318,6 +2319,7 @@ html.deep-link-cargando #deep-link-veil{display:flex}
        ya no había lugar. Misma función, mismos onclick/id de siempre. -->
   <button class="acc-btn" onclick="abrirRidmRapido()" title="Cargar datos de filiación en el momento (sin antecedentes)">⚡ Filiación</button>
   <button class="acc-btn" id="btn-membresia" onclick="toggleMembresiaPaciente()" disabled title="Seleccioná un paciente primero">🤝 Dar membresía</button>
+  <button class="acc-btn" id="btn-membresia-seguimiento" onclick="abrirModalMembresiaSeguimiento()" disabled title="Seleccioná un paciente primero">📆 Membresía de seguimiento</button>
   <button class="acc-btn" onclick="abrirModalCobroMP()" title="Generar un link real de Mercado Pago para que el paciente pague a distancia">💳 Cobrar</button>
   <div class="acc-sep"></div>
   <!-- GRUPO 2: DOCUMENTOS -->
@@ -4477,7 +4479,7 @@ function buscarPaciente(q){
           // Marca TODAS las filas duplicadas de este DNI como procesadas (no solo
           // la que se ve acá) — así los reintentos previos no quedan colgados.
           (_rowsDup&&_rowsDup.length?_rowsDup:[_row]).forEach(rw=>{
-            fetch(SHEETS_URL+'?action=marcar_procesado&row='+rw).catch(()=>{});
+            fetch(SHEETS_URL+'?action=marcar_procesado&row='+rw+tokenQS_()).catch(()=>{});
           });
           toast('🆕 Paciente cargado desde Filiación rápida — completá el resto de la ficha cuando puedas','ok');
         }
@@ -4502,6 +4504,7 @@ function seleccionarPaciente(p){
   const btnGenImd = document.getElementById('btn-gen-imd') || document.getElementById('cmd-genrmyt');
   if(btnGenImd) btnGenImd.disabled=false;
   actualizarBotonMembresia_();
+  actualizarBotonMembresiaSeguimiento_();
   // Verificar si existe RIDM pre-consulta para este paciente
   if (p.dni) verificarRIDM(p.dni);
   // Antecedentes y consultas anteriores, arriba del recetario
@@ -4749,6 +4752,10 @@ async function guardarPaciente(){
       };
       if(viv.agua || viv.excretas || viv.calefaccion) payloadCloud.Vivienda = viv;
     }
+    // SEGURIDAD (sep 2026): addPaciente ahora exige token del lado del
+    // servidor una vez que el médico lo configure — sin esta línea, guardar
+    // pacientes dejaría de funcionar en cuanto eso pase.
+    if(typeof APP_TOKEN!=='undefined' && APP_TOKEN) payloadCloud.token = APP_TOKEN;
     try{
       const resp = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payloadCloud),signal:AbortSignal.timeout(8000)});
       const data = await resp.json();
@@ -4829,6 +4836,8 @@ async function autoCrearFiliacionDesdeReceta_(){
     Diagnostico_Principal:'', Estado_Tratamiento:'Activo',
     Antecedentes_Generales:{}, Primera_Consulta:true, Discapacidad:false, Membresia:false
   };
+  // SEGURIDAD (sep 2026): ver nota igual a esta más arriba, en guardarPaciente().
+  if(typeof APP_TOKEN!=='undefined' && APP_TOKEN) payloadCloud.token = APP_TOKEN;
   try{
     const resp = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payloadCloud),signal:AbortSignal.timeout(8000)});
     const data = await resp.json();
@@ -4851,10 +4860,11 @@ async function toggleMembresiaPaciente(){
   pacienteActivo.membresia = nuevoEstado;
   try{ await dbPut('pacientes', pacienteActivo); }catch(e){ console.warn('No se pudo guardar la membresía localmente:', e); }
   actualizarBotonMembresia_();
+  actualizarBotonMembresiaSeguimiento_();
   toast(nuevoEstado
     ? '🤝 Membresía activada — ya tiene acceso a RMYT, respuesta de mail con contexto clínico, agendas y seguimiento posquirúrgico'
     : 'Membresía desactivada para este paciente', 'ok');
-  const payloadCloud = {action:'set_membresia', DNI: pacienteActivo.dni, Membresia: nuevoEstado};
+  const payloadCloud = Object.assign({action:'set_membresia', DNI: pacienteActivo.dni, Membresia: nuevoEstado}, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{});
   try{
     await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payloadCloud),signal:AbortSignal.timeout(8000)});
   }catch(_){
@@ -4879,6 +4889,136 @@ function actualizarBotonMembresia_(){
   btn.style.background = activa ? '#dcfce7' : '';
   btn.style.color = activa ? '#166534' : '';
   btn.style.borderColor = activa ? '#86efac' : '';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MEMBRESÍA DE SEGUIMIENTO — mensual, por UNA patología puntual, de
+// mutuo acuerdo con el paciente (no es cobro automático recurrente).
+// Hasta 3 mensajes/semana de 400 palabras cada uno, siempre sobre el
+// estado de esta patología — ver Codigo.gs (getMembresiaSeguimiento,
+// iniciarORenovarMembresiaSeguimiento, confirmarRenovacionMembresiaSeguimiento,
+// desactivarMembresiaSeguimiento) para el detalle completo. Mecanismo
+// TOTALMENTE separado del botón "🤝 Dar membresía" de arriba (gratuito,
+// habilita RMYT/mail con contexto clínico/agendas/RSPQ) — no confundir
+// ni fusionar ambos.
+// ══════════════════════════════════════════════════════════════════
+function escHtmlMS_(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function actualizarBotonMembresiaSeguimiento_(){
+  const btn=document.getElementById('btn-membresia-seguimiento');
+  if(!btn) return;
+  if(!pacienteActivo){
+    btn.disabled=true; btn.title='Seleccioná un paciente primero';
+    btn.textContent='📆 Membresía de seguimiento';
+    btn.style.background=''; btn.style.color=''; btn.style.borderColor='';
+    return;
+  }
+  btn.disabled=false;
+  btn.style.background=''; btn.style.color=''; btn.style.borderColor='';
+  btn.textContent='📆 Membresía de seguimiento';
+  btn.title='Seguimiento mensual pago de una patología puntual — click para ver/gestionar';
+  const dni = pacienteActivo.dni;
+  if(!dni) return;
+  fetch(SHEETS_URL+'?action=get_membresia_seguimiento&dni='+encodeURIComponent(dni)+tokenQS_(),{signal:AbortSignal.timeout(6000)})
+    .then(r=>r.json()).then(d=>{
+      if(!d || !d.success || !d.existe) return;
+      if(!pacienteActivo || pacienteActivo.dni!==dni) return; // el médico ya cambió de paciente mientras esperaba la respuesta
+      if(d.estado==='activa'){
+        btn.textContent='📆 Seguimiento activo';
+        btn.style.background='#dcfce7'; btn.style.color='#166534'; btn.style.borderColor='#86efac';
+        btn.title=`Activo — ${d.patologia||''} — ${d.mensajes_usados_semana}/3 mensajes usados esta semana`;
+      } else if(d.estado==='esperando_pago'){
+        btn.textContent='📆 Esperando pago';
+        btn.style.background='#fef3c7'; btn.style.color='#92400e'; btn.style.borderColor='#fcd34d';
+        btn.title=`Esperando el pago de ${d.patologia||''}`;
+      }
+    }).catch(()=>{});
+}
+
+async function abrirModalMembresiaSeguimiento(){
+  if(!pacienteActivo){ toast('Seleccioná un paciente primero','err'); return; }
+  document.getElementById('ms-patologia').value = '';
+  const t = getTarifas();
+  document.getElementById('ms-precio').value = t.virtual?.precio || 45000;
+  document.getElementById('ms-estado-box').textContent = 'Consultando estado…';
+  abrirModal('modal-membresia-seguimiento');
+  const dni = pacienteActivo.dni;
+  try{
+    const r = await fetch(SHEETS_URL+'?action=get_membresia_seguimiento&dni='+encodeURIComponent(dni)+tokenQS_(),{signal:AbortSignal.timeout(8000)});
+    const d = await r.json();
+    const box = document.getElementById('ms-estado-box');
+    if(!d || !d.success){ box.textContent='No se pudo consultar el estado.'; return; }
+    if(!d.existe){
+      box.textContent = 'Este paciente todavía no tiene una membresía de seguimiento — completá la patología y el precio, y confirmá con el paciente para generar el link de pago.';
+      return;
+    }
+    document.getElementById('ms-patologia').value = d.patologia || '';
+    document.getElementById('ms-precio').value = d.precio_mensual || (t.virtual?.precio || 45000);
+    const estadoTxt = d.estado==='activa' ? '🟢 Activa'
+      : d.estado==='esperando_pago' ? '🟡 Esperando pago'
+      : '⚪ Inactiva';
+    box.innerHTML = `<b>${estadoTxt}</b> — ${escHtmlMS_(d.patologia||'—')}<br>` +
+      (d.estado==='activa' ? `Próxima renovación: ${escHtmlMS_(d.fecha_proxima_renovacion||'—')}<br>Mensajes usados esta semana: ${d.mensajes_usados_semana}/3 (no acumulan de una semana a otra)` : '');
+  }catch(e){
+    document.getElementById('ms-estado-box').textContent = 'No se pudo consultar el estado (sin conexión).';
+  }
+}
+
+async function confirmarIniciarRenovarMembresiaSeguimiento(){
+  if(!pacienteActivo){ toast('Seleccioná un paciente primero','err'); return; }
+  const patologia = (document.getElementById('ms-patologia').value||'').trim();
+  const precio = +document.getElementById('ms-precio').value || 0;
+  if(!patologia){ toast('Falta indicar la patología en seguimiento','err'); return; }
+  if(!precio || precio<=0){ toast('Falta el precio mensual','err'); return; }
+  if(!confirm(`¿Confirmaste con ${pacienteActivo.apellido}, ${pacienteActivo.nombre} que quiere seguir un mes más el seguimiento de "${patologia}" por $${precio}?`)) return;
+  const payload = Object.assign({
+    action:'iniciar_renovar_membresia_seguimiento',
+    DNI: pacienteActivo.dni, Apellido: pacienteActivo.apellido, Nombre: pacienteActivo.nombre,
+    Patologia: patologia, Precio_Mensual: precio, Email: pacienteActivo.mail||''
+  }, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{});
+  try{
+    const r = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
+    const d = await r.json();
+    if(!d.success){ toast('❌ '+(d.error||'No se pudo generar el link de pago'),'err'); return; }
+    try{ await navigator.clipboard.writeText(d.link); toast('✅ Link de pago copiado — pegalo en el mail/WhatsApp del paciente','ok'); }
+    catch(_){ prompt('Copiá este link y mandaselo al paciente:', d.link); }
+    actualizarBotonMembresiaSeguimiento_();
+  }catch(e){
+    toast('❌ No se pudo generar el link (sin conexión)','err');
+  }
+}
+
+async function revisarPagoMembresiaSeguimiento(){
+  if(!pacienteActivo){ return; }
+  const payload = Object.assign({action:'confirmar_renovacion_membresia', DNI: pacienteActivo.dni},
+    (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{});
+  try{
+    const r = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload),signal:AbortSignal.timeout(10000)});
+    const d = await r.json();
+    if(!d.success){ toast('❌ '+(d.error||'No se pudo revisar el pago'),'err'); return; }
+    toast(d.pagado ? '✅ Pago encontrado — mes activado' : 'Todavía no se registró el pago de este mes', d.pagado?'ok':'');
+    if(d.pagado){ abrirModalMembresiaSeguimiento(); actualizarBotonMembresiaSeguimiento_(); }
+  }catch(e){
+    toast('❌ No se pudo revisar (sin conexión)','err');
+  }
+}
+
+async function desactivarMembresiaSeguimientoUI(){
+  if(!pacienteActivo){ return; }
+  if(!confirm('¿Dar de baja el seguimiento mensual de este paciente?')) return;
+  const payload = Object.assign({action:'desactivar_membresia_seguimiento', DNI: pacienteActivo.dni},
+    (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{});
+  try{
+    const r = await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload),signal:AbortSignal.timeout(10000)});
+    const d = await r.json();
+    toast(d.success ? '✅ Seguimiento dado de baja' : ('❌ '+(d.error||'No se pudo dar de baja')), d.success?'ok':'err');
+    if(d.success){ cerrarModal('modal-membresia-seguimiento'); actualizarBotonMembresiaSeguimiento_(); }
+  }catch(e){
+    toast('❌ No se pudo dar de baja (sin conexión)','err');
+  }
 }
 
 // Disparador: al salir del campo DNI o Paciente en el encabezado del
@@ -6241,10 +6381,11 @@ async function guardarTarifas(){
   };
   TARIFAS_ACTUALES = tarifas;
   localStorage.setItem('smm_tarifas', JSON.stringify(tarifas));
+  const payloadTarifas = Object.assign({action:'saveTarifas',tarifas}, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{});
   try{
     await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'saveTarifas',tarifas}),signal:AbortSignal.timeout(8000)});
-  }catch(_){ colaAgregar('saveTarifas',{action:'saveTarifas',tarifas}); }
+      body:JSON.stringify(payloadTarifas),signal:AbortSignal.timeout(8000)});
+  }catch(_){ colaAgregar('saveTarifas',payloadTarifas); }
   toast('✅ Tarifas actualizadas — el documento del paciente ya las refleja','ok');
   cerrarModal('modal-tarifas');
 }
@@ -6317,7 +6458,7 @@ async function confirmarPagoConsulta(id){
   if(!confirm('¿Confirmás que el paciente realizó el pago?')) return;
   try{
     await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'actualizarConsulta',id,estado:'pagado'}),signal:AbortSignal.timeout(8000)});
+      body:JSON.stringify(Object.assign({action:'actualizarConsulta',id,estado:'pagado'}, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{})),signal:AbortSignal.timeout(8000)});
     toast('✅ Pago confirmado — la consulta pasó a "Pagas"','ok');
     await cargarConsultasLista('pendiente_pago');
   }catch(e){ toast('Error al confirmar pago','err'); }
@@ -6327,7 +6468,7 @@ async function rechazarConsulta(id){
   if(!confirm('¿Rechazar esta consulta?')) return;
   try{
     await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'actualizarConsulta',id,estado:'rechazada'}),signal:AbortSignal.timeout(8000)});
+      body:JSON.stringify(Object.assign({action:'actualizarConsulta',id,estado:'rechazada'}, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{})),signal:AbortSignal.timeout(8000)});
     toast('Consulta rechazada','ok');
     await cargarConsultasLista('pendiente_pago');
   }catch(e){ toast('Error','err'); }
@@ -6348,7 +6489,11 @@ async function generarRespuestaIA(id){
     const d = await r.json();
     if(d.historial&&d.historial.length){
       const ultima = d.historial[0];
-      datosRSP = { diagnostico: ultima.diagnostico||'', medicacion: ultima.indicaciones||'' };
+      // BUGFIX (sep 2026): las columnas de la planilla son "Diagnostico" e
+      // "Indicaciones" (con mayúscula) — con minúscula esto daba siempre
+      // undefined, así que la IA armaba la respuesta sin ver el último
+      // diagnóstico ni la medicación real del paciente, sin avisar el error.
+      datosRSP = { diagnostico: ultima.Diagnostico||'', medicacion: ultima.Indicaciones||'' };
     }
   }catch(_){}
 
@@ -6392,11 +6537,12 @@ async function aprobarRespuestaIA(){
   if(!respuesta){ toast('La respuesta no puede estar vacía','err'); return; }
 
   // Guardar en Sheets
+  const _payloadAprobar = Object.assign({action:'actualizarConsulta',id:CONSULTA_ACTIVA.id,
+    respuesta_final:respuesta,estado:'respondida'}, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{});
   try{
     await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'actualizarConsulta',id:CONSULTA_ACTIVA.id,
-        respuesta_final:respuesta,estado:'respondida'}),signal:AbortSignal.timeout(8000)});
-  }catch(_){ colaAgregar('actualizarConsulta',{action:'actualizarConsulta',id:CONSULTA_ACTIVA.id,respuesta_final:respuesta,estado:'respondida'}); }
+      body:JSON.stringify(_payloadAprobar),signal:AbortSignal.timeout(8000)});
+  }catch(_){ colaAgregar('actualizarConsulta',_payloadAprobar); }
 
   // Enviar por mail al paciente (WhatsApp sacado del sistema, sep 2026)
   const pac = CONSULTA_ACTIVA;
@@ -6589,7 +6735,7 @@ function importarRidm(i){
   // Marcar como procesadas TODAS las filas duplicadas de este DNI (no solo la
   // que se ve en la lista) para que los reintentos previos no queden colgados.
   (r._rowsDup&&r._rowsDup.length?r._rowsDup:[r._row]).forEach(rw=>{
-    fetch(SHEETS_URL+'?action=marcar_procesado&row='+rw).catch(()=>{});
+    fetch(SHEETS_URL+'?action=marcar_procesado&row='+rw+tokenQS_()).catch(()=>{});
   });
   cerrarModal('modal-ridm');
   toast('📥 Datos del RIDM cargados — revisá y guardá el paciente','ok');
@@ -6666,6 +6812,60 @@ function parseFechaAR_(s){
   return new Date(+m[3], +m[2]-1, +m[1]);
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+// NUEVO (sep 2026): "Traer todos de la nube" — el listado de la pestaña
+// Pacientes (cargarListaPacientes, más abajo) SOLO muestra lo que ya está
+// guardado en esta computadora (IndexedDB local). Un paciente que está en
+// la planilla de Google Sheets pero nunca se buscó en ESTA compu (por DNI,
+// desde el buscador de arriba) nunca llega a aparecer acá — no hay nada
+// roto en la búsqueda por DNI, pero el listado general se ve "vacío" o
+// incompleto comparado con lo que el médico sabe que tiene guardado. Este
+// botón trae TODA la hoja "Pacientes" de la nube de una sola vez y la
+// mezcla con lo que ya hay localmente (sin duplicar por DNI).
+// ══════════════════════════════════════════════════════════════════
+async function sincronizarTodosPacientesDesdeNube(){
+  const btn = document.getElementById('btn-sync-nube');
+  if(btn){ btn.disabled = true; btn.textContent = '☁ Sincronizando…'; }
+  try{
+    const resp = await fetch(SHEETS_URL+'?action=getAll&sheet='+encodeURIComponent('Pacientes')+tokenQS_(), {signal:AbortSignal.timeout(20000)});
+    const json = await resp.json();
+    if(json && json.error){
+      toast('⚠️ No se pudo traer la lista: '+json.error, 'err');
+      return;
+    }
+    const filas = Array.isArray(json&&json.data) ? json.data : [];
+    if(!filas.length){
+      toast('La planilla "Pacientes" está vacía o no se encontró.', 'err');
+      return;
+    }
+    const localActual = await dbGetAll('pacientes');
+    const dnisLocal = new Set(localActual.map(p=>String(p.dni||'').replace(/\D/g,'')).filter(Boolean));
+    let agregados=0, actualizados=0;
+    for(const c of filas){
+      const dniLimpio = String(c.DNI||c.dni||'').replace(/\D/g,'');
+      const datos = {
+        dni:c.DNI||c.dni||'', apellido:c.Apellido||c.apellido||'', nombre:c.Nombre||c.nombre||'',
+        fecha_nac:c.Fecha_Nac||c.fecha_nac||'', obra_social:c.Obra_Social||c.obra_social||'',
+        plan:c.Plan||c.plan||'', nro_afiliado:c.N_Afiliado||c.nro_afiliado||'',
+        telefono:c.Telefono||c.telefono||'', mail:c.Email||c.mail||'', direccion:c.Domicilio||c.direccion||'',
+        localidad:c.Localidad||c.localidad||'', lugar_atencion:c.Lugar_Atencion||c.lugar_atencion||'',
+        centro_derivador:c.Centro_Derivador||c.centro_derivador||''
+      };
+      if(!dniLimpio && !datos.apellido) continue; // fila vacía/basura, no la guardamos
+      if(dniLimpio && dnisLocal.has(dniLimpio)) continue; // ya está en esta compu, no duplicar
+      await dbAdd('pacientes', {...datos, created_at:new Date().toISOString()});
+      if(dniLimpio) dnisLocal.add(dniLimpio);
+      agregados++;
+    }
+    toast(agregados>0 ? `☁ ${agregados} paciente(s) nuevo(s) traído(s) de la nube` : 'Ya tenías todos los pacientes de la nube en esta computadora','ok');
+    cargarListaPacientes();
+  }catch(e){
+    toast('⚠️ No se pudo conectar con Google Sheets para sincronizar. Probá de nuevo con internet estable.','err');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '☁ Traer todos de la nube'; }
+  }
+}
 
 function toggleVistaPacientes(){
   if(vistaActual==='pacientes')mostrarVista('receta');
@@ -7486,6 +7686,9 @@ async function finalConsulta(){
     Lugar_Atencion: lugarAtencionLabel,
     Proximo_Control: ''
   };
+  // SEGURIDAD (sep 2026): addHistoria ahora exige token del lado del
+  // servidor una vez que el médico lo configure.
+  if(typeof APP_TOKEN!=='undefined' && APP_TOKEN) payloadHistoria.token = APP_TOKEN;
   try{
     await fetch(SHEETS_URL,{method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -7515,6 +7718,7 @@ async function finalConsulta(){
     const b=document.getElementById(id); if(b) b.disabled=true;
   });
   actualizarBotonMembresia_();
+  actualizarBotonMembresiaSeguimiento_();
   // Limpiar buscador para que el médico pueda buscar el siguiente paciente
   const buscarEl = document.getElementById('buscar-pac');
   if(buscarEl){ buscarEl.value=''; buscarEl.focus(); }
@@ -7679,10 +7883,13 @@ async function generarLinkFirmaHC(){
   cont.textContent = 'Generando…';
   try{
     const resp = await fetch(SHEETS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({action:'guardar_resumen_para_firma', dni:pacienteActivo.dni, apellido:pacienteActivo.apellido||'', nombre:pacienteActivo.nombre||'', resumen:texto})});
+      body: JSON.stringify(Object.assign({action:'guardar_resumen_para_firma', dni:pacienteActivo.dni, apellido:pacienteActivo.apellido||'', nombre:pacienteActivo.nombre||'', resumen:texto}, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{}))});
     const data = await resp.json();
     if(!data.success) throw new Error(data.error||'Error del servidor');
-    const link = 'https://lmuratori.github.io/smm-acceso-temporal/Autorizacion_HC_v1.html?dni=' + encodeURIComponent(pacienteActivo.dni);
+    // El link lleva el Firma_Token propio de este resumen (parámetro t) —
+    // sin él, una vez que el médico active el token compartido, un DNI solo
+    // ya no alcanza para que el paciente pueda ver/firmar su resumen.
+    const link = 'https://drmuratorisalud.ar/Autorizacion_HC_v1.html?dni=' + encodeURIComponent(pacienteActivo.dni) + (data.token ? '&t=' + encodeURIComponent(data.token) : '');
     cont.innerHTML = `✅ Link generado — mandáselo al paciente por mail (o copialo y mandalo por donde prefieras):<br>
       <input type="text" readonly value="${link}" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;font-size:11.5px" onclick="this.select()">`;
   }catch(e){
@@ -7694,7 +7901,7 @@ async function verificarFirmaHC(){
   const cont = document.getElementById('rhc-firma-resultado');
   cont.textContent = 'Consultando…';
   try{
-    const resp = await fetch(SHEETS_URL + '?action=get_estado_firma&dni=' + encodeURIComponent(pacienteActivo.dni));
+    const resp = await fetch(SHEETS_URL + '?action=get_estado_firma&dni=' + encodeURIComponent(pacienteActivo.dni) + tokenQS_());
     const data = await resp.json();
     if(!data.success || !data.encontrado){ cont.textContent = 'Todavía no hay ningún resumen generado para este paciente.'; return; }
     if(!data.firmado){ cont.textContent = '⏳ Todavía no firmó.'; document.getElementById('rhc-acciones-firmado').style.display='none'; return; }
@@ -7729,7 +7936,7 @@ async function enviarResumenHCPorMail(){
   cont.textContent = 'Enviando…';
   try{
     const resp = await fetch(SHEETS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({action:'enviar_resumen_firmado', dni:pacienteActivo.dni, destinatario})});
+      body: JSON.stringify(Object.assign({action:'enviar_resumen_firmado', dni:pacienteActivo.dni, destinatario}, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{}))});
     const data = await resp.json();
     if(!data.success) throw new Error(data.error||'Error del servidor');
     cont.textContent = '✅ ' + data.message;
@@ -10107,6 +10314,13 @@ async function enviarIMDpacienteMail() {
       localStorage.setItem('imdcymt_log', JSON.stringify(imdLog));
     }
   } catch(_) {}
+
+  // NUEVO: guardar también en la nube (IMDCYMT_Docs) y en el Libro RMYT —
+  // ver registrarRmytEnviado_ más abajo.
+  registrarRmytEnviado_(
+    imdSeleccionadas.map(k => RECOM_REGIONES_DB_V12[k]?.titulo || k).join(', '),
+    msg
+  );
 }
 
 /* Botón "✅ Concluir y Enviar RMYT" del modal F1/F2/F3 — envía por mail al
@@ -10127,7 +10341,7 @@ async function concluirYEnviarRMYT() {
   // faltaba: el mail invitaba a "completar la evaluación semanal" pero nunca
   // llevaba el link. seg es opcional — si la región no tiene módulo específico
   // mapeado, la página igual abre con el formulario genérico (sin romperse).
-  const RMYT_SITE_URL = 'https://lmuratori.github.io/smm-acceso-temporal/RMYT_Autoevaluacion_Semanal_v1.html';
+  const RMYT_SITE_URL = 'https://drmuratorisalud.ar/RMYT_Autoevaluacion_Semanal_v1.html';
   const MAPA_SEG_RMYT = {
     '4-Hombro':'hombro', '5-Brazo':'brazo', '6-Codo':'codo', '7-Antebrazo':'antebrazo',
     '10-Cadera':'cadera', '12-Rodilla':'rodilla', '13-Pierna':'pierna',
@@ -10198,6 +10412,10 @@ async function concluirYEnviarRMYT() {
       localStorage.setItem('imdcymt_log', JSON.stringify(imdLog));
     }
   } catch(_) {}
+
+  // NUEVO: guardar también en la nube (IMDCYMT_Docs) y en el Libro RMYT —
+  // ver registrarRmytEnviado_ más arriba.
+  registrarRmytEnviado_(d.titulo, cuerpo);
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -10732,6 +10950,32 @@ function renderDashboardIMD() {
    no se repite esa lógica — solo se manda el mensaje con el asunto marcado
    según de qué conector y qué región RMYT salió, para que se sepa el origen
    al leerlo o al armar la respuesta automática. */
+// ══════════════════════════════════════════════════════════════════
+// NUEVO (sep 2026): las RMYT enviadas por mail desde el modal F1/F2/F3
+// (enviarIMDpacienteMail / concluirYEnviarRMYT, arriba) quedaban SOLO en
+// "imdcymt_log" — localStorage de ESTA computadora. Nunca se guardaban en
+// la nube (a diferencia del "Generador de Recomendaciones" clásico, que sí
+// llama a saveRecomendaciones), así que el Dr. Muratori no podía volver a
+// encontrarlas desde otra máquina, ni aparecían en la pestaña "Resumen de
+// la consulta" (F2, cargarResumenHistoriaIMD) ni en el Libro RMYT si abría
+// el sistema en otra computadora. Este helper las persiste en la hoja
+// IMDCYMT_Docs (misma que ya usa el Generador clásico) y las anota también
+// en el checklist local del Libro RMYT — mismo criterio que ya usaba el
+// Generador clásico (ver agregarAChecklistRmyt más arriba).
+// ══════════════════════════════════════════════════════════════════
+function registrarRmytEnviado_(tituloRegion, resumenTexto){
+  if(!pacienteActivo || !pacienteActivo.dni) return;
+  const datos = {
+    consulta:{ resumen: resumenTexto||'' },
+    medicacion:{ magistral:[], farmacopeo:[] },
+    kinesio:{},
+    ejercicios:{ titulo: tituloRegion||'' }
+  };
+  fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({action:'saveRecomendaciones', dni:pacienteActivo.dni, datos:datos})
+  }).catch(()=>{});
+  if(tituloRegion) agregarAChecklistRmyt('RMYT — '+tituloRegion);
+}
 function mailtoIMD_(asunto, cuerpo) {
   window.open(`mailto:${MAIL_KINESIOLOGIA_12}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`, '_blank');
 }
@@ -11617,6 +11861,8 @@ async function backupGoogleSheets() {
   try {
     const data = await recolectarDatosBackup();
     const payload = { action:'backup', data: JSON.stringify(data.resumen), timestamp: data.timestamp };
+    // SEGURIDAD (sep 2026): backup ahora exige token del lado del servidor.
+    if(typeof APP_TOKEN!=='undefined' && APP_TOKEN) payload.token = APP_TOKEN;
     const resp = await fetch(SHEETS_URL_BACKUP, {
       method:'POST', body:JSON.stringify(payload),
       headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -12357,6 +12603,52 @@ function renderHistItemHTML(c){
 
       <button onclick="guardarTarifas()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px">
         💾 Guardar tarifas
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MODAL MEMBRESÍA DE SEGUIMIENTO — mensual, por UNA patología puntual,
+     de mutuo acuerdo con el paciente. Totalmente separado del botón
+     "🤝 Dar membresía" (gratuito). Ver Codigo.gs para el backend.
+     ══════════════════════════════════════════════════════════════════ -->
+<div id="modal-membresia-seguimiento" class="modal-overlay">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <span>📆 Membresía de seguimiento</span>
+      <button onclick="cerrarModal('modal-membresia-seguimiento')">✕</button>
+    </div>
+    <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+      <p style="font-size:12px;color:var(--muted)">
+        Para el seguimiento mensual de UNA patología puntual — incluye la receta/orden
+        necesaria para ese motivo, nunca recetas a otras personas ni medicación fuera
+        de la especialidad en tratamiento. Hasta 3 mensajes por semana (400 palabras
+        cada uno, siempre sobre el estado de esta patología); lo no usado en la semana
+        no se acumula. Se renueva mes a mes, de común acuerdo con el paciente.
+      </p>
+
+      <div id="ms-estado-box" style="font-size:12px;padding:10px;border-radius:8px;background:#f1f5f9;border:1px solid var(--border)">
+        Consultando estado…
+      </div>
+
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px">Patología en seguimiento</label>
+        <input id="ms-patologia" type="text" placeholder="Ej: Hallux valgus post-quirúrgico" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px">Precio mensual ($)</label>
+        <input id="ms-precio" type="number" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit">
+      </div>
+
+      <button onclick="confirmarIniciarRenovarMembresiaSeguimiento()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+        🤝 Confirmar con el paciente y generar link de pago
+      </button>
+      <button onclick="revisarPagoMembresiaSeguimiento()" style="background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+        🔄 Revisar si ya pagó este mes
+      </button>
+      <button onclick="desactivarMembresiaSeguimientoUI()" style="background:#fff;color:#b91c1c;border:1.5px solid #fecaca;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+        ✕ Dar de baja el seguimiento
       </button>
     </div>
   </div>
@@ -14805,10 +15097,12 @@ async function generarLinkFirmaConsentimiento(){
   cont.textContent='Generando…';
   try{
     const resp=await fetch(SHEETS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'guardar_consentimiento_para_firma', dni:pacienteActivo.dni, apellido:pacienteActivo.apellido||'', nombre:pacienteActivo.nombre||'', procedimiento:consinfProcedimientoActual_||'', texto:consinfTextoActual_})});
+      body:JSON.stringify(Object.assign({action:'guardar_consentimiento_para_firma', dni:pacienteActivo.dni, apellido:pacienteActivo.apellido||'', nombre:pacienteActivo.nombre||'', procedimiento:consinfProcedimientoActual_||'', texto:consinfTextoActual_}, (typeof APP_TOKEN!=='undefined'&&APP_TOKEN)?{token:APP_TOKEN}:{}))});
     const data=await resp.json();
     if(!data.success) throw new Error(data.error||'Error del servidor');
-    const link='https://lmuratori.github.io/smm-acceso-temporal/Autorizacion_ConsentimientoQx_v1.html?dni='+encodeURIComponent(pacienteActivo.dni);
+    // Igual que en el resumen de HC: el link lleva el Firma_Token propio de
+    // este consentimiento (parámetro t).
+    const link='https://drmuratorisalud.ar/Autorizacion_ConsentimientoQx_v1.html?dni='+encodeURIComponent(pacienteActivo.dni)+(data.token?'&t='+encodeURIComponent(data.token):'');
     cont.innerHTML=`✅ Link generado — mandáselo al paciente por mail (o copialo):<br>
       <input type="text" readonly value="${link}" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;font-size:11.5px" onclick="this.select()">`;
     // Queda anotado en el Libro Quirúrgico, igual que cualquier otro ítem del checklist
@@ -14822,7 +15116,7 @@ async function verificarFirmaConsentimiento(){
   const cont=document.getElementById('consinf-firma-resultado');
   cont.textContent='Consultando…';
   try{
-    const resp=await fetch(SHEETS_URL+'?action=get_estado_firma_consentimiento&dni='+encodeURIComponent(pacienteActivo.dni),{signal:AbortSignal.timeout(8000)});
+    const resp=await fetch(SHEETS_URL+'?action=get_estado_firma_consentimiento&dni='+encodeURIComponent(pacienteActivo.dni)+tokenQS_(),{signal:AbortSignal.timeout(8000)});
     const data=await resp.json();
     if(!data.success || !data.encontrado){ cont.textContent='Todavía no se generó un link de firma para este paciente.'; return; }
     if(data.firmado){

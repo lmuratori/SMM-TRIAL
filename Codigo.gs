@@ -118,16 +118,24 @@ const ACCIONES_GET_PROTEGIDAS_ = [
   'get_investigacion_paciente','get_discapacidad_paciente','get_plantillas_paciente',
   'get_minirimp','ssq_obtener_seguimiento_posqx','ssq_resumen_seguridad_quirofano',
   'get_neuroortopedia','get_todas_plantillas_sync',
-  // AGREGADAS (revisión sep 2026): estas devuelven datos clínicos de un
-  // paciente puntual buscando solo por DNI — igual que get_ridm_paciente o
-  // get_historial, que sí estaban protegidas. Un DNI es un número corto y
-  // adivinable, no una clave secreta, así que sin token cualquiera podía
-  // recorrer DNIs y leer el resumen de historia clínica, el consentimiento
-  // quirúrgico (con el procedimiento y el diagnóstico) o las mediciones de
-  // goniometría de cualquier paciente.
-  'get_resumen_para_firma','get_estado_firma',
-  'get_consentimiento_para_firma','get_estado_firma_consentimiento',
-  'get_gonio_mediciones'
+  // AGREGADA (revisión sep 2026): confirma/anula una fila del puente RIDM →
+  // OCM. Antes cualquiera con la URL podía "marcar como procesada" una
+  // filiación real sin haberla visto, haciendo que se pierda de la lista
+  // de pendientes del médico.
+  'marcar_procesado',
+  'get_gonio_mediciones',
+  // AGREGADA (Membresía de Seguimiento): consulta el estado de la
+  // membresía de seguimiento de un DNI (patología, próxima renovación,
+  // mensajes usados esta semana) — la usa el botón "📆 Membresía de
+  // seguimiento" de OCM. La llama siempre el médico.
+  'get_membresia_seguimiento'
+  // NO van acá get_resumen_para_firma / get_estado_firma /
+  // get_consentimiento_para_firma / get_estado_firma_consentimiento: esas
+  // las llama el PACIENTE (sin token compartido) desde el link que recibe
+  // por mail, así que exigirles el token de esta lista las rompería en
+  // cuanto se configure. Tienen su PROPIO mecanismo de protección —un
+  // Firma_Token distinto por cada documento— ver el comentario arriba de
+  // guardarResumenParaFirma en la sección de firma táctil.
 ];
 function configurarAppToken(){
   const props = PropertiesService.getScriptProperties();
@@ -230,11 +238,15 @@ function doGet(e) {
   else if(action==='get_historial') r=getHistorialPaciente(e.parameter.dni||'');
   else if(action==='marcar_procesado') r=marcarRidmProcesado(e.parameter.row||'');
   // ── NUEVO: Resumen de Historia Clínica con firma táctil del paciente ──
-  else if(action==='get_resumen_para_firma') r=getResumenParaFirma(e.parameter.dni||'');
-  else if(action==='get_estado_firma') r=getEstadoFirma(e.parameter.dni||'');
+  // (sep 2026: ahora se les pasa también el token compartido —parámetro
+  // "token", lo manda el médico/OCM— y el token propio del documento
+  // —parámetro "t", lo manda el paciente desde el link que recibió—;
+  // alcanza con que uno de los dos sea válido. Ver getResumenParaFirma.)
+  else if(action==='get_resumen_para_firma') r=getResumenParaFirma(e.parameter.dni||'', e.parameter.token||'', e.parameter.t||'');
+  else if(action==='get_estado_firma') r=getEstadoFirma(e.parameter.dni||'', e.parameter.token||'', e.parameter.t||'');
   // ── NUEVO: Consentimiento Informado quirúrgico con firma táctil (extiende el mismo mecanismo) ──
-  else if(action==='get_consentimiento_para_firma') r=getConsentimientoParaFirma(e.parameter.dni||'');
-  else if(action==='get_estado_firma_consentimiento') r=getEstadoFirmaConsentimiento(e.parameter.dni||'');
+  else if(action==='get_consentimiento_para_firma') r=getConsentimientoParaFirma(e.parameter.dni||'', e.parameter.token||'', e.parameter.t||'');
+  else if(action==='get_estado_firma_consentimiento') r=getEstadoFirmaConsentimiento(e.parameter.dni||'', e.parameter.token||'', e.parameter.t||'');
   // ── NUEVO: cola de pagos de Mercado Pago confirmados, esperando que el médico los atienda ──
   else if(action==='get_pagos_pendientes') r=getPagosPendientes();
   else if(action==='getRecomendaciones') r=getRecomendaciones(e.parameter.dni||'');
@@ -264,6 +276,8 @@ function doGet(e) {
   else if(action==='ssq_resumen_seguridad_quirofano') r=getResumenSeguridadQuirofano();
   // ── NUEVO: GONIO — reconecta Costa-Bártani/Valgo-Varo/Ángulos de Frente/Podoscopia con su guardado ──
   else if(action==='get_gonio_mediciones') r=getGonioMediciones(e.parameter.dni||'');
+  // ── NUEVO: Membresía de Seguimiento (mensual, por patología puntual) ──
+  else if(action==='get_membresia_seguimiento') r=getMembresiaSeguimiento(e.parameter.dni||'');
   // ── NUEVO: Neuro-ortopedia / Parálisis cerebral (CAM) — GMFCS, MACS,
   // Índice de Reimers, Ashworth/Tardieu, Thomas-Stonell/Greenberg. Ver
   // guardarNeuroortopedia más abajo.
@@ -278,12 +292,31 @@ function doGet(e) {
 }
 // ── Igual que ACCIONES_GET_PROTEGIDAS_, pero para las acciones de ESCRITURA
 // (guardar/enviar/configurar) que usan las apps de especialistas — KSM,
-// Colegas, Panel de Especialistas, Lector CUD y Agenda de Mensajes. A
-// PROPÓSITO se dejan afuera de esta lista:
-//   - las acciones que usa el propio Dr. Muratori desde OCM (addPaciente,
-//     saveConsulta, backup, etc.) — OCM tiene su propio control de acceso
-//     físico (es la compu del consultorio) y gatear todo ahí sería
-//     repetitivo sin agregar seguridad real.
+// Colegas, Panel de Especialistas, Lector CUD y Agenda de Mensajes.
+//
+// CORREGIDO (revisión sep 2026): antes, las acciones que usa el propio Dr.
+// Muratori desde OCM (addPaciente, addReceta, addHistoria,
+// addHistoriaExtendida, actualizarConsulta, backup) quedaban A PROPÓSITO
+// afuera de esta lista, bajo el supuesto de que "OCM tiene su propio control
+// de acceso físico (es la compu del consultorio)". Ese supuesto era falso:
+// la URL de este Web App está escrita en el código fuente de las ~29
+// páginas públicas del sistema (cualquiera puede verla con "ver código
+// fuente" del navegador), así que "hace falta estar en la compu del
+// consultorio" nunca fue una barrera real — cualquiera con la URL podía
+// crear pacientes falsos, pisar un paciente real adivinando su DNI, o
+// cargar recetas/historias clínicas falsas, sin loguearse nunca. Ahora SÍ
+// quedan protegidas por token, igual que el resto de la lista. OCM, KSM y
+// Agenda de Mensajes ya mandan el token en estas llamadas cuando está
+// configurado (variable APP_TOKEN de cada página) — mientras no corras
+// configurarAppToken(), tokenValido_() sigue dejando pasar todo igual que
+// antes, así que subir este archivo no corta nada por sí solo.
+//
+// Siguen A PROPÓSITO afuera de esta lista:
+//   - saveConsulta — la llama un paciente ANÓNIMO desde
+//     Recomendaciones_Medicas_Terapeuticas_v1.html para pedir una consulta
+//     paga; nunca va a tener el token, igual que qr_solicitud_consulta.
+//     Solo crea una consulta en estado "pendiente_pago", no expone ni pisa
+//     historia clínica de nadie.
 //   - las acciones que llenan los pacientes desde un link que reciben por
 //     mail (saveAutoevaluacionRMYT, evaluacion_submit, kine_pregunta_submit,
 //     ssq_guardar_seguimiento_posqx) — el paciente nunca tiene ni va a
@@ -314,6 +347,12 @@ function doGet(e) {
 //     Mercado Pago con su propio formato, no nuestro token, y se resuelve
 //     antes de llegar a este chequeo.
 const ACCIONES_POST_PROTEGIDAS_ = [
+  // AGREGADAS (revisión sep 2026) — ver el comentario completo arriba de
+  // esta lista: eran las acciones de escritura más sensibles de todo el
+  // sistema (alta/edición de pacientes, recetas, historia clínica, backup)
+  // y estaban sin ninguna protección.
+  'addPaciente','addReceta','addHistoria','addHistoriaExtendida',
+  'actualizarConsulta','backup',
   'generarLinkMeet','kine_evolucion','kine_informe_enviar','kine_pregunta_responder',
   'guardar_neuroortopedia',
   // AGREGADA (revisión sep 2026): esta MISMA acción ya estaba en la lista de
@@ -332,7 +371,34 @@ const ACCIONES_POST_PROTEGIDAS_ = [
   'crear_link_pago_mp',
   'asistente_consulta_ia',
   'analizar_texto_paciente','guardar_paciente_historial',
-  'confirmarPagoMensaje','marcarRespondido'
+  'confirmarPagoMensaje','marcarRespondido',
+  // AGREGADAS (revisión sep 2026, sabotaje/adversarial): saveTarifas y
+  // set_membresia las llama únicamente el médico desde OCM (configuración
+  // de precios y el interruptor de membresía de un paciente) — no tienen
+  // ningún llamador anónimo. Sin token, cualquiera podía cambiar los
+  // precios que ve un paciente antes de pagar, o darle/quitarle membresía
+  // (RMYT, mail con contexto clínico, agendas) a cualquier DNI sin que el
+  // médico lo decidiera.
+  'saveTarifas','set_membresia',
+  // AGREGADAS (revisión sep 2026, sabotaje/adversarial): guardar_resumen_para_firma
+  // y guardar_consentimiento_para_firma las llama el MÉDICO desde OCM (arman
+  // el resumen/consentimiento y generan el link) — van con el token
+  // compartido, como el resto de las acciones de OCM. NO se agrega acá
+  // guardar_firma_paciente ni guardar_firma_consentimiento (las llama el
+  // PACIENTE sin ese token): esas dos tienen su propio Firma_Token por
+  // documento, chequeado adentro de cada función — agregarlas a esta lista
+  // las rompería en cuanto se configure el token compartido.
+  // enviar_resumen_firmado también es del médico (manda por mail el
+  // resumen ya firmado a quien él decida) — antes cualquiera con la URL
+  // podía pedir que se reenvíe el resumen firmado de cualquier DNI a
+  // cualquier mail que eligiera, sin ser el médico.
+  'guardar_resumen_para_firma','guardar_consentimiento_para_firma','enviar_resumen_firmado',
+  // AGREGADAS (Membresía de Seguimiento, sep 2026): las tres las llama
+  // únicamente el médico desde OCM — iniciar/renovar el mes (genera el
+  // link de pago), desactivar, y revisar a mano si ya se pagó. Ninguna
+  // la llama nunca el paciente directamente.
+  'iniciar_renovar_membresia_seguimiento','desactivar_membresia_seguimiento',
+  'confirmar_renovacion_membresia'
 ];
 function doPost(e) {
   const data=JSON.parse(e.postData.contents);
@@ -415,6 +481,10 @@ function doPost(e) {
   // sin token: lo completa un especialista externo que llega por un link
   // (QR de la receta de interconsulta), nunca va a tener el token del sistema ──
   else if(action==='guardar_minirimp') r=guardarRespuestaMiniRIMP(data);
+  // ── NUEVO: Membresía de Seguimiento (mensual, por patología puntual) ──
+  else if(action==='iniciar_renovar_membresia_seguimiento') r=iniciarORenovarMembresiaSeguimiento(data);
+  else if(action==='desactivar_membresia_seguimiento') r=desactivarMembresiaSeguimiento(data);
+  else if(action==='confirmar_renovacion_membresia') r=confirmarRenovacionMembresiaSeguimiento(data.DNI||data.dni||'');
   else r={error:'Acción no reconocida'};
   return jsonOut(r);
 }
@@ -457,7 +527,7 @@ function getRimpUrl_(){
   // así que ese link SIEMPRE daba 404. Cualquier mail mandado antes de este
   // arreglo (RIMP inmediato al guardar "primera consulta", recordatorio semanal)
   // le llegó al paciente con un link roto.
-  return 'https://lmuratori.github.io/smm-acceso-temporal/RIDM_Muratori_v1.html'; // GitHub Pages
+  return 'https://drmuratorisalud.ar/RIDM_Muratori_v1.html'; // Dominio propio (Cloudflare Pages)
 }
 // p.extenso=true → RIMP completo (infancia, vacunas, COVID, vivienda, jornada
 // laboral) — se usa para trámites de discapacidad/CUD. Sin ese flag (default)
@@ -1108,12 +1178,28 @@ function hojaResumenFirma_(){
   let sheet=ss.getSheetByName('Resumenes_HC_Firma');
   if(!sheet){
     sheet=ss.insertSheet('Resumenes_HC_Firma');
-    sheet.appendRow(['Timestamp','DNI','Apellido','Nombre','Resumen_Texto','Firmado','Firma_Base64','Fecha_Firma']);
+    sheet.appendRow(['Timestamp','DNI','Apellido','Nombre','Resumen_Texto','Firmado','Firma_Base64','Fecha_Firma','Firma_Token']);
+  } else {
+    // MIGRACIÓN (sep 2026): agrega la columna Firma_Token si la hoja ya
+    // existía de antes (no pisa ninguna fila existente).
+    const headers=sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+    if(headers.indexOf('Firma_Token')===-1){
+      sheet.getRange(1, sheet.getLastColumn()+1).setValue('Firma_Token');
+    }
   }
   return sheet;
 }
+// CORREGIDO (sep 2026): antes esto se protegía SOLO con el DNI (un número
+// corto y adivinable, no un secreto) — cualquiera que probara DNIs al
+// tanteo podía leer el resumen de historia clínica de otro paciente, o
+// directamente firmar en su nombre. Ahora cada resumen tiene su propio
+// Firma_Token (un UUID) que se genera acá, se manda en el link que recibe
+// el paciente (?dni=...&t=<token>), y getResumenParaFirma/guardarFirmaPaciente
+// lo exigen. El médico (OCM) sigue entrando igual con el token compartido
+// de siempre (APP_TOKEN) — ver el doble chequeo más abajo.
 function guardarResumenParaFirma(d){
   if(!d.dni) return {success:false, error:'Falta el DNI'};
+  const token = Utilities.getUuid();
   const sheet=hojaResumenFirma_();
   const data=sheet.getDataRange().getValues();
   const headers=data[0];
@@ -1122,15 +1208,23 @@ function guardarResumenParaFirma(d){
     if(String(data[i][dniCol])===String(d.dni)){
       // Ya había un resumen para este DNI: se reemplaza (no se acumulan
       // filas viejas) y se vuelve a pedir la firma desde cero, porque el
-      // texto cambió.
-      sheet.getRange(i+1,1,1,8).setValues([[new Date().toISOString(), d.dni, d.apellido||'', d.nombre||'', d.resumen||'', 'NO', '', '']]);
-      return {success:true, message:'Resumen actualizado, a la espera de la firma'};
+      // texto cambió. Se genera un Firma_Token nuevo también, así un link
+      // viejo ya mandado por mail deja de servir para el resumen anterior.
+      sheet.getRange(i+1,1,1,9).setValues([[new Date().toISOString(), d.dni, d.apellido||'', d.nombre||'', d.resumen||'', 'NO', '', '', token]]);
+      return {success:true, message:'Resumen actualizado, a la espera de la firma', token:token};
     }
   }
-  sheet.appendRow([new Date().toISOString(), d.dni, d.apellido||'', d.nombre||'', d.resumen||'', 'NO', '', '']);
-  return {success:true, message:'Resumen guardado, a la espera de la firma'};
+  sheet.appendRow([new Date().toISOString(), d.dni, d.apellido||'', d.nombre||'', d.resumen||'', 'NO', '', '', token]);
+  return {success:true, message:'Resumen guardado, a la espera de la firma', token:token};
 }
-function getResumenParaFirma(dni){
+// dni: obligatorio. appToken: el token compartido de las apps (médico/OCM,
+// vía parámetro "token"). firmaToken: el token propio de ESTE resumen (vía
+// parámetro "t", el que recibe el paciente en el link). Alcanza con que
+// UNO de los dos sea válido. Si el resumen es de antes de esta actualización
+// (Firma_Token vacío, columna migrada recién), se sigue permitiendo el
+// acceso solo por DNI como hasta ahora — así no se corta ningún link ya
+// mandado — hasta que el médico genere el resumen de nuevo.
+function getResumenParaFirma(dni, appToken, firmaToken){
   if(!dni) return {success:false, error:'Falta el DNI'};
   const sheet=hojaResumenFirma_();
   const data=sheet.getDataRange().getValues();
@@ -1140,6 +1234,10 @@ function getResumenParaFirma(dni){
     .filter(r=>String(r.DNI)===String(dni));
   if(!filas.length) return {success:true, encontrado:false};
   const f=filas[filas.length-1];
+  const tokenGuardado=String(f.Firma_Token||'');
+  const okApp = tokenValido_(appToken);
+  const okFirma = !tokenGuardado || String(firmaToken||'')===tokenGuardado;
+  if(!okApp && !okFirma) return {success:false, error:'Token inválido o faltante'};
   return {success:true, encontrado:true, apellido:f.Apellido, nombre:f.Nombre, resumen:f.Resumen_Texto, firmado: String(f.Firmado).toUpperCase()==='SI'};
 }
 function guardarFirmaPaciente(d){
@@ -1148,9 +1246,13 @@ function guardarFirmaPaciente(d){
   const sheet=hojaResumenFirma_();
   const data=sheet.getDataRange().getValues();
   const headers=data[0];
-  const dniCol=headers.indexOf('DNI'), firmadoCol=headers.indexOf('Firmado'), firmaCol=headers.indexOf('Firma_Base64'), fechaCol=headers.indexOf('Fecha_Firma');
+  const dniCol=headers.indexOf('DNI'), firmadoCol=headers.indexOf('Firmado'), firmaCol=headers.indexOf('Firma_Base64'), fechaCol=headers.indexOf('Fecha_Firma'), tokenCol=headers.indexOf('Firma_Token');
   for(let i=1;i<data.length;i++){
     if(String(data[i][dniCol])===String(d.dni)){
+      const tokenGuardado=String((tokenCol>-1?data[i][tokenCol]:'')||'');
+      const okApp = tokenValido_(d.token);
+      const okFirma = !tokenGuardado || String(d.t||'')===tokenGuardado;
+      if(!okApp && !okFirma) return {success:false, error:'Token inválido o faltante'};
       sheet.getRange(i+1,firmadoCol+1).setValue('SI');
       sheet.getRange(i+1,firmaCol+1).setValue(d.firma_base64);
       sheet.getRange(i+1,fechaCol+1).setValue(new Date().toISOString());
@@ -1159,8 +1261,8 @@ function guardarFirmaPaciente(d){
   }
   return {success:false, error:'No se encontró un resumen pendiente para ese DNI — pedile al médico que lo genere de nuevo'};
 }
-function getEstadoFirma(dni){
-  return getResumenParaFirma(dni);
+function getEstadoFirma(dni, appToken, firmaToken){
+  return getResumenParaFirma(dni, appToken, firmaToken);
 }
 // Envía por mail el resumen YA FIRMADO (a quien lo haya solicitado — no
 // tiene por qué ser el mail del propio paciente, por eso pide destinatario
@@ -1212,12 +1314,22 @@ function hojaConsentimientoFirma_(){
   let sheet=ss.getSheetByName('Consentimientos_QX_Firma');
   if(!sheet){
     sheet=ss.insertSheet('Consentimientos_QX_Firma');
-    sheet.appendRow(['Timestamp','DNI','Apellido','Nombre','Procedimiento','Texto_Consentimiento','Firmado','Firma_Base64','Fecha_Firma']);
+    sheet.appendRow(['Timestamp','DNI','Apellido','Nombre','Procedimiento','Texto_Consentimiento','Firmado','Firma_Base64','Fecha_Firma','Firma_Token']);
+  } else {
+    // MIGRACIÓN (sep 2026): mismo criterio que hojaResumenFirma_ — agrega
+    // la columna si la hoja ya existía, sin tocar filas viejas.
+    const headers=sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+    if(headers.indexOf('Firma_Token')===-1){
+      sheet.getRange(1, sheet.getLastColumn()+1).setValue('Firma_Token');
+    }
   }
   return sheet;
 }
+// Mismo mecanismo de Firma_Token que guardarResumenParaFirma — ver el
+// comentario completo ahí arriba.
 function guardarConsentimientoParaFirma(d){
   if(!d.dni) return {success:false, error:'Falta el DNI'};
+  const token = Utilities.getUuid();
   const sheet=hojaConsentimientoFirma_();
   const data=sheet.getDataRange().getValues();
   const headers=data[0];
@@ -1225,15 +1337,18 @@ function guardarConsentimientoParaFirma(d){
   for(let i=1;i<data.length;i++){
     if(String(data[i][dniCol])===String(d.dni)){
       // Igual que con el Resumen de HC: se reemplaza el pendiente anterior
-      // (si había) y se vuelve a pedir la firma desde cero.
-      sheet.getRange(i+1,1,1,9).setValues([[new Date().toISOString(), d.dni, d.apellido||'', d.nombre||'', d.procedimiento||'', d.texto||'', 'NO', '', '']]);
-      return {success:true, message:'Consentimiento actualizado, a la espera de la firma'};
+      // (si había) y se vuelve a pedir la firma desde cero, con un
+      // Firma_Token nuevo.
+      sheet.getRange(i+1,1,1,10).setValues([[new Date().toISOString(), d.dni, d.apellido||'', d.nombre||'', d.procedimiento||'', d.texto||'', 'NO', '', '', token]]);
+      return {success:true, message:'Consentimiento actualizado, a la espera de la firma', token:token};
     }
   }
-  sheet.appendRow([new Date().toISOString(), d.dni, d.apellido||'', d.nombre||'', d.procedimiento||'', d.texto||'', 'NO', '', '']);
-  return {success:true, message:'Consentimiento guardado, a la espera de la firma'};
+  sheet.appendRow([new Date().toISOString(), d.dni, d.apellido||'', d.nombre||'', d.procedimiento||'', d.texto||'', 'NO', '', '', token]);
+  return {success:true, message:'Consentimiento guardado, a la espera de la firma', token:token};
 }
-function getConsentimientoParaFirma(dni){
+// Mismo doble chequeo (appToken del médico/OCM O firmaToken propio del
+// documento) que getResumenParaFirma — ver el comentario completo ahí arriba.
+function getConsentimientoParaFirma(dni, appToken, firmaToken){
   if(!dni) return {success:false, error:'Falta el DNI'};
   const sheet=hojaConsentimientoFirma_();
   const data=sheet.getDataRange().getValues();
@@ -1243,6 +1358,10 @@ function getConsentimientoParaFirma(dni){
     .filter(r=>String(r.DNI)===String(dni));
   if(!filas.length) return {success:true, encontrado:false};
   const f=filas[filas.length-1];
+  const tokenGuardado=String(f.Firma_Token||'');
+  const okApp = tokenValido_(appToken);
+  const okFirma = !tokenGuardado || String(firmaToken||'')===tokenGuardado;
+  if(!okApp && !okFirma) return {success:false, error:'Token inválido o faltante'};
   return {success:true, encontrado:true, apellido:f.Apellido, nombre:f.Nombre, procedimiento:f.Procedimiento, texto:f.Texto_Consentimiento, firmado: String(f.Firmado).toUpperCase()==='SI'};
 }
 function guardarFirmaConsentimiento(d){
@@ -1251,9 +1370,13 @@ function guardarFirmaConsentimiento(d){
   const sheet=hojaConsentimientoFirma_();
   const data=sheet.getDataRange().getValues();
   const headers=data[0];
-  const dniCol=headers.indexOf('DNI'), firmadoCol=headers.indexOf('Firmado'), firmaCol=headers.indexOf('Firma_Base64'), fechaCol=headers.indexOf('Fecha_Firma');
+  const dniCol=headers.indexOf('DNI'), firmadoCol=headers.indexOf('Firmado'), firmaCol=headers.indexOf('Firma_Base64'), fechaCol=headers.indexOf('Fecha_Firma'), tokenCol=headers.indexOf('Firma_Token');
   for(let i=1;i<data.length;i++){
     if(String(data[i][dniCol])===String(d.dni)){
+      const tokenGuardado=String((tokenCol>-1?data[i][tokenCol]:'')||'');
+      const okApp = tokenValido_(d.token);
+      const okFirma = !tokenGuardado || String(d.t||'')===tokenGuardado;
+      if(!okApp && !okFirma) return {success:false, error:'Token inválido o faltante'};
       sheet.getRange(i+1,firmadoCol+1).setValue('SI');
       sheet.getRange(i+1,firmaCol+1).setValue(d.firma_base64);
       sheet.getRange(i+1,fechaCol+1).setValue(new Date().toISOString());
@@ -1262,8 +1385,8 @@ function guardarFirmaConsentimiento(d){
   }
   return {success:false, error:'No se encontró un consentimiento pendiente para ese DNI — pedile al médico que lo genere de nuevo'};
 }
-function getEstadoFirmaConsentimiento(dni){
-  return getConsentimientoParaFirma(dni);
+function getEstadoFirmaConsentimiento(dni, appToken, firmaToken){
+  return getConsentimientoParaFirma(dni, appToken, firmaToken);
 }
 
 function getRidmPaciente(dni){
@@ -1479,6 +1602,14 @@ function confirmarPagoMP(paymentId){
       monto: pago.transaction_amount||0,
       estado: pago.status||''
     });
+    // NUEVO: si era una cuota de la Membresía de seguimiento y quedó
+    // aprobada, activamos el mes automáticamente — así el paciente no
+    // depende de que el médico entre a revisar pagos pendientes. Ver
+    // activarMembresiaSeguimientoPorPago_ más abajo (sección Membresía
+    // de Seguimiento).
+    if(ref.tipo==='membresia_seguimiento' && pago.status==='approved'){
+      activarMembresiaSeguimientoPorPago_(ref.dni, String(pago.id));
+    }
     return{success:true, estado:pago.status, confirmado: pago.status==='approved'};
   }catch(e){
     return{success:false, error:'Error confirmando el pago: '+e.message};
@@ -1504,7 +1635,7 @@ function crearLinkPagoMP(d){
   const monto = parseFloat(d.monto);
   if(!monto || monto<=0) return {success:false, error:'Falta indicar el monto a cobrar'};
   const concepto = d.concepto || 'Consulta médica — Dr. Muratori';
-  const urlBase = 'https://lmuratori.github.io/smm-acceso-temporal/';
+  const urlBase = 'https://drmuratorisalud.ar/';
   const payload = {
     items: [{ title: concepto, quantity: 1, unit_price: monto, currency_id: 'ARS' }],
     back_urls: { success: urlBase, failure: urlBase, pending: urlBase },
@@ -1669,6 +1800,218 @@ function marcarPagoAtendido(paymentId){
   }
   return{success:false,error:'No se encontró ese Payment_ID'};
 }
+
+// ══════════════════════════════════════════════════════════════════
+// MEMBRESÍA DE SEGUIMIENTO — pensada para UNA patología puntual, con
+// renovación mensual DE MUTUO ACUERDO entre médico y paciente (no es un
+// cobro automático recurrente: cada mes se vuelve a decidir con el
+// paciente si sigue). Incluye la receta/orden necesaria para ESE motivo
+// puntual — nunca recetas a otras personas ni medicación fuera de la
+// especialidad en tratamiento — y hasta 3 mensajes por semana (máx. 400
+// palabras cada uno, siempre sobre el estado de la patología en
+// seguimiento) para agilizar el control online. Los mensajes no usados
+// en una semana NO se acumulan para la siguiente ("se usa o se pierde").
+// Ver procesarBandejaEntrada() más abajo para el chequeo de tope/tema.
+//
+// Es un mecanismo TOTALMENTE SEPARADO del campo "Membresia" SI/NO de la
+// hoja Pacientes (esa es gratuita, la da el médico a su criterio, y
+// habilita RMYT/mail con contexto clínico/agendas/RSPQ) — no confundir
+// ni fusionar ambos. Reutiliza la infraestructura de Mercado Pago que ya
+// existía (crearLinkPagoMP/confirmarPagoMP) con tipo 'membresia_seguimiento'
+// en vez de armar un circuito de cobro paralelo.
+// ══════════════════════════════════════════════════════════════════
+function hojaMembresiasSeguimiento_(){
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Membresias_Seguimiento');
+  if(!sheet){
+    sheet = ss.insertSheet('Membresias_Seguimiento');
+    const headers = ['DNI','Apellido','Nombre','Patologia','Estado','Precio_Mensual',
+                      'Fecha_Activacion','Fecha_Proxima_Renovacion','Semana_Actual',
+                      'Mensajes_Usados_Semana','Ultimo_Payment_ID_Aplicado'];
+    sheet.getRange(1,1,1,headers.length).setValues([headers])
+      .setBackground('#7C2D92').setFontColor('white').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+// Fecha (AAAA-MM-DD) del lunes de la semana a la que pertenece "fecha"
+// (o hoy, si no se pasa nada). Se usa para el tope "usalo o perdelo" de 3
+// mensajes/semana — no hace falta un trigger aparte: cada lectura
+// compara la semana guardada contra la de hoy y resetea sola si cambió.
+function lunesDeLaSemana_(fecha){
+  const d = fecha ? new Date(fecha) : new Date();
+  const dia = d.getDay(); // 0=domingo..6=sábado
+  const diff = (dia===0 ? -6 : 1-dia); // lleva cualquier día al lunes de esa semana
+  const lunes = new Date(d.getFullYear(), d.getMonth(), d.getDate()+diff);
+  return Utilities.formatDate(lunes, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+function filaMembresiaPorDni_(sheet, dni){
+  const data = sheet.getDataRange().getValues();
+  const dniStr = String(dni);
+  for(let i=1;i<data.length;i++){
+    if(String(data[i][0])===dniStr) return i+1; // fila real de la planilla (1-based, con header)
+  }
+  return -1;
+}
+// Devuelve el estado de la membresía de seguimiento de un DNI, ya con el
+// reset semanal aplicado si corresponde. Es lo que consulta el botón
+// "📆 Membresía de seguimiento" de OCM para pintar el estado.
+function getMembresiaSeguimiento(dni){
+  if(!dni) return {success:false, error:'Falta DNI'};
+  const sheet = hojaMembresiasSeguimiento_();
+  const fila = filaMembresiaPorDni_(sheet, dni);
+  if(fila===-1) return {success:true, existe:false};
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+  const row = sheet.getRange(fila,1,1,headers.length).getValues()[0];
+  const obj = {}; headers.forEach((h,i)=>obj[h]=row[i]);
+  const lunesHoy = lunesDeLaSemana_();
+  if(String(obj.Semana_Actual)!==lunesHoy){
+    sheet.getRange(fila, headers.indexOf('Semana_Actual')+1).setValue(lunesHoy);
+    sheet.getRange(fila, headers.indexOf('Mensajes_Usados_Semana')+1).setValue(0);
+    obj.Semana_Actual = lunesHoy; obj.Mensajes_Usados_Semana = 0;
+  }
+  return {
+    success:true, existe:true,
+    dni: obj.DNI, apellido: obj.Apellido, nombre: obj.Nombre,
+    patologia: obj.Patologia, estado: obj.Estado, precio_mensual: obj.Precio_Mensual,
+    fecha_activacion: obj.Fecha_Activacion, fecha_proxima_renovacion: obj.Fecha_Proxima_Renovacion,
+    mensajes_usados_semana: Number(obj.Mensajes_Usados_Semana)||0,
+    mensajes_disponibles_semana: Math.max(0, 3-(Number(obj.Mensajes_Usados_Semana)||0))
+  };
+}
+// Suma 1 al contador semanal de mensajes cubiertos por la membresía — la
+// llama procesarBandejaEntrada() cuando un mensaje entra dentro del cupo
+// y del tema. Aplica el mismo reset semanal que getMembresiaSeguimiento
+// por si es el primer mensaje de una semana nueva.
+function incrementarMensajeSemanalMembresia_(dni){
+  const sheet = hojaMembresiasSeguimiento_();
+  const fila = filaMembresiaPorDni_(sheet, dni);
+  if(fila===-1) return false;
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+  const colSemana = headers.indexOf('Semana_Actual'), colUsados = headers.indexOf('Mensajes_Usados_Semana');
+  const lunesHoy = lunesDeLaSemana_();
+  const semanaGuardada = sheet.getRange(fila, colSemana+1).getValue();
+  let usados = 0;
+  if(String(semanaGuardada)===lunesHoy){
+    usados = Number(sheet.getRange(fila, colUsados+1).getValue())||0;
+  } else {
+    sheet.getRange(fila, colSemana+1).setValue(lunesHoy);
+  }
+  sheet.getRange(fila, colUsados+1).setValue(usados+1);
+  return true;
+}
+// El médico, DE MUTUO ACUERDO con el paciente, decide iniciar o renovar
+// por un mes más el seguimiento de UNA patología puntual — crea (o
+// reutiliza) la fila y devuelve el link de pago de Mercado Pago para
+// mandarle al paciente. Reutiliza crearLinkPagoMP con tipo
+// 'membresia_seguimiento' para no armar un circuito de cobro paralelo.
+// Queda en Estado 'esperando_pago' hasta que el pago se confirme (ver
+// activarMembresiaSeguimientoPorPago_, disparado solo o a mano).
+function iniciarORenovarMembresiaSeguimiento(d){
+  const dni = String(d.DNI || d.dni || '');
+  if(!dni) return {success:false, error:'Falta DNI del paciente'};
+  const patologia = String(d.Patologia || d.patologia || '').trim();
+  if(!patologia) return {success:false, error:'Falta indicar la patología en seguimiento'};
+  const precio = parseFloat(d.Precio_Mensual || d.precio || 0);
+  if(!precio || precio<=0) return {success:false, error:'Falta el precio mensual'};
+  const sheet = hojaMembresiasSeguimiento_();
+  let fila = filaMembresiaPorDni_(sheet, dni);
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+  const lunesHoy = lunesDeLaSemana_();
+  if(fila===-1){
+    sheet.appendRow([dni, d.Apellido||'', d.Nombre||'', patologia, 'esperando_pago', precio, '', '', lunesHoy, 0, '']);
+  } else {
+    sheet.getRange(fila, headers.indexOf('Apellido')+1).setValue(d.Apellido||'');
+    sheet.getRange(fila, headers.indexOf('Nombre')+1).setValue(d.Nombre||'');
+    sheet.getRange(fila, headers.indexOf('Patologia')+1).setValue(patologia);
+    sheet.getRange(fila, headers.indexOf('Estado')+1).setValue('esperando_pago');
+    sheet.getRange(fila, headers.indexOf('Precio_Mensual')+1).setValue(precio);
+  }
+  const linkPago = crearLinkPagoMP({
+    dni: dni, monto: precio, tipo: 'membresia_seguimiento',
+    concepto: 'Membresía de seguimiento — ' + patologia + ' — Dr. Muratori',
+    mail: d.Email || d.mail || ''
+  });
+  if(!linkPago.success) return {success:false, error:'No se pudo generar el link de pago: '+linkPago.error};
+  return {success:true, message:'Listo — mandale este link al paciente para confirmar el mes', link: linkPago.link};
+}
+// El médico corta el seguimiento (decisión propia, o porque el paciente
+// no quiere seguir) — deja de contar como membresía activa, sin borrar
+// el historial de la fila (patología, precios anteriores).
+function desactivarMembresiaSeguimiento(d){
+  const dni = String(d.DNI || d.dni || '');
+  if(!dni) return {success:false, error:'Falta DNI'};
+  const sheet = hojaMembresiasSeguimiento_();
+  const fila = filaMembresiaPorDni_(sheet, dni);
+  if(fila===-1) return {success:false, error:'Ese paciente no tiene una membresía de seguimiento registrada'};
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+  sheet.getRange(fila, headers.indexOf('Estado')+1).setValue('inactiva');
+  return {success:true, message:'Membresía de seguimiento desactivada'};
+}
+// Se llama SOLA desde confirmarPagoMP cuando el pago aprobado era de tipo
+// 'membresia_seguimiento' (webhook de Mercado Pago) — y también la puede
+// disparar a mano confirmarRenovacionMembresiaSeguimiento más abajo, por
+// si el webhook no llegó. Activa la membresía por un mes desde hoy y
+// arranca la semana de mensajes en 0. Si se le pasa paymentId y ya se
+// había aplicado ESE mismo pago antes, no hace nada (evita reiniciar el
+// mes si Mercado Pago reintenta la misma notificación).
+function activarMembresiaSeguimientoPorPago_(dni, paymentId){
+  if(!dni) return false;
+  const sheet = hojaMembresiasSeguimiento_();
+  const fila = filaMembresiaPorDni_(sheet, dni);
+  if(fila===-1) return false; // pago de otro tipo con el mismo DNI, o fila borrada — no tocar nada
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+  const colPago = headers.indexOf('Ultimo_Payment_ID_Aplicado');
+  if(paymentId && colPago>-1){
+    const yaAplicado = String(sheet.getRange(fila, colPago+1).getValue()||'');
+    if(yaAplicado === String(paymentId)) return false;
+    sheet.getRange(fila, colPago+1).setValue(String(paymentId));
+  }
+  const hoy = new Date();
+  const proximaRenovacion = new Date(hoy.getFullYear(), hoy.getMonth()+1, hoy.getDate());
+  const fmt = f => Utilities.formatDate(f, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  sheet.getRange(fila, headers.indexOf('Estado')+1).setValue('activa');
+  sheet.getRange(fila, headers.indexOf('Fecha_Activacion')+1).setValue(fmt(hoy));
+  sheet.getRange(fila, headers.indexOf('Fecha_Proxima_Renovacion')+1).setValue(fmt(proximaRenovacion));
+  sheet.getRange(fila, headers.indexOf('Semana_Actual')+1).setValue(lunesDeLaSemana_());
+  sheet.getRange(fila, headers.indexOf('Mensajes_Usados_Semana')+1).setValue(0);
+  return true;
+}
+// El médico aprieta "revisar si pagó" — por si el webhook automático de
+// Mercado Pago no llegó a activarla sola. Busca en Pagos_Confirmados un
+// pago aprobado de este DNI, tipo 'membresia_seguimiento', que todavía no
+// se haya aplicado a esta membresía, y si lo encuentra, activa el mes.
+// Nunca confía en nada que no sea el propio registro ya verificado contra
+// la API de Mercado Pago (ver confirmarPagoMP) — no mira monto ni fecha
+// "a ojo", solo el Payment_ID ya confirmado.
+function confirmarRenovacionMembresiaSeguimiento(dni){
+  if(!dni) return {success:false, error:'Falta DNI'};
+  const sheetMemb = hojaMembresiasSeguimiento_();
+  const fila = filaMembresiaPorDni_(sheetMemb, dni);
+  if(fila===-1) return {success:false, error:'Ese paciente no tiene una membresía de seguimiento registrada'};
+  const headersMemb = sheetMemb.getRange(1,1,1,sheetMemb.getLastColumn()).getValues()[0];
+  const ultimoAplicado = String(sheetMemb.getRange(fila, headersMemb.indexOf('Ultimo_Payment_ID_Aplicado')+1).getValue()||'');
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), sheetPagos = ss.getSheetByName('Pagos_Confirmados');
+  let paymentIdNuevo = '';
+  if(sheetPagos){
+    const data = sheetPagos.getDataRange().getValues();
+    const hPagos = data[0];
+    const colDni=hPagos.indexOf('DNI'), colTipo=hPagos.indexOf('Tipo_Consulta'),
+          colEstado=hPagos.indexOf('Estado_MP'), colPid=hPagos.indexOf('Payment_ID');
+    for(let i=1;i<data.length;i++){
+      if(String(data[i][colDni])===String(dni) && data[i][colTipo]==='membresia_seguimiento' && data[i][colEstado]==='approved'){
+        const pid = String(data[i][colPid]);
+        if(pid !== ultimoAplicado) paymentIdNuevo = pid;
+      }
+    }
+  }
+  if(paymentIdNuevo){
+    activarMembresiaSeguimientoPorPago_(dni, paymentIdNuevo);
+    return {success:true, pagado:true, message:'Pago encontrado — membresía activada por este mes'};
+  }
+  return {success:true, pagado:false, message:'Todavía no se registró un pago nuevo este mes'};
+}
+
 // ══════════════════════════════════════════════════════════════════
 // RECOMENDACIONES MEDICAS PACIENTE — Guarda y recupera el documento completo del
 // paciente (para que funcione desde el celular, donde no hay localStorage de OCM)
@@ -2776,7 +3119,7 @@ function getRmytUrl_(){
   // OJO: el archivo real que está publicado y que lee estos parámetros
   // (?dni= y ?seg=) es RMYT_Autoevaluacion_Semanal_v1.html — el nombre
   // viejo (RMYT_Autoevaluacion.html, sin "_Semanal") no está publicado.
-  return 'https://lmuratori.github.io/smm-acceso-temporal/RMYT_Autoevaluacion_Semanal_v1.html'; // GitHub Pages
+  return 'https://drmuratorisalud.ar/RMYT_Autoevaluacion_Semanal_v1.html'; // Dominio propio (Cloudflare Pages)
 }
 function construirLinkRMYTAutoeval_(p){
   // p.seg debe ser una de las claves de SEGMENTOS_RMYT del html (p.ej.
@@ -3022,7 +3365,7 @@ function getResumenSeguridadQuirofano(){
 // Link + mail para que el paciente operado complete su control mensual —
 // mismo patrón que enviarLinkRMYTAPaciente_.
 function getSeguimientoPosqxUrl_(){
-  return 'https://lmuratori.github.io/smm-acceso-temporal/SSQ_Seguimiento_Posquirurgico.html'; // ⚠️ archivo todavía no construido
+  return 'https://drmuratorisalud.ar/SSQ_Seguimiento_Posquirurgico.html'; // ⚠️ archivo todavía no construido
 }
 function construirLinkSeguimientoPosqx_(p){
   return getSeguimientoPosqxUrl_() + '?dni=' + encodeURIComponent(p.dni||'') +
@@ -3633,7 +3976,38 @@ function procesarBandejaEntrada(){
       // clínico enriquecido — se comporta como si no hubiera matcheado DNI.
       const contextoClinico = (dniDetectado && tienePacienteMembresia_(dniDetectado)) ? armarResumenClinicoParaIA_(dniDetectado) : '';
 
-      const analisis = analizarConIA_(asunto, cuerpoParaIA, esSensible, contextoClinico);
+      // ── Membresía de Seguimiento (mensual, por UNA patología puntual) ──
+      // Se resuelve ACÁ, antes de llamar a la IA, para poder pedirle a la
+      // misma IA que además chequee si el mensaje realmente habla de esa
+      // patología puntual — así no se convierte en un consultorio
+      // sentimental/de psicología sin límite. Tope: 3 mensajes/semana (lo
+      // no usado no se acumula) y 400 palabras por mensaje — ver
+      // getMembresiaSeguimiento/incrementarMensajeSemanalMembresia_.
+      const membresiaSeg = dniDetectado ? getMembresiaSeguimiento(dniDetectado) : null;
+      const membresiaSegActiva = !!(membresiaSeg && membresiaSeg.success && membresiaSeg.existe && membresiaSeg.estado==='activa');
+      const palabrasMensaje = (cuerpo.trim().match(/\S+/g)||[]).length;
+      const dentroDeLargoSeg = palabrasMensaje <= 400;
+      const dentroDeCupoSeg = membresiaSegActiva && membresiaSeg.mensajes_disponibles_semana > 0;
+
+      const analisis = analizarConIA_(asunto, cuerpoParaIA, esSensible, contextoClinico, membresiaSegActiva ? membresiaSeg.patologia : '');
+
+      let cubiertoPorMembresia = false;
+      let motivoFueraMembresia = '';
+      if(membresiaSegActiva){
+        if(!dentroDeCupoSeg){
+          motivoFueraMembresia = 'Superó el cupo de 3 mensajes de esta semana ('+membresiaSeg.mensajes_usados_semana+'/3)';
+        } else if(!dentroDeLargoSeg){
+          motivoFueraMembresia = 'Supera las 400 palabras permitidas ('+palabrasMensaje+' palabras)';
+        } else if(!analisis.dentroDeSeguimiento){
+          motivoFueraMembresia = 'No parece referirse al estado de "'+membresiaSeg.patologia+'" (la patología en seguimiento) — se trata como consulta común';
+        } else {
+          cubiertoPorMembresia = true;
+        }
+      }
+      if(cubiertoPorMembresia){
+        analisis.requierePago = false;
+        incrementarMensajeSemanalMembresia_(dniDetectado);
+      }
 
       const id = Utilities.getUuid();
       const fila = [
@@ -3649,6 +4023,15 @@ function procesarBandejaEntrada(){
       if(dniDetectado){
         const colDni = asegurarColumnaColaMensajes_(sheet, 'DNI_Detectado');
         sheet.getRange(sheet.getLastRow(), colDni).setValue(dniDetectado);
+      }
+      // NUEVO: Membresía de Seguimiento — para que Agenda de Mensajes pueda
+      // mostrarle al médico si este mensaje quedó cubierto por la
+      // membresía mensual del paciente (y si no, por qué no).
+      const colCubierto = asegurarColumnaColaMensajes_(sheet, 'Cubierto_Membresia');
+      sheet.getRange(sheet.getLastRow(), colCubierto).setValue(cubiertoPorMembresia ? 'SI' : 'NO');
+      if(motivoFueraMembresia){
+        const colMotivo = asegurarColumnaColaMensajes_(sheet, 'Motivo_Fuera_Membresia');
+        sheet.getRange(sheet.getLastRow(), colMotivo).setValue(motivoFueraMembresia);
       }
 
       hilo.addLabel(label);
@@ -3671,7 +4054,7 @@ function hojaColaMensajes_(){
   return sheet;
 }
 
-function analizarConIA_(asunto, cuerpo, esSensible, contextoClinico){
+function analizarConIA_(asunto, cuerpo, esSensible, contextoClinico, patologiaSeguimiento){
   const contextoSensible = esSensible ? 'El mensaje contiene palabras relacionadas a discapacidad/hospital público — probablemente corresponda al circuito gratuito y sensible.' : '';
   // RSP — si matcheamos el mail con un paciente conocido, este es su
   // resumen de RMYT + última consulta (ver armarResumenClinicoParaIA_).
@@ -3680,17 +4063,29 @@ function analizarConIA_(asunto, cuerpo, esSensible, contextoClinico){
   const bloqueContexto = contextoClinico
     ? ('CONTEXTO CLÍNICO DEL PACIENTE (consultalo antes de responder — la respuesta debe estar fundada en esto, no ser genérica):\n' + contextoClinico + '\n\n')
     : '';
+  // Membresía de Seguimiento: si el paciente tiene una activa, le pedimos a
+  // la IA que ADEMÁS diga si este mensaje puntual realmente habla del
+  // estado/evolución de esa patología — para no dejar que la membresía se
+  // convierta en un chat libre sin límite de tema (riesgo que señaló el
+  // Dr. Muratori: "se puede tornar un consultorio sentimental o de
+  // psicología").
+  const bloqueSeguimiento = patologiaSeguimiento
+    ? ('Este paciente tiene una MEMBRESÍA DE SEGUIMIENTO mensual activa, exclusiva para la patología: "' + patologiaSeguimiento + '". Además de clasificar el mensaje, indicá si este mensaje puntual se refiere al estado/evolución/síntomas de ESA patología (dentroDeSeguimiento=true) o si es otra cosa — otra dolencia, un tema administrativo no relacionado, o una conversación de tipo emocional/personal sin relación clínica con esa patología (dentroDeSeguimiento=false).\n\n')
+    : '';
   const prompt = 'Sos el asistente administrativo del Dr. Luis Alberto Muratori, médico traumatólogo (M.N. 100.540 / M.P. 9943, Mendoza, Argentina).\n' +
     'Te llegó este mail. Tu tarea es CLASIFICARLO y armar un BORRADOR de respuesta que el doctor va a revisar antes de enviar — nunca se envía sin su aprobación.\n\n' +
     contextoSensible + '\n\n' +
     bloqueContexto +
+    bloqueSeguimiento +
     'ASUNTO: ' + asunto + '\n' +
     'CUERPO:\n' + cuerpo + '\n\n' +
     'Reglas:\n' +
     '- "sensible_publico": discapacidad, CUD, PNC, hospital público → gratuito, respuesta mínima y clara.\n' +
     '- "privado": consulta de consultorio privado (cualquier cantidad de preguntas) → requiere pago antes de enviarse.\n\n' +
     'Devolvé SOLO un JSON válido, sin texto adicional, con esta forma exacta:\n' +
-    '{ "clasificacion": "sensible_publico o privado", "cantPreguntas": numero entero, "requierePago": true o false, "borrador": "texto completo de la respuesta sugerida, en tono profesional y calido, en español, firmada como Dr. Luis Alberto Muratori" }';
+    '{ "clasificacion": "sensible_publico o privado", "cantPreguntas": numero entero, "requierePago": true o false, "borrador": "texto completo de la respuesta sugerida, en tono profesional y calido, en español, firmada como Dr. Luis Alberto Muratori"' +
+    (patologiaSeguimiento ? ', "dentroDeSeguimiento": true o false' : '') +
+    ' }';
 
   try{
     const resp = UrlFetchApp.fetch(getGeminiUrl_(), {
@@ -3707,12 +4102,18 @@ function analizarConIA_(asunto, cuerpo, esSensible, contextoClinico){
     registrarUsoTokens_('analizarConIA_', 'gemini-3.6-flash', data.usageMetadata);
     let textoIA = data.candidates[0].content.parts[0].text;
     textoIA = textoIA.replace(/```json|```/g,'').trim();
-    return JSON.parse(textoIA);
+    const parsed = JSON.parse(textoIA);
+    // Default seguro: si se esperaba el chequeo de tema y la IA no lo
+    // devolvió (respuesta mal formada, campo faltante), nunca se cubre por
+    // membresía "por las dudas" — queda como consulta común.
+    if(patologiaSeguimiento && typeof parsed.dentroDeSeguimiento !== 'boolean') parsed.dentroDeSeguimiento = false;
+    return parsed;
   }catch(err){
     return {
       clasificacion: esSensible ? 'sensible_publico' : 'privado',
       cantPreguntas: (cuerpo.match(/\?/g)||[]).length || 1,
       requierePago: !esSensible,
+      dentroDeSeguimiento: false,
       borrador: '[COMPLETAR] no se pudo generar el borrador automatico: ' + err
     };
   }
@@ -3755,7 +4156,11 @@ function getMensajesPendientes(){
       fotoUrl: val(rows[i],'Foto_URL') || '',
       comprobanteUrl: val(rows[i],'Comprobante_Pago_URL') || '',
       comprobanteDatos: val(rows[i],'Comprobante_Pago_Datos') || '',
-      tipoSolicitud: val(rows[i],'Tipo_Solicitud') || ''
+      tipoSolicitud: val(rows[i],'Tipo_Solicitud') || '',
+      // NUEVO: Membresía de Seguimiento — si este mensaje quedó cubierto
+      // por la membresía mensual del paciente, y si no, por qué no.
+      cubiertoMembresia: val(rows[i],'Cubierto_Membresia') || '',
+      motivoFueraMembresia: val(rows[i],'Motivo_Fuera_Membresia') || ''
     });
   }
   // Lo marcado como riesgo "alto" por la IA sube primero, sin importar la

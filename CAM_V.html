@@ -104,6 +104,7 @@
         <a href="OCM_Muratori_v14_0_26.html" class="simm-nav-item">🗂️ OCM — Historia Clínica</a>
         <a href="CAM_Herramientas_Clinicas.html" class="simm-nav-item">🧬 CAM — Herramientas Clínicas (manual)</a>
         <a href="Consulta_Guiada_Beta_v1.html" class="simm-nav-item">🎙️ Consulta Guiada — Beta</a>
+        <a href="#" class="simm-nav-item" onclick="configurarTokenCAM();return false">⚙️ Token de acceso</a>
       </div>
     </div>
   </div>
@@ -623,6 +624,22 @@
 
 <script>
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxC2fXVUdidzoAyDCGzPBCUoLa1btEGRZxH-S4wAEt71FlQ4Y1Mx1Uy7OsepgSe3i-5/exec';
+// AGREGADO (sep 2026): CAM V no tenía ningún mecanismo de token — llamaba
+// a addHistoria (guardar en la historia clínica) y a get_historial sin
+// mandar nada. Mientras el médico no active configurarAppToken() en el
+// backend esto no cambia nada (tokenValido_ deja pasar todo igual), pero
+// el día que lo active, CAM V se hubiera quedado sin poder guardar ni
+// consultar la historia clínica — mismo mecanismo que ya usa
+// CAM_Herramientas_Clinicas.html (token compartido, guardado acá con su
+// propia clave para no mezclarse con el de OCM).
+let APP_TOKEN = localStorage.getItem('camv_app_token') || '';
+function tokenQS_(){ return APP_TOKEN ? '&token='+encodeURIComponent(APP_TOKEN) : ''; }
+function configurarTokenCAM(){
+  const v = (prompt('Token de acceso (solo si el médico ya lo activó con configurarAppToken() — dejalo vacío si no):', APP_TOKEN) || '').trim();
+  localStorage.setItem('camv_app_token', v);
+  APP_TOKEN = v;
+  toast(v ? 'Token guardado' : 'Token borrado', 'ok');
+}
 
 function toggleSimmNav(){
   const dd = document.getElementById('simm-nav-dropdown');
@@ -646,7 +663,7 @@ function toast(msg, tipo){
 async function llamarBackend(action, payload){
   const resp = await fetch(SHEETS_URL, {
     method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify(Object.assign({action}, payload))
+    body: JSON.stringify(Object.assign({action}, payload, (APP_TOKEN?{token:APP_TOKEN}:{})))
   });
   return resp.json();
 }
@@ -700,7 +717,7 @@ async function verHistoriaClinicaCloud(){
   body.innerHTML='<p style="text-align:center;color:var(--muted);padding:20px">Cargando…</p>';
   document.getElementById('hc-modal').classList.add('abierto');
   try{
-    const resp=await fetch(SHEETS_URL+'?action=get_historial&dni='+encodeURIComponent(dni), {signal:AbortSignal.timeout(10000)});
+    const resp=await fetch(SHEETS_URL+'?action=get_historial&dni='+encodeURIComponent(dni)+tokenQS_(), {signal:AbortSignal.timeout(10000)});
     const data=await resp.json();
     body.innerHTML=renderHistoriaClinicaCloudHTML_(data);
   }catch(e){

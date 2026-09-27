@@ -73,6 +73,8 @@
   const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxC2fXVUdidzoAyDCGzPBCUoLa1btEGRZxH-S4wAEt71FlQ4Y1Mx1Uy7OsepgSe3i-5/exec';
   const params = new URLSearchParams(window.location.search);
   const dni = params.get('dni') || '';
+  // Token propio de ESTE consentimiento (viene en el link que generó OCM) — mismo mecanismo que Autorizacion_HC_v1.html.
+  const tFirma = params.get('t') || '';
 
   const elCargando   = document.getElementById('cargando');
   const elNoEnc      = document.getElementById('no-encontrado');
@@ -88,7 +90,7 @@
   async function cargar(){
     if(!dni){ mostrarSolo(elNoEnc); return; }
     try{
-      const resp = await fetch(SHEETS_URL + '?action=get_consentimiento_para_firma&dni=' + encodeURIComponent(dni));
+      const resp = await fetch(SHEETS_URL + '?action=get_consentimiento_para_firma&dni=' + encodeURIComponent(dni) + '&t=' + encodeURIComponent(tFirma));
       const data = await resp.json();
       if(!data.success || !data.encontrado){ mostrarSolo(elNoEnc); return; }
       if(data.firmado){ mostrarSolo(elYaFirmado); return; }
@@ -158,7 +160,7 @@
     try{
       const firmaBase64 = window._firmaCanvas.toDataURL('image/png');
       const resp = await fetch(SHEETS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify({action:'guardar_firma_consentimiento', dni, firma_base64: firmaBase64})});
+        body: JSON.stringify({action:'guardar_firma_consentimiento', dni, firma_base64: firmaBase64, t: tFirma})});
       const data = await resp.json();
       if(!data.success) throw new Error(data.error || 'Error al guardar');
       mostrarSolo(elYaFirmado);

@@ -212,8 +212,8 @@ CONTENIDO:
       suelto para juntar después a mano. Y para generar los QR de cada
       rol hay que escribir vos mismo, cada vez, la dirección donde
       está publicado este archivo (no viene cargada de antes) — por
-      ejemplo, en la versión de GitHub sería:
-      https://lmuratori.github.io/smm-acceso-temporal/SSQ_Legajo_Integral_v1.html
+      ejemplo, sería:
+      https://drmuratorisalud.ar/SSQ_Legajo_Integral_v1.html
 
 PENDIENTE (importante):
    Rotar la clave de Gemini. Dejó de estar escrita en Codigo.gs (antes

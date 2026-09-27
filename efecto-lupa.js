@@ -33,7 +33,7 @@
   if(window.__efectoLupaSMM) return; // evita duplicar si el script se incluye más de una vez
   window.__efectoLupaSMM = true;
 
-  var ESCALA = 3;
+  var ESCALA = 2; // pedido de Luis (sep 2026): con 3 quedaba demasiado grande, con 2 alcanza
   var SELECTOR_CAMPOS = 'input, textarea, [contenteditable="true"], [contenteditable=""]';
   var TIPOS_EXCLUIDOS = ['checkbox','radio','button','submit','reset','range','color','file','hidden','image'];
 

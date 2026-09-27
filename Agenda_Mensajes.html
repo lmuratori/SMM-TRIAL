@@ -122,6 +122,15 @@ function configurarTokenAgenda(){
 let MENSAJES = [];
 let MENSAJE_ACTUAL = null;
 
+// SEGURIDAD (revisión sep 2026): "origen" llega en la URL del QR que
+// escanea el paciente (?origen=...) y viaja tal cual hasta acá — es texto
+// que cualquiera podría escribir a mano al armar un link, así que nunca hay
+// que insertarlo directo en innerHTML sin limpiar. Antes de esta revisión,
+// origen se insertaba sin filtrar en las dos líneas donde se muestra abajo.
+function escHtml_(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 // ══════════════════════════════════════════════════════════════
 // Precio de fin de semana de la entrevista express (Dr. Muratori, sep 2026)
 // — mismo criterio que QR_Consulta_Virtual.html (duplicado acá porque son
@@ -163,11 +172,11 @@ async function cargarMensajes(){
   }
   cont.innerHTML = MENSAJES.map((m,i)=>`
     <div class="msg-card ${m.riesgo==='alto'?'riesgo-alto':''}" id="mc-${i}" onclick="mostrarMensaje(${i})">
-      <div class="rem">${m.riesgo==='alto'?'🔴 ':''}${(m.remitente||'').replace(/<.*/,'').trim()||m.remitente}</div>
-      <div class="asu">${m.asunto||'(sin asunto)'}</div>
+      <div class="rem">${m.riesgo==='alto'?'🔴 ':''}${escHtml_((m.remitente||'').replace(/<.*/,'').trim()||m.remitente)}</div>
+      <div class="asu">${escHtml_(m.asunto||'(sin asunto)')}</div>
       <span class="badge ${m.clasificacion==='sensible_publico'?'sensible':'privado'}">${m.clasificacion==='sensible_publico'?'Sensible / gratuita':'Privada'}</span>
       ${m.requierePago ? `<span class="badge ${m.estadoPago==='confirmado'?'pago-ok':'pago-pend'}">${m.estadoPago==='confirmado'?'Pago OK':'Pago pendiente'}</span>` : ''}
-      ${m.origen && m.origen!=='Mail' ? `<span class="badge origen">📲 ${m.origen}</span>` : ''}
+      ${m.origen && m.origen!=='Mail' ? `<span class="badge origen">📲 ${escHtml_(m.origen)}</span>` : ''}
       ${m.riesgo==='alto' ? `<span class="badge riesgo-alto">⚠️ Riesgo alto (IA)</span>` : ''}
       ${m.riesgo==='medio' ? `<span class="badge riesgo-medio">Riesgo medio (IA)</span>` : ''}
     </div>`).join('');
@@ -189,20 +198,28 @@ function mostrarMensaje(i){
     </div>` : ''}
     <div class="card">
       <h3>Mensaje original</h3>
-      <div style="font-size:12px;margin-bottom:8px"><b>De:</b> ${m.remitente} · <b>Asunto:</b> ${m.asunto||'—'} · <b>Preguntas detectadas:</b> ${m.cantPreguntas} · <b>Origen:</b> ${m.origen||'Mail'}</div>
-      <div class="cuerpo-original">${(m.cuerpo||'').replace(/</g,'&lt;')}</div>
+      <div style="font-size:12px;margin-bottom:8px"><b>De:</b> ${escHtml_(m.remitente)} · <b>Asunto:</b> ${escHtml_(m.asunto||'—')} · <b>Preguntas detectadas:</b> ${m.cantPreguntas} · <b>Origen:</b> ${escHtml_(m.origen||'Mail')}</div>
+      <div class="cuerpo-original">${escHtml_(m.cuerpo||'')}</div>
     </div>
+
+    ${m.cubiertoMembresia ? `
+    <div class="card">
+      <h3>📆 Membresía de seguimiento</h3>
+      ${m.cubiertoMembresia==='SI'
+        ? `<div style="color:#166534;font-size:12px;font-weight:700">✅ Cubierto por la membresía mensual — no requiere pago aparte.</div>`
+        : `<div style="font-size:12px;color:var(--muted)">Este paciente tiene (o tuvo) membresía de seguimiento, pero este mensaje NO quedó cubierto${m.motivoFueraMembresia ? ': '+escHtml_(m.motivoFueraMembresia) : ''}.</div>`}
+    </div>` : ''}
 
     ${(m.tipoSolicitud || m.segmento || m.cuando || m.vioMedico || m.diagnosticoPrevio || m.medicacionRecibida || m.fotoUrl) ? `
     <div class="card">
       <h3>Datos cargados por el paciente (QR)</h3>
       <div class="qr-datos">
-        ${m.tipoSolicitud ? `<div><b>Qué necesita:</b> ${m.tipoSolicitud}</div>` : ''}
-        ${m.segmento ? `<div><b>Segmento afectado:</b> ${m.segmento}</div>` : ''}
-        ${m.cuando ? `<div><b>Cuándo pasó:</b> ${m.cuando}</div>` : ''}
-        ${m.vioMedico ? `<div><b>¿Ya vio a un médico?:</b> ${m.vioMedico}${m.diagnosticoPrevio ? ' — diagnóstico dado: '+m.diagnosticoPrevio : ''}</div>` : ''}
-        ${m.medicacionRecibida ? `<div><b>Medicación/receta recibida:</b> ${m.medicacionRecibida}</div>` : ''}
-        ${m.fotoUrl ? `<div><b>Foto del estudio/informe:</b> <a href="${m.fotoUrl}" target="_blank">ver imagen</a></div>` : ''}
+        ${m.tipoSolicitud ? `<div><b>Qué necesita:</b> ${escHtml_(m.tipoSolicitud)}</div>` : ''}
+        ${m.segmento ? `<div><b>Segmento afectado:</b> ${escHtml_(m.segmento)}</div>` : ''}
+        ${m.cuando ? `<div><b>Cuándo pasó:</b> ${escHtml_(m.cuando)}</div>` : ''}
+        ${m.vioMedico ? `<div><b>¿Ya vio a un médico?:</b> ${escHtml_(m.vioMedico)}${m.diagnosticoPrevio ? ' — diagnóstico dado: '+escHtml_(m.diagnosticoPrevio) : ''}</div>` : ''}
+        ${m.medicacionRecibida ? `<div><b>Medicación/receta recibida:</b> ${escHtml_(m.medicacionRecibida)}</div>` : ''}
+        ${m.fotoUrl ? `<div><b>Foto del estudio/informe:</b> <a href="${escHtml_(m.fotoUrl)}" target="_blank">ver imagen</a></div>` : ''}
       </div>
     </div>` : ''}
 
@@ -213,8 +230,8 @@ function mostrarMensaje(i){
       ${(m.comprobanteUrl || m.comprobanteDatos) ? `
       <div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px">
         <b>Comprobante enviado por el paciente:</b>
-        ${m.comprobanteUrl ? `<div><a href="${m.comprobanteUrl}" target="_blank">📎 ver comprobante</a></div>` : ''}
-        ${m.comprobanteDatos ? `<div>${m.comprobanteDatos}</div>` : ''}
+        ${m.comprobanteUrl ? `<div><a href="${escHtml_(m.comprobanteUrl)}" target="_blank">📎 ver comprobante</a></div>` : ''}
+        ${m.comprobanteDatos ? `<div>${escHtml_(m.comprobanteDatos)}</div>` : ''}
       </div>` : `<div style="font-size:11.5px;color:var(--muted);margin:6px 0">El paciente todavía no adjuntó comprobante de pago.</div>`}
       <div class="row">
         ${m.estadoPago!=='confirmado' ? `<button class="btn btn-ghost" onclick="generarCobroMP()">💳 Generar link de cobro (Mercado Pago)</button>` : ''}
@@ -236,7 +253,7 @@ function mostrarMensaje(i){
 
     <div class="card">
       <h3>Respuesta (revisá y editá antes de enviar)</h3>
-      <textarea id="respuesta-texto" rows="8">${m.borrador||''}</textarea>
+      <textarea id="respuesta-texto" rows="8">${escHtml_(m.borrador||'')}</textarea>
       <div class="row">
         <button class="btn btn-verde" id="btn-enviar" onclick="aprobarYEnviar()" ${(m.requierePago && m.estadoPago!=='confirmado')?'disabled':''}>
           ✅ Aprobar y enviar por mail
