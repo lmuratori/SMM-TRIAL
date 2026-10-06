@@ -115,30 +115,28 @@
 
   const CLINICAS_SANATORIO = [
     {nombre:'Turno Médicos', desc:'Turnos presenciales — ver, dar y reprogramar horarios', emoji:'📅', href:'Turnos_Secretaria.html'},
-    {nombre:'Seguimiento de Tratamientos', desc:'Dashboard RSG en la pestaña Alertas', emoji:'💊', href:'OCM_Muratori_v14_0_26.html?abrir=seguimiento-tratamientos'},
-    {nombre:'Agenda de Historia Clínica', desc:'Agenda de Pacientes completa (todos los estados)', emoji:'🗂️', href:'OCM_Muratori_v14_0_26.html?abrir=agenda-historia'},
     {nombre:'Meeting', desc:'Consulta rápida por QR, vía Agenda de Mensajes', emoji:'📋', href:'Agenda_Mensajes.html'},
     {nombre:'Mensaje Mail', desc:'Agenda de mensajes', emoji:'✉️', href:'Agenda_Mensajes.html'},
+    {nombre:'Pacientes médicos', desc:'Tratamiento médico, membresías y recomendaciones terapéuticas (RSP)', emoji:'🩺', href:'OCM_Muratori_v14_0_26.html?abrir=seguimiento-medicos'},
   ];
 
   const HERRAMIENTAS = [
-    {nombre:'Dashboard RSG', desc:'Dashboard RSG completo', emoji:'📈', href:'OCM_Muratori_v14_0_26.html?abrir=dashboard'},
     {nombre:'CAM V', desc:'Consulta por voz + IA', emoji:'🎙️', href:'CAM_V.html'},
     {nombre:'OCM', desc:'Historia clínica', emoji:'🗂️', href:'OCM_Muratori_v14_0_26.html'},
+    {nombre:'Panel de historias', desc:'Control del RIMP y datos esenciales, fichas con consultas e investigación de asociaciones', emoji:'📋', href:'Panel_HC.html'},
     {nombre:'Investigación', desc:'Retropié Valgo, Escoliosis, Hallux Valgus, Flexión de Rodilla', emoji:'🔬', href:'GONIO_SeguimientoCientifico_v1.html'},
     {nombre:'Plantillas', desc:'Seguimiento de plantillas ortopédicas por lote', emoji:'👟', href:'OCM_Muratori_v14_0_26.html?abrir=plantillas'},
     {nombre:'Generador de QR', desc:'QR de Consulta Virtual por lugar de reparto', emoji:'🔳', href:'QR_Generador.html'},
     {nombre:'Catastro Empresas', desc:'Catastro de Empresas', emoji:'🏢', href:'OCM_Muratori_v14_0_26.html?abrir=catastro'},
-    {nombre:'Libro RMYT', desc:'Bitácora de rehabilitación (Planilla F4)', emoji:'📔', href:'OCM_Muratori_v14_0_26.html?abrir=libro-rmyt'},
-    {nombre:'Libro Discapacidad', desc:'Libro de Discapacidad / CUD', emoji:'📘', href:'OCM_Muratori_v14_0_26.html?abrir=libro-discapacidad'},
     {nombre:'Genera', desc:'', emoji:'⚙️', pendiente:true},
     {nombre:'ML', desc:'', emoji:'💳', pendiente:true},
   ];
 
   const CIRUGIA = [
     {nombre:'Agenda de Cirugía', desc:'Lista de Programación (fecha, hora y lugar)', emoji:'🔪', href:'OCM_Muratori_v14_0_26.html?abrir=agenda-cirugia'},
+    {nombre:'Pacientes quirúrgicos', desc:'Prequirúrgico (qué falta), para programar y postoperatorio', emoji:'🔪', href:'OCM_Muratori_v14_0_26.html?abrir=seguimiento'},
     {nombre:'Pacientes Operados', desc:'Seguimiento postop', emoji:'🩹', href:'OCM_Muratori_v14_0_26.html?abrir=seguimiento-operados'},
-    {nombre:'Lector CUD', desc:'Foto del CUD → carga por IA', emoji:'📸', href:'Lector_CUD.html'},
+    {nombre:'Lector CUD', desc:'Foto del CUD → carga por IA (la agenda de Discapacidad queda en la PC / MyCloud)', emoji:'📸', href:'Lector_CUD.html'},
   ];
 
   function crearTabItem_(item){

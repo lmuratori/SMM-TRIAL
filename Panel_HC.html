@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de historias — S.I.M-M</title>
+<style>
+  :root{--azul:#0369a1;--azul-osc:#0c4a6e;--verde:#16a34a;--ambar:#d97706;--rojo:#dc2626;--muted:#64748b;--border:#e2e8f0;--bg:#f4fbfd;--surface:#fff}
+  *{box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);margin:0;color:#0f172a;font-size:14px}
+  .topbar{background:linear-gradient(135deg,var(--azul),var(--azul-osc));color:#fff;padding:16px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .topbar h1{font-size:17px;margin:0;flex:1;min-width:200px}
+  .topbar small{display:block;font-weight:400;font-size:11.5px;opacity:.85;margin-top:2px}
+  .btn{padding:8px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;color:#0f172a}
+  .btn.p{background:var(--azul);color:#fff;border-color:var(--azul)}
+  .topbar .btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4)}
+  .tabs{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--border);padding:0 12px;overflow-x:auto}
+  .tab{padding:12px 16px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+  .tab.on{color:var(--azul-osc);border-bottom-color:var(--azul)}
+  main{max-width:1100px;margin:0 auto;padding:16px 14px 70px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+  .card h2{font-size:14px;margin:0 0 8px;color:var(--azul-osc)}
+  .sub{font-size:12px;color:var(--muted);line-height:1.55;margin:0 0 10px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .tile{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer}
+  .tile b{display:block;font-size:22px;color:var(--azul-osc)}
+  .tile span{font-size:11.5px;color:var(--muted)}
+  .tile.on{border-color:var(--azul);box-shadow:0 0 0 2px #bae6fd}
+  input[type=text],select{border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;background:#fff;max-width:100%}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;padding:6px 8px;border-bottom:2px solid var(--border);position:sticky;top:0;background:#fff}
+  td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr.fila{cursor:pointer} tr.fila:hover{background:#f0f9ff}
+  .sem{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .sem.v{background:var(--verde)} .sem.a{background:var(--ambar)} .sem.r{background:var(--rojo)}
+  .chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;margin:1px 3px 1px 0;background:#e0f2fe;color:#075985}
+  .chip.r{background:#fee2e2;color:#991b1b} .chip.a{background:#fef3c7;color:#92400e} .chip.v{background:#dcfce7;color:#166534} .chip.g{background:#f1f5f9;color:#475569}
+  .tablewrap{max-height:62vh;overflow:auto;border:1px solid var(--border);border-radius:8px}
+  .dias{display:flex;gap:4px;align-items:flex-end;height:70px}
+  .dias div{flex:1;text-align:center;font-size:9.5px;color:var(--muted)}
+  .dias i{display:block;background:#7dd3fc;border-radius:3px 3px 0 0;min-height:2px}
+  .dias i.cero{background:#fecaca}
+  .grid2{display:grid;grid-template-columns:300px 1fr;gap:14px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .lista{max-height:70vh;overflow:auto;border:1px solid var(--border);border-radius:8px;background:#fff}
+  .li{padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12.5px}
+  .li:hover{background:#f0f9ff} .li.on{background:#e0f2fe}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:3px 10px;font-size:12.5px;margin-bottom:8px}
+  .kv .k{color:var(--muted)}
+  .cons{border-left:3px solid var(--azul);padding:6px 10px;margin:8px 0;background:#f8fafc;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.5}
+  .cons b{color:var(--azul-osc)}
+  .aviso{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.55;color:#78350f;margin-bottom:12px}
+  .res{border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;background:#fff}
+  .t22{border-collapse:collapse;margin:8px 0;font-size:13px}
+  .t22 td,.t22 th{border:1px solid var(--border);padding:6px 12px;text-align:center;position:static}
+  .vacio{text-align:center;color:var(--muted);padding:22px;font-size:13px}
+  #msg{display:none;margin:12px 0;padding:10px 12px;border-radius:8px;font-size:12.5px;background:#fee2e2;color:#991b1b}
+  details summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--azul-osc)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>📋 Panel de historias<small id="sub-gen">Sin cargar</small></h1>
+  <button class="btn" onclick="pedirToken()" id="btn-tok">🔑 Token</button>
+  <button class="btn" onclick="cargar()">🔄 Actualizar</button>
+</div>
+<div class="tabs">
+  <div class="tab on" data-t="control" onclick="irTab('control')">✅ Control</div>
+  <div class="tab" data-t="fichas" onclick="irTab('fichas')">🗂 Fichas</div>
+  <div class="tab" data-t="inv" onclick="irTab('inv')">🔬 Investigación</div>
+</div>
+<main>
+  <div id="msg"></div>
+
+  <!-- ═════════ CONTROL ═════════ -->
+  <section id="t-control">
+    <div class="tiles" id="tiles"></div>
+    <div class="card">
+      <h2>Consultas cargadas por día (últimos 14 días)</h2>
+      <p class="sub">Si un día de atención aparece en rojo (0), ese día no llegó ninguna consulta a la nube. Ojo: solo cuentan las consultas que OCM ya sincronizó.</p>
+      <div class="dias" id="dias"></div>
+    </div>
+    <div class="card">
+      <div class="bar">
+        <input type="text" id="c-q" placeholder="Buscar apellido, nombre o DNI…" oninput="dibujarControl()" style="flex:1;min-width:180px">
+        <button class="btn" onclick="descargarCSV()">⬇ CSV</button>
+      </div>
+      <p class="sub">🟢 RIMP completado y datos esenciales completos · 🟡 completado con datos que faltan, o enviado hace 7 días o menos · 🔴 enviado hace más de 7 días sin respuesta, o nunca enviado y sin antecedentes. Toque una fila para ver la ficha.</p>
+      <div class="tablewrap"><table><thead><tr><th></th><th>Paciente</th><th>RIMP</th><th>Faltan</th><th>Consultas</th></tr></thead><tbody id="c-body"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ═════════ FICHAS ═════════ -->
+  <section id="t-fichas" style="display:none">
+    <div class="grid2">
+      <div>
+        <input type="text" id="f-q" placeholder="Buscar…" oninput="dibujarLista()" style="width:100%;margin-bottom:8px">
+        <div class="lista" id="f-lista"></div>
+      </div>
+      <div id="f-ficha"><div class="vacio">Elija un paciente de la lista.</div></div>
+    </div>
+  </section>
+
+  <!-- ═════════ INVESTIGACIÓN ═════════ -->
+  <section id="t-inv" style="display:none">
+    <div class="aviso">
+      <b>Cómo leer esto.</b> Es una herramienta para <b>generar preguntas</b>, no para sacar conclusiones. Los datos salen de texto libre de sus propias historias (se buscan palabras clave, con un filtro simple de negaciones como «sin», «niega»), de pacientes de un consultorio de traumatología (no de la población general), y un dato que no figura se toma como «no consta», no como «no tiene». Una asociación puede deberse al azar, a cómo se carga la historia o a factores no medidos; <b>no prueba causa</b>. Si se revisan muchos pares a la vez, algunos salen «significativos» solo por azar: por eso en la búsqueda automática se muestra además el valor corregido (q).
+    </div>
+    <div class="card">
+      <h2>1) Comparar dos cosas</h2>
+      <div class="bar">
+        <select id="i-a"></select><input type="text" id="i-ta" placeholder="término libre" style="display:none;width:150px">
+        <b>y</b>
+        <select id="i-b"></select><input type="text" id="i-tb" placeholder="término libre" style="display:none;width:150px">
+        <button class="btn p" onclick="comparar()">Comparar</button>
+      </div>
+      <div id="i-res"></div>
+    </div>
+    <div class="card">
+      <h2>2) Búsqueda automática de asociaciones no tenidas en cuenta</h2>
+      <p class="sub">Revisa todos los pares entre las categorías (sin comparar cosas de la misma familia entre sí) y lista los que aparecen juntos más o menos de lo esperable. Solo entran pares con al menos 3 pacientes que tengan ambas cosas.</p>
+      <div class="bar">
+        <button class="btn p" onclick="explorar()">Buscar</button>
+        <label style="font-size:12px"><input type="checkbox" id="i-solo-q"> solo los que sobreviven a la corrección (q&lt;0,10)</label>
+      </div>
+      <div id="i-auto"></div>
+    </div>
+    <div class="card">
+      <details><summary>📖 Qué palabras busca cada categoría (diccionario)</summary><div id="i-dic" class="sub" style="margin-top:8px"></div></details>
+    </div>
+  </section>
+</main>
+
+<script>
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxC2fXVUdidzoAyDCGzPBCUoLa1btEGRZxH-S4wAEt71FlQ4Y1Mx1Uy7OsepgSe3i-5/exec';
+let PAC = [], GEN = '', filtroTile = 'todos', fichaSel = null;
+
+/* ───────── utilidades ───────── */
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function tok_(){ try{ return localStorage.getItem('ocm_app_token')||''; }catch(e){ return ''; } }
+function pedirToken(){
+  const t = prompt('Pegue el token (el mismo de OCM ⚙ Config). Queda guardado solo en este navegador.', tok_());
+  if(t===null) return;
+  try{ localStorage.setItem('ocm_app_token', t.trim()); }catch(e){}
+  cargar();
+}
+function msg(t){ const m=document.getElementById('msg'); if(!t){m.style.display='none';return;} m.textContent=t; m.style.display='block'; }
+function irTab(t){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t));
+  ['control','fichas','inv'].forEach(x=>document.getElementById('t-'+x).style.display = x===t?'':'none');
+  if(t==='fichas') dibujarLista();
+}
+function parseFechaAR(s){ // "5/10/2026, 14:03:11" o ISO
+  if(!s) return null;
+  let m = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1]);
+  const d = new Date(s); return isNaN(d) ? null : d;
+}
+function diasDesde(d){ return d ? Math.floor((Date.now()-d.getTime())/86400000) : null; }
+function fmt(d){ return d ? d.toLocaleDateString('es-AR') : '—'; }
+function edad(f){ if(!f) return ''; const d=new Date(f); if(isNaN(d)) return ''; return Math.floor((Date.now()-d)/31557600000); }
+
+/* ───────── carga ───────── */
+async function cargar(){
+  msg('');
+  const tok = tok_();
+  if(!tok){ msg('Falta el token: toque «🔑 Token» y péguelo.'); return; }
+  document.getElementById('sub-gen').textContent = 'Cargando…';
+  try{
+    const r = await fetch(SHEETS_URL+'?action=get_panel_hc&token='+encodeURIComponent(tok));
+    const d = await r.json();
+    if(!d.success) throw new Error(d.error || 'El servidor no devolvió datos (¿token incorrecto o Codigo.gs sin publicar la versión nueva?)');
+    PAC = d.pacientes || []; GEN = d.generado;
+    PAC.forEach(prepararPac);
+    document.getElementById('sub-gen').textContent = PAC.length+' pacientes · actualizado '+new Date(GEN).toLocaleString('es-AR');
+    dibujarTodo();
+  }catch(e){
+    document.getElementById('sub-gen').textContent = 'No se pudo cargar';
+    msg('⚠️ '+e.message);
+  }
+}
+
+/* ───────── semáforo ───────── */
+function prepararPac(p){
+  const env = parseFechaAR(p.rimp_enviado), comp = parseFechaAR(p.rimp_completado);
+  p._env = env; p._comp = comp;
+  const faltaAnt = p.falta.filter(f=>['Enfermedades','Cirugías','Medicación','Alergias'].includes(f));
+  if(comp){ p._rimp='completo'; }
+  else if(env){ p._rimp='pendiente'; p._dias = diasDesde(env); }
+  else { p._rimp='nunca'; }
+  let s;
+  if(p._rimp==='completo') s = p.falta.length===0 ? 'v' : 'a';
+  else if(p._rimp==='pendiente') s = p._dias>7 ? 'r' : 'a';
+  else s = faltaAnt.length ? 'r' : 'a';
+  p._sem = s;
+  p._ultCons = p.consultas.length ? p.consultas[0].fecha : '';
+  p._busq = norm(p.apellido+' '+p.nombre+' '+p.dni);
+}
+function rimpTexto(p){
+  if(p._rimp==='completo') return '<span class="chip v">Completado '+fmt(p._comp)+'</span>';
+  if(p._rimp==='pendiente') return '<span class="chip '+(p._dias>7?'r':'a')+'">Enviado '+fmt(p._env)+' · sin respuesta '+p._dias+' d</span>'+(p.mail?'':' <span class="chip g">sin mail</span>');
+  return '<span class="chip g">Nunca enviado</span>'+(p.mail?'':' <span class="chip g">sin mail</span>');
+}
+
+/* ───────── CONTROL ───────── */
+function dibujarTodo(){ dibujarTiles(); dibujarDias(); dibujarControl(); dibujarLista(); armarInv(); }
+function contar(f){ return PAC.filter(f).length; }
+function dibujarTiles(){
+  const T = [
+    ['todos','Pacientes',PAC.length],
+    ['completo','RIMP completado',contar(p=>p._rimp==='completo')],
+    ['pend','Enviado, sin respuesta',contar(p=>p._rimp==='pendiente')],
+    ['pend7','Sin respuesta > 7 días',contar(p=>p._rimp==='pendiente'&&p._dias>7)],
+    ['nunca','Nunca se envió',contar(p=>p._rimp==='nunca')],
+    ['falta','Con datos esenciales faltantes',contar(p=>p.falta.length>0)],
+    ['sincons','Sin ninguna consulta cargada',contar(p=>p.consultas.length===0)]
+  ];
+  document.getElementById('tiles').innerHTML = T.map(t=>'<div class="tile'+(filtroTile===t[0]?' on':'')+'" onclick="filtroTile=\''+t[0]+'\';dibujarTiles();dibujarControl()"><b>'+t[2]+'</b><span>'+t[1]+'</span></div>').join('');
+}
+function pasaFiltro(p){
+  switch(filtroTile){
+    case 'completo': return p._rimp==='completo';
+    case 'pend': return p._rimp==='pendiente';
+    case 'pend7': return p._rimp==='pendiente' && p._dias>7;
+    case 'nunca': return p._rimp==='nunca';
+    case 'falta': return p.falta.length>0;
+    case 'sincons': return p.consultas.length===0;
+  } return true;
+}
+function filtrados(){
+  const q = norm(document.getElementById('c-q').value);
+  const orden = {r:0,a:1,v:2};
+  return PAC.filter(pasaFiltro).filter(p=>!q||p._busq.includes(q)).sort((a,b)=>orden[a._sem]-orden[b._sem] || a.apellido.localeCompare(b.apellido));
+}
+function dibujarControl(){
+  const L = filtrados();
+  document.getElementById('c-body').innerHTML = L.length ? L.slice(0,400).map(p=>
+    '<tr class="fila" onclick="verFicha(\''+esc(p.dni).replace(/'/g,'')+'\')"><td><span class="sem '+p._sem+'"></span></td>'+
+    '<td><b>'+esc(p.apellido)+', '+esc(p.nombre)+'</b><br><span style="color:var(--muted);font-size:11px">DNI '+esc(p.dni)+(p.os?' · '+esc(p.os):'')+'</span></td>'+
+    '<td>'+rimpTexto(p)+'</td>'+
+    '<td>'+(p.falta.length?p.falta.map(f=>'<span class="chip a">'+esc(f)+'</span>').join(''):'<span class="chip v">Completo</span>')+'</td>'+
+    '<td>'+p.consultas.length+(p._ultCons?'<br><span style="color:var(--muted);font-size:11px">última '+esc(p._ultCons)+'</span>':'')+'</td></tr>'
+  ).join('') + (L.length>400?'<tr><td colspan="5" class="vacio">Se muestran 400 de '+L.length+'. Use el buscador o un filtro.</td></tr>':'') : '<tr><td colspan="5" class="vacio">Sin resultados.</td></tr>';
+}
+function dibujarDias(){
+  const cuenta = {}; PAC.forEach(p=>p.consultas.forEach(c=>{ if(c.fecha) cuenta[c.fecha]=(cuenta[c.fecha]||0)+1; }));
+  const out = []; const hoy = new Date();
+  for(let i=13;i>=0;i--){
+    const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()-i);
+    const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    out.push({k, n:cuenta[k]||0, fin:(d.getDay()===0||d.getDay()===6), lbl:d.getDate()+'/'+(d.getMonth()+1)});
+  }
+  const max = Math.max(1,...out.map(o=>o.n));
+  document.getElementById('dias').innerHTML = out.map(o=>'<div title="'+o.k+': '+o.n+' consultas"><span>'+o.n+'</span><i class="'+(o.n===0&&!o.fin?'cero':'')+'" style="height:'+Math.max(2,Math.round(o.n/max*46))+'px"></i>'+o.lbl+'</div>').join('');
+}
+function descargarCSV(){
+  const L = filtrados();
+  const filas = [['Apellido','Nombre','DNI','Telefono','Mail','Semaforo','RIMP','RIMP_enviado','RIMP_completado','Faltan','Consultas','Ultima_consulta']];
+  L.forEach(p=>filas.push([p.apellido,p.nombre,p.dni,p.tel,p.mail,{v:'verde',a:'amarillo',r:'rojo'}[p._sem],p._rimp,fmt(p._env),fmt(p._comp),p.falta.join('; '),p.consultas.length,p._ultCons]));
+  const csv = '﻿'+filas.map(r=>r.map(x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'control_historias_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+}
+
+/* ───────── FICHAS ───────── */
+function dibujarLista(){
+  const q = norm(document.getElementById('f-q').value);
+  const L = PAC.filter(p=>!q||p._busq.includes(q)).sort((a,b)=>a.apellido.localeCompare(b.apellido)).slice(0,300);
+  document.getElementById('f-lista').innerHTML = L.length ? L.map(p=>'<div class="li'+(fichaSel===p.dni?' on':'')+'" onclick="verFicha(\''+esc(p.dni).replace(/'/g,'')+'\')"><span class="sem '+p._sem+'"></span><b>'+esc(p.apellido)+'</b>, '+esc(p.nombre)+'</div>').join('') : '<div class="vacio">Sin resultados</div>';
+}
+function verFicha(dni){
+  fichaSel = dni; irTab('fichas');
+  const p = PAC.find(x=>x.dni===dni); if(!p) return;
+  dibujarLista();
+  const a = p.ant;
+  const fila = (k,v)=>'<div class="k">'+k+'</div><div>'+(v?esc(v):'<span style="color:var(--rojo)">no consta</span>')+'</div>';
+  document.getElementById('f-ficha').innerHTML =
+   '<div class="card"><h2><span class="sem '+p._sem+'"></span>'+esc(p.apellido)+', '+esc(p.nombre)+(p.membresia?' <span class="chip v">Membresía</span>':'')+'</h2>'+
+   '<div class="kv">'+fila('DNI',p.dni)+fila('Edad',edad(p.fnac)?edad(p.fnac)+' años':'')+fila('Obra social',p.os)+fila('Teléfono',p.tel)+fila('Mail',p.mail)+fila('Domicilio',[p.domicilio,p.localidad].filter(Boolean).join(', '))+fila('Diagnóstico principal',p.dx)+'</div>'+
+   '<div style="margin-bottom:6px"><b>RIMP:</b> '+rimpTexto(p)+'</div>'+
+   (p.falta.length?'<div>Faltan: '+p.falta.map(f=>'<span class="chip a">'+esc(f)+'</span>').join('')+'</div>':'<div><span class="chip v">Datos esenciales completos</span></div>')+'</div>'+
+   '<div class="card"><h2>Antecedentes</h2><div class="kv">'+fila('Motivo inicial',a.motivo)+fila('Enfermedades',a.enfermedades)+fila('Cirugías',a.cirugias)+fila('Medicación',a.medicacion)+fila('Alergias',a.alergia)+fila('Deporte',a.deporte)+fila('Trabajo',a.trabajo)+(a.zonas?fila('Zonas con dolor',a.zonas):'')+'</div></div>'+
+   '<div class="card"><h2>Consultas ('+p.consultas.length+')</h2>'+(p.consultas.length?p.consultas.map(c=>
+     '<div class="cons"><b>'+esc(c.fecha||'sin fecha')+'</b> — '+esc(c.dx||'sin diagnóstico')+(c.cie?' ('+esc(c.cie)+')':'')+
+     '<br>'+[c.seg,c.lat,c.tipo,c.clas].filter(Boolean).map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+(c.eva?'<span class="chip a">EVA '+esc(c.eva)+'</span>':'')+
+     (c.terap?'<br>Terapéutica: '+esc(c.terap):'')+(c.med?'<br>Medicación: '+esc(c.med):'')+(c.ind?'<br>Indicaciones: '+esc(c.ind):'')+(c.obs?'<br>Obs.: '+esc(c.obs):'')+(c.prox?'<br>Próximo control: '+esc(c.prox):'')+(c.lugar?'<br><span style="color:var(--muted);font-size:11px">'+esc(c.lugar)+'</span>':'')+'</div>').join('')
+     : '<div class="vacio">Todavía no hay consultas de este paciente en la nube.</div>')+'</div>';
+}
+
+/* ───────── INVESTIGACIÓN ───────── */
+// Cada categoría: familia, y expresiones (sobre texto sin acentos y en minúscula). 'dep' = solo texto de deporte/actividad.
+const VARS = [
+ {id:'dep_futbol',fam:'Deporte',et:'Fútbol',dep:1,re:['futbol','football']},
+ {id:'dep_run',fam:'Deporte',et:'Running / atletismo',dep:1,re:['running','correr','atletismo','maraton','trote']},
+ {id:'dep_rugby',fam:'Deporte',et:'Rugby',dep:1,re:['rugby']},
+ {id:'dep_hockey',fam:'Deporte',et:'Hockey',dep:1,re:['hockey']},
+ {id:'dep_racket',fam:'Deporte',et:'Tenis / pádel',dep:1,re:['tenis','padel','paddle','squash']},
+ {id:'dep_basq',fam:'Deporte',et:'Básquet / vóley / handball',dep:1,re:['basquet','basket','voley','volley','handball']},
+ {id:'dep_nat',fam:'Deporte',et:'Natación',dep:1,re:['natacion','nadar']},
+ {id:'dep_bici',fam:'Deporte',et:'Ciclismo',dep:1,re:['ciclismo','bicicleta','mountain bike']},
+ {id:'dep_gym',fam:'Deporte',et:'Gimnasio / musculación / crossfit',dep:1,re:['gimnasio','musculacion','crossfit','pesas','funcional']},
+ {id:'dep_danza',fam:'Deporte',et:'Danza / gimnasia deportiva',dep:1,re:['danza','baile','ballet','gimnasia artistica','gimnasia ritmica','patin']},
+ {id:'dep_mar',fam:'Deporte',et:'Artes marciales / boxeo',dep:1,re:['karate','judo','boxeo','taekwondo','jiu','mma','kick']},
+ {id:'dep_sed',fam:'Deporte',et:'Sedentario / no practica',dep:1,re:['sedentari','ninguno','no realiza','no practica']},
+ {id:'ls_esg',fam:'Cuadro / lesión',et:'Esguince',re:['esguince']},
+ {id:'ls_lux',fam:'Cuadro / lesión',et:'Luxación / inestabilidad',re:['luxacion','subluxacion','inestabilidad']},
+ {id:'ls_fx',fam:'Cuadro / lesión',et:'Fractura',re:['fractura']},
+ {id:'ls_lig',fam:'Cuadro / lesión',et:'Lesión ligamentaria / meniscal',re:['ligamento cruzado','lca','menisc','ligamentaria','lesion ligamentos']},
+ {id:'ls_tend',fam:'Cuadro / lesión',et:'Tendinopatía / tendinitis',re:['tendinitis','tendinopatia','tendinosis','epicondilitis','manguito']},
+ {id:'ls_lumb',fam:'Cuadro / lesión',et:'Lumbalgia / hernia de disco',re:['lumbalgia','lumbociatalgia','hernia de disco','ciatalgia']},
+ {id:'ls_cerv',fam:'Cuadro / lesión',et:'Cervicalgia',re:['cervicalgia','cervicobraquialgia']},
+ {id:'ls_esco',fam:'Cuadro / lesión',et:'Escoliosis',re:['escoliosis']},
+ {id:'ls_fasc',fam:'Cuadro / lesión',et:'Fascitis plantar / talalgia',re:['fascitis plantar','talalgia']},
+ {id:'ls_pie',fam:'Cuadro / lesión',et:'Pie plano / cavo / hallux',re:['pie plano','pie cavo','hallux','juanete']},
+ {id:'cd_hiper',fam:'Cuadro / lesión',et:'Hiperlaxitud / hipermovilidad',re:['hiperlaxitud','hipermovilidad','laxitud ligamentaria','ehlers','beighton']},
+ {id:'cd_artrosis',fam:'Degenerativo / inflamatorio',et:'Artrosis',re:['artrosis','osteoartritis','gonartrosis','coxartrosis','condropatia']},
+ {id:'cd_artritis',fam:'Degenerativo / inflamatorio',et:'Artritis',re:['artritis']},
+ {id:'cd_meca',fam:'Degenerativo / inflamatorio',et:'Dolor de tipo mecánico',re:['mecanic']},
+ {id:'cd_infl',fam:'Degenerativo / inflamatorio',et:'Dolor de tipo inflamatorio',re:['inflamatori','rigidez matinal']},
+ {id:'cd_reag',fam:'Degenerativo / inflamatorio',et:'Reagudizaciones / brotes',re:['reagudiz','brote','exacerbacion']},
+ {id:'im_ar',fam:'Inmunológico',et:'Artritis reumatoide',re:['artritis reumatoide']},
+ {id:'im_lupus',fam:'Inmunológico',et:'Lupus',re:['lupus']},
+ {id:'im_pso',fam:'Inmunológico',et:'Psoriasis / artritis psoriásica',re:['psoriasis','psoriasica']},
+ {id:'im_espa',fam:'Inmunológico',et:'Espondiloartritis / espondilitis',re:['espondilitis','espondiloartritis']},
+ {id:'im_tiro',fam:'Inmunológico',et:'Tiroiditis autoinmune / Hashimoto / Graves',re:['hashimoto','tiroiditis','graves']},
+ {id:'im_celi',fam:'Inmunológico',et:'Celiaquía',re:['celiaqu']},
+ {id:'im_eii',fam:'Inmunológico',et:'Enfermedad inflamatoria intestinal',re:['crohn','colitis ulcerosa','enfermedad inflamatoria intestinal']},
+ {id:'im_otras',fam:'Inmunológico',et:'Otras (Sjögren, esclerodermia, vasculitis, uveítis, sarcoidosis)',re:['sjogren','esclerodermia','esclerosis sistemica','vasculitis','uveitis','sarcoidosis']},
+ {id:'im_any',fam:'Inmunológico',et:'Otra patología inmunológica / autoinmune (sin contar artritis)',re:['lupus','psoriasis','espondilitis','espondiloartritis','hashimoto','tiroiditis','graves','celiaqu','crohn','colitis ulcerosa','enfermedad inflamatoria intestinal','sjogren','esclerodermia','esclerosis sistemica','vasculitis','uveitis','sarcoidosis','autoinmune','inmunologic']},
+ {id:'me_dm',fam:'Metabólico / otros',et:'Diabetes',re:['diabetes','dbt']},
+ {id:'me_hta',fam:'Metabólico / otros',et:'Hipertensión',re:['hipertension','hta']},
+ {id:'me_ob',fam:'Metabólico / otros',et:'Obesidad / sobrepeso',re:['obesidad','sobrepeso']},
+ {id:'me_osteo',fam:'Metabólico / otros',et:'Osteoporosis / osteopenia',re:['osteoporosis','osteopenia']},
+ {id:'me_hipot',fam:'Metabólico / otros',et:'Hipotiroidismo',re:['hipotiroidismo']},
+ {id:'me_tab',fam:'Metabólico / otros',et:'Tabaquismo',re:['tabaqu','fumador','fuma ']},
+ {id:'sg_rod',fam:'Segmento',et:'Rodilla',re:['rodilla','gonalgia']},
+ {id:'sg_cad',fam:'Segmento',et:'Cadera',re:['cadera','coxalgia']},
+ {id:'sg_hom',fam:'Segmento',et:'Hombro',re:['hombro','omalgia']},
+ {id:'sg_col',fam:'Segmento',et:'Columna',re:['columna','lumbar','cervical','dorsal']},
+ {id:'sg_tob',fam:'Segmento',et:'Tobillo / pie',re:['tobillo','pie ','pie,','talo']},
+ {id:'sg_man',fam:'Segmento',et:'Mano / muñeca / codo',re:['mano','muneca','codo']},
+ {id:'ed_0',fam:'Edad',et:'Menor de 18',edad:[0,17]},
+ {id:'ed_1',fam:'Edad',et:'18 a 39',edad:[18,39]},
+ {id:'ed_2',fam:'Edad',et:'40 a 59',edad:[40,59]},
+ {id:'ed_3',fam:'Edad',et:'60 o más',edad:[60,200]},
+ {id:'mb',fam:'Edad',et:'Con membresía',memb:1}
+];
+const NEG = /(^|[\s,;(.])(sin|no|niega|nunca|descarta|negativo|ausencia de)\s+(\w+\s+){0,2}$/;
+function tieneTermino(texto, re){
+  for(const r of re){
+    let i = -1;
+    while((i = texto.indexOf(r, i+1)) !== -1){
+      if(r.length<=4){ // palabras cortas (hta, lca, mma…): que no sean parte de otra palabra
+        const pre = texto[i-1], post = texto[i+r.length];
+        if((pre && /[a-z]/.test(pre)) || (post && /[a-z]/.test(post))) continue;
+      }
+      const antes = texto.slice(Math.max(0,i-26), i);
+      if(!NEG.test(' '+antes)) return true;
+    }
+  }
+  return false;
+}
+function textosPac(p){
+  const a = p.ant;
+  const dep = norm([a.deporte].concat(p.consultas.map(c=>c.act)).join(' | '));
+  const todo = norm([a.enfermedades,a.cirugias,a.motivo,a.zonas,a.trabajo,p.dx].concat(p.consultas.map(c=>[c.dx,c.seg,c.tipo,c.clas,c.terap,c.obs,c.cie].join(' '))).join(' | ')) + ' || ' + dep;
+  return {dep, todo};
+}
+let VALID = [], MAT = null;
+function armarInv(){
+  // Solo pacientes con algún dato clínico en texto (si no hay nada, no se puede decir que "no lo tiene")
+  VALID = PAC.filter(p=>{ const t=textosPac(p); p._t=t; return (t.todo.replace(/[\s|]/g,'').length>0); });
+  MAT = {}; // id -> Uint8Array
+  VARS.forEach(v=>{
+    const arr = new Uint8Array(VALID.length);
+    VALID.forEach((p,i)=>{
+      if(v.edad){ const e=edad(p.fnac); arr[i] = (e!=='' && e>=v.edad[0] && e<=v.edad[1])?1:0; }
+      else if(v.memb){ arr[i] = p.membresia?1:0; }
+      else arr[i] = tieneTermino(v.dep?p._t.dep:p._t.todo, v.re)?1:0;
+    });
+    MAT[v.id] = arr;
+  });
+  const fams = []; VARS.forEach(v=>{ if(!fams.includes(v.fam)) fams.push(v.fam); });
+  const opt = fams.map(f=>'<optgroup label="'+f+'">'+VARS.filter(v=>v.fam===f).map(v=>'<option value="'+v.id+'">'+esc(v.et)+' ('+suma(MAT[v.id])+')</option>').join('')+'</optgroup>').join('') + '<option value="__libre">✏️ Otro término…</option>';
+  ['i-a','i-b'].forEach((id,k)=>{ const s=document.getElementById(id); const prev=s.value; s.innerHTML=opt; if(prev) s.value=prev; else s.selectedIndex = k?4:0; s.onchange=()=>{ document.getElementById(id==='i-a'?'i-ta':'i-tb').style.display = s.value==='__libre'?'':'none'; }; });
+  document.getElementById('i-dic').innerHTML = '<p>Pacientes con algún dato clínico en texto: <b>'+VALID.length+'</b> de '+PAC.length+'. El número entre paréntesis es cuántos pacientes entran en cada categoría.</p>' + VARS.filter(v=>v.re).map(v=>'<b>'+esc(v.et)+':</b> '+v.re.join(', ')).join('<br>');
+  document.getElementById('i-res').innerHTML=''; document.getElementById('i-auto').innerHTML='';
+}
+function solapan(A,B){ // categorías que comparten palabras: la asociación sería automática, no informativa
+  if(!A.re||!B.re) return false;
+  return A.re.some(x=>B.re.some(y=>x.includes(y)||y.includes(x)));
+}
+function suma(a){ let s=0; for(let i=0;i<a.length;i++) s+=a[i]; return s; }
+function vectorLibre(txt){
+  const t = norm(txt).trim(); if(t.length<3) return null;
+  const arr = new Uint8Array(VALID.length);
+  VALID.forEach((p,i)=>{ arr[i] = tieneTermino(p._t.todo,[t])?1:0; });
+  return arr;
+}
+function obtener(selId, txtId){
+  const v = document.getElementById(selId).value;
+  if(v==='__libre'){ const t=document.getElementById(txtId).value; const arr=vectorLibre(t); return arr?{arr, et:'«'+t.trim()+'»', fam:'libre'}:null; }
+  const d = VARS.find(x=>x.id===v); return {arr:MAT[v], et:d.et, fam:d.fam, id:v};
+}
+// Fisher exacto bilateral (suma de probabilidades ≤ la observada)
+const LF = [0]; function lf(n){ while(LF.length<=n) LF.push(LF[LF.length-1]+Math.log(LF.length)); return LF[n]; }
+function logHip(a,b,c,d){ const n=a+b+c+d; return lf(a+b)+lf(c+d)+lf(a+c)+lf(b+d)-lf(n)-lf(a)-lf(b)-lf(c)-lf(d); }
+function fisher(a,b,c,d){
+  const r1=a+b, c1=a+c, n=a+b+c+d, obs=logHip(a,b,c,d);
+  let p=0;
+  for(let x=Math.max(0,c1-(n-r1)); x<=Math.min(r1,c1); x++){
+    const l = logHip(x,r1-x,c1-x,n-r1-c1+x);
+    if(l<=obs+1e-9) p+=Math.exp(l);
+  }
+  return Math.min(1,p);
+}
+function tabla2(A,B){
+  let a=0,b=0,c=0,d=0;
+  for(let i=0;i<A.length;i++){ if(A[i]&&B[i])a++; else if(A[i])b++; else if(B[i])c++; else d++; }
+  return {a,b,c,d};
+}
+function estad(t){
+  const {a,b,c,d}=t, n=a+b+c+d;
+  const OR = ((a+.5)*(d+.5))/((b+.5)*(c+.5));
+  const se = Math.sqrt(1/(a+.5)+1/(b+.5)+1/(c+.5)+1/(d+.5));
+  const lo = Math.exp(Math.log(OR)-1.96*se), hi = Math.exp(Math.log(OR)+1.96*se);
+  const esp = (a+b)*(a+c)/n;
+  return {n,OR,lo,hi,p:fisher(a,b,c,d),esp,pctA: (a+b)? a/(a+b)*100:0, pctNoA:(c+d)? c/(c+d)*100:0};
+}
+const f2 = x=>x.toLocaleString('es-AR',{maximumFractionDigits:2});
+const fp = p=>p<0.001?'< 0,001':p.toLocaleString('es-AR',{maximumFractionDigits:3});
+function comparar(){
+  const A=obtener('i-a','i-ta'), B=obtener('i-b','i-tb');
+  const out = document.getElementById('i-res');
+  if(!A||!B){ out.innerHTML='<div class="vacio">Escriba un término de al menos 3 letras.</div>'; return; }
+  if(!VALID.length){ out.innerHTML='<div class="vacio">Todavía no hay datos cargados.</div>'; return; }
+  const t=tabla2(A.arr,B.arr), s=estad(t);
+  const listaIdx = []; for(let i=0;i<A.arr.length;i++) if(A.arr[i]&&B.arr[i]) listaIdx.push(i);
+  const defA = VARS.find(v=>v.id===A.id), defB = VARS.find(v=>v.id===B.id);
+  const aviso = (defA&&defB&&solapan(defA,defB)) ? '<div class="aviso" style="margin-top:8px">⚠️ Estas dos categorías comparten palabras clave: parte de la asociación es automática (el mismo texto cuenta para las dos). No la interprete.</div>' : '';
+  let lectura;
+  if(t.a<3) lectura='Hay menos de 3 pacientes con ambas cosas: <b>no alcanza</b> para decir nada.';
+  else if(s.p>=0.05) lectura='No hay diferencia que se distinga del azar con estos datos (p = '+fp(s.p)+').';
+  else lectura='Aparecen juntas '+(s.OR>1?'<b>más':'<b>menos')+'</b> de lo esperado por azar (p = '+fp(s.p)+'). Pregunta para investigar, no conclusión.';
+  out.innerHTML = '<div class="res"><b>'+esc(A.et)+'</b> × <b>'+esc(B.et)+'</b> <span class="chip g">'+s.n+' pacientes analizados</span>'+
+   '<table class="t22"><tr><th></th><th>'+esc(B.et)+'</th><th>sin eso</th></tr><tr><th>'+esc(A.et)+'</th><td>'+t.a+'</td><td>'+t.b+'</td></tr><tr><th>sin eso</th><td>'+t.c+'</td><td>'+t.d+'</td></tr></table>'+
+   '<div class="sub">Entre quienes tienen «'+esc(A.et)+'», '+f2(s.pctA)+'% tiene «'+esc(B.et)+'»; entre quienes no, '+f2(s.pctNoA)+'%. Esperado por azar: '+f2(s.esp)+' pacientes con ambas (observados: '+t.a+').<br>Odds ratio '+f2(s.OR)+' (IC 95% '+f2(s.lo)+' – '+f2(s.hi)+') · Fisher p = '+fp(s.p)+'</div>'+
+   '<div>'+lectura+'</div>'+aviso+
+   (listaIdx.length?'<details style="margin-top:8px"><summary>Ver los '+listaIdx.length+' pacientes con ambas</summary><div style="margin-top:6px">'+listaIdx.slice(0,200).map(i=>'<a href="#" onclick="verFicha(\''+esc(VALID[i].dni).replace(/'/g,'')+'\');return false">'+esc(VALID[i].apellido)+', '+esc(VALID[i].nombre)+'</a>').join(' · ')+'</div></details>':'')+'</div>';
+}
+function explorar(){
+  const out = document.getElementById('i-auto');
+  if(!VALID.length){ out.innerHTML='<div class="vacio">Todavía no hay datos cargados.</div>'; return; }
+  const cand = VARS.filter(v=>suma(MAT[v.id])>=5 && suma(MAT[v.id])<=VALID.length-5);
+  const res = [];
+  for(let i=0;i<cand.length;i++) for(let j=i+1;j<cand.length;j++){
+    const A=cand[i], B=cand[j];
+    if(A.fam===B.fam) continue;
+    if(solapan(A,B)) continue;
+    const t=tabla2(MAT[A.id],MAT[B.id]); if(t.a<3) continue;
+    const s=estad(t); res.push({A,B,t,s});
+  }
+  // corrección de Benjamini-Hochberg
+  res.sort((x,y)=>x.s.p-y.s.p);
+  const m=res.length; let prev=1;
+  for(let k=m-1;k>=0;k--){ const q=Math.min(prev,res[k].s.p*m/(k+1)); res[k].q=q; prev=q; }
+  let L = res; if(document.getElementById('i-solo-q').checked) L = L.filter(r=>r.q<0.10);
+  out.innerHTML = '<p class="sub">'+m+' pares revisados · '+VALID.length+' pacientes. Se muestran los 30 más llamativos.</p>'+
+   (L.length ? '<div class="tablewrap"><table><thead><tr><th>Par</th><th>Juntos</th><th>Esperado</th><th>OR (IC 95%)</th><th>p</th><th>q</th></tr></thead><tbody>'+
+   L.slice(0,30).map(r=>'<tr><td>'+esc(r.A.et)+' <b>×</b> '+esc(r.B.et)+'</td><td>'+r.t.a+'</td><td>'+f2(r.s.esp)+'</td><td>'+f2(r.s.OR)+' ('+f2(r.s.lo)+'–'+f2(r.s.hi)+')</td><td>'+fp(r.s.p)+'</td><td>'+fp(r.q)+'</td></tr>').join('')+'</tbody></table></div>'
+   : '<div class="vacio">Ningún par supera la corrección por comparaciones múltiples. Es normal con pocos pacientes cargados: no significa que no haya nada, sino que todavía no hay datos suficientes.</div>');
+}
+
+/* ───────── inicio ───────── */
+if(tok_()) cargar(); else { document.getElementById('sub-gen').textContent='Falta el token'; msg('Toque «🔑 Token» y pegue el token de OCM para ver los datos.'); }
+</script>
+</body>
+</html>

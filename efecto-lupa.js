@@ -2,14 +2,16 @@
    EFECTO LUPA — Sistema Médico Muratori (SMM)
    ============================================================
    Qué hace:
-   - Agranda (x3) el campo de texto que se está completando,
+   - Agranda (x2) el campo de texto que se está completando,
      mientras tiene el foco (cursor adentro), para que sea más
      fácil de leer mientras se escribe.
    - Funciona SOLO con tener este archivo incluido en la página —
      no hace falta marcar campo por campo, agarra automáticamente
-     cualquier <input>, <textarea> o campo "contenteditable" del
-     módulo. Es el mismo principio que el corrector ortográfico
-     del navegador: anda en cualquier campo sin configurarlo.
+     cualquier <input>, <select>, <textarea> o campo "contenteditable"
+     del módulo (BUGFIX oct 2026: antes <select> — los desplegables de
+     región/síndrome/maniobra, etc. — se quedaban afuera de la lupa).
+     Es el mismo principio que el corrector ortográfico del navegador:
+     anda en cualquier campo sin configurarlo.
    - Al salir del campo (Tab, click afuera, etc.) vuelve solo a su
      tamaño normal.
    - No agranda casillas de verificación, botones, radios, ni
@@ -34,7 +36,7 @@
   window.__efectoLupaSMM = true;
 
   var ESCALA = 2; // pedido de Luis (sep 2026): con 3 quedaba demasiado grande, con 2 alcanza
-  var SELECTOR_CAMPOS = 'input, textarea, [contenteditable="true"], [contenteditable=""]';
+  var SELECTOR_CAMPOS = 'input, select, textarea, [contenteditable="true"], [contenteditable=""]';
   var TIPOS_EXCLUIDOS = ['checkbox','radio','button','submit','reset','range','color','file','hidden','image'];
 
   var estilo = document.createElement('style');

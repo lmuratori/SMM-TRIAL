@@ -24,11 +24,12 @@
 //     ve enseguida (con conexión), y el caché solo se usa si en el momento
 //     no hay señal.
 
-const CACHE_NAME = 'smm-shell-v3'; // ← subí este número cada vez que subas cambios nuevos,
+const CACHE_NAME = 'smm-shell-v5'; // ← subí este número cada vez que subas cambios nuevos,
                                      // así el celular/compu descarta el caché viejo solo.
 const SHELL_FILES = [
   './index.html',
   './OCM_Muratori_v14_0_26.html',
+  './CAM_V.html',
   './CAM_Herramientas_Clinicas.html',
   './INDEX_SIM.html',
   './RIDM_Muratori_v1.html',

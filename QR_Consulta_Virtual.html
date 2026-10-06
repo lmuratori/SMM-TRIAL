@@ -127,13 +127,13 @@
 
   <div class="card">
     <h2>Otra opción: entrevista express de asesoramiento médico</h2>
-    <p class="sub">Una videollamada corta por Google Meet con el doctor, para orientarte sobre tu caso. No es una consulta de urgencia — es una entrevista breve, paga, con cupos limitados.</p>
+    <p class="sub">Contale tu caso al doctor por escrito más abajo — podés dictarlo por voz y se transcribe solo — y el doctor te responde por escrito, punto por punto. No es una videollamada ni una consulta de urgencia — es una orientación breve, paga, con cupos limitados.</p>
     <div class="express-precio">
       <span class="monto">$25.000</span>
-      <span class="cuando">entrevista de 5 minutos, entre semana · los fines de semana el valor es mayor</span>
+      <span class="cuando">orientación por escrito, entre semana · los fines de semana el valor es mayor</span>
     </div>
-    <p class="sub" id="parrafo-precios-secundarios" style="margin:8px 0 0">También podés pedir la renovación de una receta u orden vencida sin entrevista, por <b>$15.000</b>. Si de tu consulta surge que hace falta una entrevista más larga (15 minutos), el doctor te lo va a proponer y el valor es <b>$50.000</b>.</p>
-    <p class="sub" style="margin:8px 0 0">Se confirma de lunes a viernes de 5 a 6 de la mañana, y sábados y domingos de 9 a 10 — previa carga de tus datos y el pago. Si de la entrevista surge que hace falta verte en persona, se te da un turno para eso en el consultorio que te quede más cerca.</p>
+    <p class="sub" id="parrafo-precios-secundarios" style="margin:8px 0 0">También podés pedir la renovación de una receta u orden vencida sin entrevista, por <b>$15.000</b>. Si de tu consulta surge que hace falta una orientación más larga y detallada, el doctor te lo va a proponer y el valor es <b>$50.000</b>.</p>
+    <p class="sub" style="margin:8px 0 0">El doctor revisa tu caso y responde de lunes a viernes de 5 a 6 de la mañana, y sábados y domingos de 9 a 10 — previa carga de tus datos y el pago. Si de tu consulta surge que hace falta verte en persona, se te da un turno para eso en el consultorio que te quede más cerca.</p>
     <div class="pago-box" id="pago-box">
       <b style="display:block;margin-bottom:4px;color:var(--azul-osc)">💳 Cómo pagar</b>
       Hacé una transferencia por el monto que corresponda a lo que necesitás (arriba) a este alias:
@@ -145,14 +145,8 @@
       Después contanos tu caso más abajo, contanos qué necesitás, y adjuntá el comprobante (foto y/o número de operación) en el formulario — no hace falta entrar a ningún sistema de facturación, se manda directo acá. Si todavía no pagaste, podés mandarlo más tarde por WhatsApp o mail; la atención se confirma una vez que se verifica el pago.
     </div>
     <div class="nota" style="margin-top:12px">
-      📲 <b style="display:block;margin-bottom:3px">Antes del horario acordado, instalá Google Meet</b>
-      La videollamada se hace por Google Meet. Si vas a conectarte desde el celular, te conviene tener la app instalada de antes para que a la hora de la entrevista no se te complique:
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-        <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.tachyon" target="_blank" style="flex:1;min-width:140px;text-align:center;background:#0369a1;color:#fff;text-decoration:none;border-radius:8px;padding:9px 10px;font-size:12px;font-weight:800">🤖 Descargar (Android)</a>
-        <a href="https://apps.apple.com/us/app/google-meet/id1096918571" target="_blank" style="flex:1;min-width:140px;text-align:center;background:#0369a1;color:#fff;text-decoration:none;border-radius:8px;padding:9px 10px;font-size:12px;font-weight:800">🍎 Descargar (iPhone)</a>
-      </div>
-      <div style="margin-top:8px">Si te vas a conectar desde una computadora, no hace falta instalar nada — se abre directo en Google Chrome.</div>
-      <div style="margin-top:8px;font-style:italic">Esto es solo si tu consulta termina siendo una entrevista o consulta por videollamada. Si lo que necesitás es la renovación de una receta u orden vencida, no hace falta instalar nada.</div>
+      📝 <b style="display:block;margin-bottom:3px">Contanos todo por escrito, con la mayor cantidad de detalle</b>
+      No hace falta coordinar ningún horario de videollamada ni instalar nada — usá el botón de dictado por voz si te resulta más cómodo que escribir, y si tenés una radiografía, estudio o informe, subilo en el formulario de más abajo para que el doctor lo tenga en cuenta al responderte.
     </div>
   </div>
 
@@ -245,7 +239,7 @@
 
       <div class="consent">
         <input type="checkbox" id="f-consiente">
-        <span>Entiendo que esto <b>no es una consulta de urgencia</b>, sino una orientación / entrevista express de asesoramiento médico que no reemplaza una atención presencial de urgencia, y doy mi consentimiento para el uso de mis datos de salud, conforme a la Ley 25.326 de Protección de Datos Personales.</span>
+        <span>Entiendo que esto <b>no es una consulta de urgencia</b>, sino una orientación por escrito (no una videollamada) que no reemplaza una atención presencial de urgencia, y doy mi consentimiento para el uso de mis datos de salud, conforme a la Ley 25.326 de Protección de Datos Personales. Si de mi consulta surge que hace falta una evaluación más completa, esa se hace de forma presencial.</span>
       </div>
 
       <button type="button" class="btn btn-primary" id="btn-enviar" onclick="enviarSolicitud()">Enviar</button>
@@ -471,12 +465,6 @@ function mostrarError_(msg){
 function mostrarExito_(data){
   const card = document.getElementById('card-exito');
   const esGuardia = !!(data && data.recomendacion === 'guardia');
-  // El recordatorio de instalar Meet solo tiene sentido si la consulta va a
-  // terminar en una videollamada. La renovación de receta u orden vencida no
-  // usa Meet, así que ahí no corresponde mostrarlo (Luis, sep 2026: evitar
-  // que se confunda a quien solo pidió la renovación).
-  const tipoSolicitud = (document.getElementById('f-tipo-solicitud') || {}).value || '';
-  const esRenovacionReceta = /renovaci[oó]n de receta/i.test(tipoSolicitud);
   card.classList.add(esGuardia ? 'guardia' : 'entrevista');
   document.getElementById('exito-ico').textContent = esGuardia ? '⚠️' : '✅';
   document.getElementById('exito-titulo').textContent = esGuardia
@@ -484,18 +472,8 @@ function mostrarExito_(data){
     : '¡Listo, recibimos tu consulta!';
   const aviso = document.getElementById('exito-aviso');
   const mensaje = (data && data.mensaje_paciente) ||
-    'Recibimos tu consulta. Nos vamos a comunicar a la brevedad para coordinar la entrevista express de asesoramiento médico.';
-  const recordatorioMeet = (esGuardia || esRenovacionReceta) ? '' : `
-    <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(12,74,110,.15)">
-      <b style="display:block;margin-bottom:4px">📲 Si tu consulta termina siendo una videollamada, instalá Google Meet antes del horario acordado</b>
-      Si de tu consulta surge que hace falta una entrevista por videollamada, se hace por Google Meet y te va a llegar el link por mail o WhatsApp — para que no se te complique a último momento, instalá la app ahora si vas a usar el celular:
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-        <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.tachyon" target="_blank" style="flex:1;min-width:130px;text-align:center;background:#0369a1;color:#fff;text-decoration:none;border-radius:8px;padding:8px 10px;font-size:11.5px;font-weight:800">🤖 Android</a>
-        <a href="https://apps.apple.com/us/app/google-meet/id1096918571" target="_blank" style="flex:1;min-width:130px;text-align:center;background:#0369a1;color:#fff;text-decoration:none;border-radius:8px;padding:8px 10px;font-size:11.5px;font-weight:800">🍎 iPhone</a>
-      </div>
-      Desde una computadora no hace falta instalar nada, se abre en Chrome.
-    </div>`;
-  aviso.innerHTML = '<b>' + (esGuardia ? 'Te recomendamos no esperar' : 'Cómo sigue esto') + '</b>' + mensaje + recordatorioMeet;
+    'Recibimos tu consulta. La vamos a revisar y te vamos a responder por escrito, punto por punto, a la brevedad.';
+  aviso.innerHTML = '<b>' + (esGuardia ? 'Te recomendamos no esperar' : 'Cómo sigue esto') + '</b>' + mensaje;
   card.style.display = 'block';
 }
 

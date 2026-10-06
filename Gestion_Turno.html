@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestionar mi turno — Dr. Muratori</title>
+<style>
+  :root{--azul:#0369a1;--azul-osc:#0c4a6e;--verde:#16a34a;--ambar:#d97706;--rojo:#dc2626;--muted:#64748b;--border:#e2e8f0;--bg:#f4fbfd;--surface:#fff}
+  *{box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);margin:0;color:#0f172a}
+  .topbar{background:linear-gradient(135deg,var(--azul),var(--azul-osc));color:#fff;padding:26px 20px 22px;text-align:center}
+  .topbar h1{margin:0 0 4px;font-size:19px}
+  .topbar p{margin:0;font-size:12.5px;opacity:.92;line-height:1.5}
+  main{max-width:520px;margin:0 auto;padding:18px 16px 60px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 16px;margin-bottom:16px}
+  .card h2{font-size:14.5px;margin:0 0 6px;color:var(--azul-osc)}
+  .card p.sub{font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.55}
+  .turno-box{border:1.5px solid #7dd3fc;background:#f0f9ff;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.5}
+  .turno-box b{display:block;font-size:14.5px;color:var(--azul-osc);margin-bottom:2px}
+  .turno-box .dato{color:var(--muted);font-size:12px}
+  .sena-box{border:1.5px solid #fde68a;background:#fffbeb;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.6}
+  .sena-box.ok{border-color:#86efac;background:#f0fdf4}
+  .sena-box b{display:block;color:var(--ambar);margin-bottom:4px}
+  .sena-box.ok b{color:var(--verde)}
+  .alias{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #fde68a;border-radius:8px;padding:9px 12px;margin:8px 0;font-size:15px;font-weight:800;color:#92400e}
+  .alias button{border:1.5px solid var(--ambar);background:#fff;color:var(--ambar);border-radius:6px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .copiado{font-size:11.5px;color:var(--verde);font-weight:700;display:none;margin-top:2px}
+  label{display:block;font-size:12px;font-weight:700;color:#334155;margin:12px 0 5px}
+  .foto-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .foto-nombre{font-size:11.5px;color:var(--muted)}
+  .btn{width:100%;padding:13px;border-radius:10px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:12px}
+  .btn-primary{background:var(--azul);color:#fff}
+  .btn-primary:disabled{background:#cbd5e1;cursor:not-allowed}
+  .btn-rojo{background:#fff;border:1.5px solid var(--rojo);color:var(--rojo)}
+  .err{color:var(--rojo);font-size:12px;margin-top:10px;font-weight:600;display:none}
+  .ok-msg{color:var(--verde);font-size:12.5px;margin-top:10px;font-weight:700;display:none}
+  .cargando{text-align:center;padding:40px 10px;color:var(--muted);font-size:13px}
+  .cancel-confirm{display:none;border:1.5px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:14px;margin-top:14px;font-size:12.5px;line-height:1.55;color:#7f1d1d}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Gestionar mi turno</h1>
+  <p>Dr. Luis Alberto Muratori — M.N. 100.540 · M.P. 9943</p>
+</div>
+
+<main>
+  <div id="cargando" class="cargando">Buscando tu turno…</div>
+  <div id="contenido" style="display:none"></div>
+  <div id="no-encontrado" class="card" style="display:none">
+    <h2>No encontramos ese turno</h2>
+    <p class="sub">El link puede estar vencido o mal copiado. Si necesitás ayuda, escribinos directamente.</p>
+  </div>
+</main>
+
+<script>
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxC2fXVUdidzoAyDCGzPBCUoLa1btEGRZxH-S4wAEt71FlQ4Y1Mx1Uy7OsepgSe3i-5/exec';
+
+function idDesdeUrl_(){
+  return new URLSearchParams(window.location.search).get('id') || '';
+}
+
+let turnoActual_ = null;
+let comprobanteBase64_ = '';
+
+async function init(){
+  const id = idDesdeUrl_();
+  if(!id){ mostrarNoEncontrado_(); return; }
+  try{
+    const resp = await fetch(SHEETS_URL, {
+      method: 'POST', headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action: 'get_turno_publico', id })
+    });
+    const data = await resp.json();
+    if(!data.success){ mostrarNoEncontrado_(); return; }
+    turnoActual_ = data;
+    render_();
+  }catch(e){
+    mostrarNoEncontrado_();
+  }
+}
+
+function mostrarNoEncontrado_(){
+  document.getElementById('cargando').style.display = 'none';
+  document.getElementById('no-encontrado').style.display = 'block';
+}
+
+function formatearPrecio_(n){
+  return '$' + Number(n).toLocaleString('es-AR');
+}
+
+function render_(){
+  document.getElementById('cargando').style.display = 'none';
+  const t = turnoActual_;
+  const cont = document.getElementById('contenido');
+
+  if(t.estado === 'cancelado'){
+    cont.innerHTML = `
+      <div class="turno-box">
+        <b>📍 ${t.consultorio}</b>
+        <span class="dato">${t.fecha} · ${t.hora} hs</span>
+      </div>
+      <div class="card"><p class="sub" style="margin:0">Este turno ya está cancelado. Si necesitás sacar otro, pedilo por el mismo medio de siempre.</p></div>`;
+    cont.style.display = 'block';
+    return;
+  }
+
+  let senaHtml = '';
+  if(t.sena_requerida){
+    const pagada = (t.sena_estado === 'Pagada' || t.sena_estado === 'Reconocida — crédito próximo turno');
+    const verificando = t.sena_estado === 'Comprobante recibido — verificando';
+    senaHtml = `
+      <div class="sena-box ${pagada ? 'ok' : ''}">
+        <b>${pagada ? '✅ Seña registrada' : (verificando ? '⏳ Comprobante recibido — verificando' : '⚠️ Seña pendiente')}</b>
+        ${pagada
+          ? 'Tu seña de ' + (t.sena_monto ? formatearPrecio_(t.sena_monto) : '') + ' ya quedó confirmada.'
+          : verificando
+            ? 'Ya recibimos tu comprobante y lo estamos verificando. No hace falta que hagas nada más.'
+            : ('Para asegurar este turno hace falta una seña de ' + (t.sena_monto ? formatearPrecio_(t.sena_monto) : '') + ' por transferencia, a este alias:')}
+        ${(!pagada && !verificando) ? `
+        <div class="alias">
+          <span id="pago-alias">BUCLE.PODIAS.BALCON</span>
+          <button type="button" onclick="copiarAlias_()">Copiar</button>
+        </div>
+        <div class="copiado" id="pago-copiado">✅ Alias copiado</div>
+        <label>Subí la foto del comprobante</label>
+        <div class="foto-row">
+          <input type="file" id="f-comprobante" accept="image/*" onchange="onComprobanteElegido_(event)">
+        </div>
+        <div class="foto-nombre" id="comprobante-nombre" style="display:none"></div>
+        <button type="button" class="btn btn-primary" id="btn-subir-comprobante" onclick="subirComprobante_()" disabled>Enviar comprobante</button>
+        <div class="err" id="err-comprobante"></div>
+        <div class="ok-msg" id="ok-comprobante"></div>
+        ` : ''}
+      </div>`;
+  }
+
+  cont.innerHTML = `
+    <div class="turno-box">
+      <b>📍 ${t.consultorio}</b>
+      <span class="dato">${t.fecha} · ${t.hora} hs — ${t.nombre}</span>
+    </div>
+    ${senaHtml}
+    <div class="card">
+      <h2>¿Necesitás cancelar?</h2>
+      <p class="sub">${t.sena_requerida ? 'Si cancelás, se pierde la seña que ya hayas pagado.' : 'Avisanos para liberar el horario.'}</p>
+      <button type="button" class="btn btn-rojo" onclick="mostrarConfirmacionCancelar_()">Cancelar este turno</button>
+      <div class="cancel-confirm" id="cancel-confirm">
+        <p style="margin:0 0 10px">${t.sena_requerida ? 'Confirmás que entendés que se pierde la seña ya pagada (si la pagaste) al cancelar.' : '¿Confirmás que querés cancelar este turno?'}</p>
+        <button type="button" class="btn btn-rojo" id="btn-confirmar-cancelar" onclick="confirmarCancelacion_()">Sí, cancelar de todas formas</button>
+      </div>
+    </div>`;
+  cont.style.display = 'block';
+}
+
+function copiarAlias_(){
+  const alias = document.getElementById('pago-alias').textContent.trim();
+  navigator.clipboard.writeText(alias).then(() => {
+    const el = document.getElementById('pago-copiado');
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 2200);
+  });
+}
+
+function onComprobanteElegido_(e){
+  const file = e.target.files[0];
+  const nombreEl = document.getElementById('comprobante-nombre');
+  comprobanteBase64_ = '';
+  document.getElementById('btn-subir-comprobante').disabled = true;
+  if(!file){ nombreEl.style.display = 'none'; return; }
+  nombreEl.textContent = '📎 ' + file.name;
+  nombreEl.style.display = 'block';
+  const reader = new FileReader();
+  reader.onload = () => {
+    comprobanteBase64_ = reader.result;
+    document.getElementById('btn-subir-comprobante').disabled = false;
+  };
+  reader.onerror = () => { comprobanteBase64_ = ''; };
+  reader.readAsDataURL(file);
+}
+
+async function subirComprobante_(){
+  const errEl = document.getElementById('err-comprobante');
+  const okEl = document.getElementById('ok-comprobante');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  if(!comprobanteBase64_){ errEl.textContent = '⚠️ Elegí primero la foto del comprobante'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('btn-subir-comprobante');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try{
+    const resp = await fetch(SHEETS_URL, {
+      method: 'POST', headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action: 'subir_comprobante_sena_turno', id: turnoActual_.id || idDesdeUrl_(), comprobanteBase64: comprobanteBase64_ })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error || 'No se pudo enviar el comprobante');
+    okEl.textContent = '✅ Comprobante recibido — lo vamos a verificar a la brevedad.';
+    okEl.style.display = 'block';
+    btn.style.display = 'none';
+  }catch(e){
+    errEl.textContent = '⚠️ ' + e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Enviar comprobante';
+  }
+}
+
+function mostrarConfirmacionCancelar_(){
+  document.getElementById('cancel-confirm').style.display = 'block';
+}
+
+async function confirmarCancelacion_(){
+  const btn = document.getElementById('btn-confirmar-cancelar');
+  btn.disabled = true; btn.textContent = 'Cancelando…';
+  try{
+    const resp = await fetch(SHEETS_URL, {
+      method: 'POST', headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action: 'cancelar_turno', id: turnoActual_.id || idDesdeUrl_(), canceladoPor: 'paciente' })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error || 'No se pudo cancelar');
+    turnoActual_.estado = 'cancelado';
+    render_();
+  }catch(e){
+    alert('⚠️ ' + e.message);
+    btn.disabled = false; btn.textContent = 'Sí, cancelar de todas formas';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

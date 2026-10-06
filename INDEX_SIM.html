@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Sistema Médico Muratori — S.M.M. 2026</title>
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -85,10 +85,9 @@ let BASE = LOCAL_BASE;
 // mandar al médico a un 404 en medio de una consulta.
 const APPS = {
   consulta: [
-    {id:'cam',   ico:'🧠', titulo:'CAM',   desc:'Consulta asistida — antecedentes, examen físico, banderas rojas y diagnóstico',   file:'CAM_Herramientas_Clinicas.html',   badge:'Antesala'},
+    {id:'cam',   ico:'🎙️', titulo:'CAM V',   desc:'Consulta asistida por voz — antecedentes, examen físico, banderas rojas y diagnóstico',   file:'CAM_V.html',   badge:'Antesala'},
     {id:'ocm',   ico:'🩺', titulo:'OCM',   desc:'Recetario, certificados, indicaciones y carrito de recetas IM — el módulo que más se usa',   file:'OCM_Muratori_v14_0_26.html',   badge:'Principal'},
     {id:'rimp',  ico:'📋', titulo:'RIMP',  desc:'Formulario de datos del paciente — filiación y antecedentes',     file:'RIDM_Muratori_v1.html',          badge:'Paciente'},
-    {id:'rsp',   ico:'📁', titulo:'RSP',   desc:'Registro de seguimiento — historial, evolución y ficha clínica',  file:'',            badge:'Seguimiento', pendienteNota:'Archivo RSP_Muratori_v1.html no está en la entrega — confirmar si pasó a llamarse otra cosa (¿Lector_Historias.html?)'},
   ],
   cobros: [
     {id:'rcm',   ico:'💰', titulo:'RCM',   desc:'Cobros rápidos por Mercado Pago y agenda de turnos',              file:'',            badge:'Cobros', pendienteNota:'Archivo RCM_Muratori_v1.html no está en la entrega — confirmar si el cobro por MP quedó dentro de OCM'},
@@ -105,7 +104,6 @@ const APPS = {
   // (generarLinkMeet + crearLinkPagoMP) — por eso es la candidata más
   // rápida para construir primero si el Dr. Muratori quiere arrancar por acá.
   agendasTurnos: [
-    {id:'agenda-seguimiento', ico:'🗓️', titulo:'Seguimiento médico', desc:'Turnos unificados Palmares + Hospital Sicoli + rehab, cargados por OCR de la agenda en papel', file:'', badge:'En construcción', pendienteNota:'Todavía no tiene módulo ni hoja propia — falta definir el circuito OCR de la agenda en papel'},
     {id:'agenda-video', ico:'💻', titulo:'Videollamada', desc:'Turnos virtuales breves por Meet, con cobro previo por Mercado Pago', file:'', badge:'En construcción', pendienteNota:'El backend YA tiene generarLinkMeet() y crearLinkPagoMP() — falta solo la pantalla que arme el turno y encadene ambos'},
     {id:'agenda-quirofano', ico:'🏥', titulo:'Quirófano', desc:'Lista de espera de prequirúrgico, programación de los miércoles quirúrgicos y puntuación de seguridad de los pacientes en seguimiento post-quirúrgico', file:'', badge:'En construcción', pendienteNota:'El backend de la puntuación de seguridad post-quirúrgica (RSPQ) YA está listo (get_resumen_seguridad_quirofano) — falta la lista de espera de prequirúrgico y la pantalla que muestre todo junto'},
   ],
@@ -126,9 +124,7 @@ const APPS = {
     {id:'seguimiento-cientifico', ico:'🔬', titulo:'Seguimiento Científico', desc:'Líneas de investigación: Retropié Valgo, Escoliosis/Corset, Hallux Valgus, Actitud Flexa de Rodilla', file:'GONIO_SeguimientoCientifico_v1.html', badge:'Investigación'},
   ],
   agenda: [
-    {id:'agenda-familiar', ico:'👨‍👩‍👧', titulo:'Agenda Familiar', desc:'Contactos, fichas familiares, zona geográfica y envío directo a RSP', file:'', badge:'Contactos', pendienteNota:'Archivo agenda-familiar/index.html no está en la entrega — confirmar dónde quedó'},
     {id:'lector-cud', ico:'🪪', titulo:'Lector CUD', desc:'Lectura y análisis de Certificados Únicos de Discapacidad, clasificación Ley 22.431', file:'Lector_CUD.html', badge:'Discapacidad'},
-    {id:'cud-seguimiento', ico:'📎', titulo:'Seguimiento Carpeta CUD', desc:'Checklist de análisis + documentos (recetas, formularios de Junta, DNI, transporte) con trazabilidad', file:'CUD_Seguimiento_v1.html', badge:'Discapacidad'},
     {id:'isa', ico:'🤝', titulo:'Isa — Asistente Discapacidad', desc:'Chat para pacientes: orienta sobre el trámite y ayuda a enviar documentación al hospital', file:'Asistente_Isa_Discapacidad.html', badge:'Discapacidad'},
   ]
 };

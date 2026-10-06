@@ -611,11 +611,42 @@ function initModo() {
   if (P_DNI)  { const el=document.getElementById('f-dni');      if(el){el.value=P_DNI; el.readOnly=true;el.style.background='#f8fafc';} }
   if (P_TEL)  { const el=document.getElementById('f-tel');      if(el){el.value=P_TEL; el.readOnly=true;el.style.background='#f8fafc';} }
 
+  // ── Datos que el consultorio ya tiene: se muestran completados y EDITABLES ──
+  (function precargar(){
+    const g=k=>{ try{ return (_params.get(k)||'').trim(); }catch(_){ return ''; } };
+    const poner=(id,v)=>{ const el=document.getElementById(id); if(el && v && !el.value){ el.value=v; } };
+    poner('f-mail', g('mail').toLowerCase());
+    let fn=g('fnac'); const m=fn.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if(m) fn=m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+    if(/^\d{4}-\d{2}-\d{2}/.test(fn)) poner('f-fnac', fn.slice(0,10));
+    poner('f-domicilio', g('dom')); poner('f-os', g('os')); poner('f-plan', g('plan')); poner('f-afil', g('afil'));
+    const loc=g('loc'), sel=document.getElementById('f-localidad');
+    if(sel && loc){ const o=[...sel.options].find(x=>x.text.trim().toLowerCase()===loc.toLowerCase()); if(o) sel.value=o.value; }
+    poner('f-otras-enf', g('enf')); poner('f-cirugias', g('cir')); poner('f-medicacion', g('med'));
+    const ale=g('ale');
+    if(ale==='Sí' || ale==='No'){ try{ selRadio('rg-alergia', ale); }catch(_){} if(ale==='Sí') poner('f-alergia-detalle', g('aled')); }
+  })();
+
   document.querySelectorAll('.prog-step').forEach((el,i)=>{
     el.style.display = secs.includes(i) ? '' : 'none';
   });
   document.querySelectorAll('.prog-line').forEach((el,i)=>{
     el.style.display = (secs.includes(i) && secs.includes(i+1)) ? '' : 'none';
+  });
+
+  // ── Botones Anterior/Continuar acordes al modo (antes decían "→ Motivo de consulta" aunque ese paso no exista) ──
+  const TIT = ['Datos personales','Cobertura de salud','Antecedentes','Motivo de consulta','Actividad y trabajo'];
+  secs.forEach((si, k) => {
+    const el = document.getElementById('sec-' + si); if (!el) return;
+    const prev = el.querySelector('.btn-prev:not(#btn-add-trabajo)'), next = el.querySelector('.btn-next');
+    if (prev) {
+      if (k === 0) prev.style.display = 'none';
+      else prev.setAttribute('onclick', 'irASec(' + secs[k-1] + ')');
+    }
+    if (next && k < secs.length - 1) {
+      next.setAttribute('onclick', 'irASec(' + secs[k+1] + ')');
+      next.textContent = 'Continuar → ' + TIT[secs[k+1]];
+    }
   });
 
   // ── FIX BOTÓN FINAL: en modo rapido/clinico, el último paso tiene un botón
@@ -650,8 +681,17 @@ function irASec(n) {
     window.scrollTo({top:0,behavior:'smooth'});
     return;
   }
-  // Solo navegar a secciones del modo actual
-  if (!secs.includes(n)) return;
+  // Solo navegar a secciones del modo actual. Si el botón apunta a una sección que este modo no tiene
+  // (ej.: en el RIMP breve "Continuar" de Antecedentes apuntaba a "Motivo de consulta", que no existe
+  // en ese modo, y el paciente quedaba trabado entre el paso 3 y el 5), se salta a la más cercana
+  // en la dirección en que se está moviendo.
+  if (!secs.includes(n)) {
+    const dir = (n >= secActual) ? 1 : -1;
+    let m = n;
+    while (m >= 0 && m <= 4 && !secs.includes(m)) m += dir;
+    if (!secs.includes(m)) return;
+    n = m;
+  }
   document.querySelectorAll('.section-card').forEach(c=>c.classList.remove('active'));
   document.getElementById(`sec-${n}`)?.classList.add('active');
   secActual = n;
@@ -968,5 +1008,19 @@ function enviarRIDM() {
 })();
 </script>
 <script src="efecto-lupa.js" defer></script>
+<script>
+/* Mayúsculas automáticas (oct 2026): apellido, nombre y domicilio siempre en MAYÚSCULAS aunque no esté activado Bloq Mayús;
+   el mail siempre en minúsculas y sin espacios (no distingue mayúsculas, así no hay que cuidar cómo se escribe). */
+(function(){
+  function ap(el,fn){ var a=el.selectionStart,b=el.selectionEnd,v=el.value,n=fn(v); if(n!==v){ el.value=n; try{el.setSelectionRange(a,b);}catch(_){} } }
+  ['f-apellido','f-nombre','f-domicilio'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    el.style.textTransform='uppercase';
+    el.addEventListener('input',function(){ ap(el,function(v){return v.toUpperCase();}); });
+  });
+  var m=document.getElementById('f-mail');
+  if(m){ m.style.textTransform='lowercase'; m.addEventListener('input',function(){ ap(m,function(v){return v.replace(/\s+/g,'').toLowerCase();}); }); }
+})();
+</script>
 </body>
 </html>

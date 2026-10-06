@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CAM V — Consulta por voz + herramientas</title>
 <link rel="icon" type="image/x-icon" href="favicon.ico">
+<!-- NUEVO (sept 2026): para armar el PDF de "Pedido de estudio" y enviarlo por mail -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 <style>
   :root{--azul:#0369a1;--azul-osc:#0c4a6e;--verde:#16a34a;--ambar:#d97706;--rojo:#dc2626;--violeta:#7c2d92;--muted:#64748b;--border:#e2e8f0;--bg:#f4fbfd;--surface:#fff;--panel:#f8fafc}
   *{box-sizing:border-box}
@@ -90,6 +92,25 @@
   .hc-modal-header button{border:none;background:transparent;font-size:16px;cursor:pointer;color:var(--muted)}
   .hc-modal-body{padding:14px 18px;overflow-y:auto}
   .hc-modal-footer{padding:10px 18px;border-top:1px solid var(--border);text-align:right}
+  /* NUEVO (oct 2026): barra secuenciadora de la consulta — no cambia nada de lo
+     que ya existe, es un agregado puramente visual/de cronómetro. Reutiliza
+     .consulta-box.activo, que ya estaba definido en el CSS pero nunca se usaba. */
+  .secuencia-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;margin:0 0 12px}
+  .sec-chip{font-size:11px;font-weight:700;color:var(--azul-osc);background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:5px 11px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+  .sec-chip:hover{border-color:var(--azul)}
+  .sec-chip.activo{background:var(--azul);color:#fff;border-color:var(--azul)}
+  /* AGREGADO (oct 2026): "sugerido" es la etapa que, según el cronómetro de
+     cuenta regresiva, tocaría estar haciendo ahora — es solo una guía visual
+     (un aro ámbar + ⏳), no reemplaza a "activo" (que sigue siendo la que el
+     médico eligió a mano haciendo clic). Las dos clases pueden estar juntas
+     en la misma etiqueta sin problema. */
+  .sec-chip.sugerido{box-shadow:0 0 0 2px var(--ambar) inset}
+  .sec-chip.sugerido::after{content:'⏳';margin-left:4px}
+  .sec-timer{display:flex;align-items:center;gap:8px;margin-left:auto}
+  #sec-duracion{font-size:11px;font-weight:700;color:var(--azul-osc);border:1px solid var(--border);border-radius:999px;padding:4px 8px;background:#fff;cursor:pointer;width:auto}
+  .sec-timer-num{font-family:monospace;font-size:14px;font-weight:700;color:var(--azul-osc);min-width:48px;text-align:center}
+  .sec-timer-num.sec-tiempo-agotado{color:var(--rojo)}
+#salud-modal-body.bloqueado > :not(#salud-bloqueo){display:none!important}
 </style>
 </head>
 <body>
@@ -103,7 +124,7 @@
         <a href="index.html" class="simm-nav-item">🏠 Portada de SIM-M</a>
         <a href="OCM_Muratori_v14_0_26.html" class="simm-nav-item">🗂️ OCM — Historia Clínica</a>
         <a href="CAM_Herramientas_Clinicas.html" class="simm-nav-item">🧬 CAM — Herramientas Clínicas (manual)</a>
-        <a href="Consulta_Guiada_Beta_v1.html" class="simm-nav-item">🎙️ Consulta Guiada — Beta</a>
+        <a href="Consulta_Guiada_Beta_v1.html" class="simm-nav-item">🎙️ Consulta Guiada</a>
         <a href="#" class="simm-nav-item" onclick="configurarTokenCAM();return false">⚙️ Token de acceso</a>
       </div>
     </div>
@@ -114,7 +135,33 @@
 <div class="pacbar">
   <input type="text" id="pac-nombre" placeholder="Apellido y nombre">
   <input type="text" id="pac-dni" placeholder="DNI (para guardar en historia clínica)">
+  <input type="email" id="pac-mail" placeholder="Mail del paciente (para el pedido de estudio por PDF)">
   <button type="button" class="btn btn-ghost" onclick="verHistoriaClinicaCloud()">📖 Ver historia clínica</button>
+  <button type="button" class="btn btn-ghost" onclick="abrirAccesoSalud()">🔐 Acceso página de salud</button>
+</div>
+
+<!-- NUEVO (oct 2026): barra secuenciadora + cronómetro de la consulta — pedido
+     de Luis: "una barra que ilumina lo que estoy haciendo" y que mida los
+     tiempos desde que arranca la consulta hasta que termina. No reemplaza ni
+     cambia nada de lo que ya existe — es solo una ayuda visual y de registro
+     de tiempos que se puede ignorar por completo si no se usa. -->
+<div class="secuencia-bar" id="secuencia-bar">
+  <div class="sec-chip" data-step="motivo" onclick="activarPasoConsulta('motivo')">📋 Motivo</div>
+  <div class="sec-chip" data-step="interr" onclick="activarPasoConsulta('interr')">📝 Interrogatorio</div>
+  <div class="sec-chip" data-step="examen" onclick="activarPasoConsulta('examen')">🔎 Examen físico</div>
+  <div class="sec-chip" data-step="estudios" onclick="activarPasoConsulta('estudios')">🧪 Estudios</div>
+  <div class="sec-chip" data-step="diagnostico" onclick="activarPasoConsulta('diagnostico')">🎯 Diagnóstico</div>
+  <div class="sec-chip" data-step="terapeutica" onclick="activarPasoConsulta('terapeutica')">💊 Tratamiento</div>
+  <div class="sec-timer">
+    <select id="sec-duracion" title="Duración estimada de la consulta — elegí la que corresponda al consultorio donde estás" onchange="cambiarDuracionConsulta_(this.value)">
+      <option value="10">10 min</option>
+      <option value="15">15 min</option>
+      <option value="20">20 min</option>
+    </select>
+    <span class="sec-timer-num" id="sec-tiempo-total">00:00</span>
+    <button type="button" class="btn btn-ghost" id="sec-btn-iniciar" onclick="iniciarCronometroConsulta()">▶ Iniciar consulta</button>
+    <button type="button" class="btn btn-ghost" id="sec-btn-finalizar" onclick="finalizarCronometroConsulta()" style="display:none">⏹ Finalizar</button>
+  </div>
 </div>
 
 <!-- NUEVO (2026-09-21): modal "Ver historia clínica completa" — trae la misma
@@ -124,6 +171,48 @@
     <div class="hc-modal-header"><span id="hc-modal-titulo">Historia clínica</span><button onclick="cerrarHistoriaClinicaCloud()">✕</button></div>
     <div class="hc-modal-body" id="hc-modal-body"></div>
     <div class="hc-modal-footer"><button class="btn btn-ghost" onclick="cerrarHistoriaClinicaCloud()">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- NUEVO (sept 2026): integración con drmuratorisalud.ar — generar/habilitar/
+     extender el acceso del paciente a la Clave A (tratamiento médico) y la
+     Clave B (tratamiento quirúrgico) de un tema, sin que el sitio reciba
+     nunca ningún dato del paciente (solo tema/días/claves/código). -->
+<div class="hc-modal-overlay" id="salud-modal">
+  <div class="hc-modal-box">
+    <div class="hc-modal-header"><span>🔐 Acceso a la página de salud</span><button onclick="cerrarAccesoSalud()">✕</button></div>
+    <div class="hc-modal-body" id="salud-modal-body">
+      <div id="salud-bloqueo" style="display:none"></div>
+      <div id="salud-existentes" style="margin-bottom:14px"></div>
+
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div style="font-weight:700;font-size:12.5px;margin-bottom:8px">Nuevo acceso</div>
+        <div id="salud-error" style="color:#dc2626;font-size:12px;margin-bottom:6px;display:none"></div>
+        <div class="row">
+          <div class="fg"><label>Tema</label><select id="salud-tema" onchange="actualizarClavesDisponiblesSalud_()"><option value="">Cargando temas…</option></select></div>
+          <div class="fg" style="max-width:140px"><label>Días de seguimiento</label><input id="salud-dias" type="number" min="1" max="365" value="30"></div>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <label style="font-weight:400;display:flex;align-items:center;gap:6px"><input type="checkbox" id="salud-clave-a" checked style="width:auto"> Clave A — tratamiento médico</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:6px"><input type="checkbox" id="salud-clave-b" style="width:auto"> Clave B — tratamiento quirúrgico</label>
+        </div>
+        <div class="fila-btns" style="margin-top:10px">
+          <button type="button" class="btn btn-ok" onclick="generarAccesoSalud()">Generar acceso</button>
+        </div>
+      </div>
+
+      <div id="salud-resultado" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:14px;text-align:center">
+        <div id="salud-qr" style="margin:0 auto 10px"></div>
+        <div style="font-weight:700;font-size:13px" id="salud-r-tema"></div>
+        <div style="font-family:monospace;font-size:20px;font-weight:700;letter-spacing:.05em;margin:6px 0" id="salud-r-codigo"></div>
+        <div style="font-size:12px;color:var(--muted)">Claves: <b id="salud-r-claves"></b> — vence <b id="salud-r-vence"></b></div>
+        <div class="fila-btns" style="margin-top:10px;justify-content:center">
+          <button type="button" class="btn btn-ghost" onclick="copiarEnlaceAccesoSalud_()">📋 Copiar enlace</button>
+          <button type="button" class="btn btn-ghost" onclick="window.print()">🖨️ Imprimir</button>
+        </div>
+      </div>
+    </div>
+    <div class="hc-modal-footer"><button class="btn btn-ghost" onclick="cerrarAccesoSalud()">Cerrar</button></div>
   </div>
 </div>
 
@@ -161,7 +250,7 @@
     <button type="button" class="btn-herr" id="btn-herr-man" onclick="toggleHerramienta('man')">🤲 Maniobras por segmento</button>
     <div class="panel-herr" id="panel-herr-man">
       <div class="fg"><label>Segmento a evaluar</label>
-        <select id="man-segmento">
+        <select id="man-segmento" onchange="cambiarSegmentoManiobras_()">
           <option value="">Seleccionar…</option>
           <optgroup label="Columna y pelvis">
             <option>Columna cervical</option><option>Columna dorsal</option><option>Columna lumbar</option>
@@ -173,12 +262,20 @@
           <optgroup label="Miembro inferior">
             <option>Cadera</option><option>Rodilla</option><option>Tobillo</option><option>Pie / dedos</option>
           </optgroup>
+          <optgroup label="Exploración por sistemas">
+            <option>Vascular periférico</option><option>Reflejos</option><option>Sensibilidad</option><option>Fuerza muscular y tono</option><option>Marcha y equilibrio</option>
+          </optgroup>
         </select>
+      </div>
+      <div class="fila-btns">
+        <button type="button" class="btn btn-primary" onclick="cargarManiobrasSegmento_()">📋 Cargar maniobras del segmento</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('man-lista').innerHTML=''">🧹 Limpiar lista</button>
       </div>
       <div class="fila-btns">
         <button type="button" class="btn btn-ia" onclick="sugerirManiobras(this)">🔎 Sugerir maniobras (IA)</button>
         <button type="button" class="btn btn-ghost" onclick="agregarManiobraManual()">+ Manual</button>
       </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4">📚 Cada maniobra muestra cómo se hace y qué indica. Las que tienen 📖 están respaldadas por Hoppenfeld (Manual Moderno) o por Moraleda y González Morán (Adolescere 2015), con la página; las demás son de uso habitual pero de elaboración propia: contrastalas con tus libros.</div>
       <div id="man-lista" style="margin-top:8px"></div>
       <button type="button" class="btn btn-primary" style="margin-top:8px;width:100%" onclick="enviarHerramientaAExamen('man')">⬇️ Enviar a Examen físico</button>
     </div>
@@ -186,6 +283,31 @@
     <div style="margin:14px 0 6px;font-size:10.5px;color:var(--muted);font-weight:700">📷 MEDICIONES GONIO (FOTO) — se abren en otra pestaña</div>
     <button type="button" class="btn-herr" onclick="abrirGonio('GONIO_Columna_v1.html')">🩻 Columna (Cobb, Pelvis, SVA, Edad ósea, Talla diana, Riesgo de progresión…) ↗</button>
     <button type="button" class="btn-herr" onclick="abrirGonio('GONIO_MiembroInferior_v1.html')">🦵 Miembro Inferior (Hallux, Genu, Costa-Bártani, Retropié…) ↗</button>
+
+    <!-- AGREGADO (oct 2026) — calculador de dosis por peso, pedido de Luis.
+         Lista inicial armada con fichas técnicas oficiales CIMA/AEMPS (ver
+         nota de fuentes en FARMACOS_DOSIS_ más abajo) — ningún formulario
+         oficial argentino en PDF que se revisó traía posología real.
+         Es una lista para revisar y corregir, no un reemplazo del criterio
+         clínico. -->
+    <div style="margin:14px 0 6px;font-size:10.5px;color:var(--muted);font-weight:700">💊 CALCULADOR DE DOSIS</div>
+    <button type="button" class="btn-herr" id="btn-herr-dosis" onclick="toggleHerramienta('dosis')">💊 Calculador de dosis por peso</button>
+    <div class="panel-herr" id="panel-herr-dosis">
+      <div class="info-box" style="margin-top:0;border-color:#fde68a;background:#fefce8;font-size:11px">
+        ⚠️ Lista inicial compilada de fichas técnicas oficiales (CIMA/AEMPS — España, equivalente a ANMAT). Es una herramienta de apoyo: <b>revisá y confirmá cada dosis vos mismo antes de indicarla</b>. No reemplaza tu criterio clínico ni la información del prospecto de la marca que uses.
+      </div>
+      <div class="fg"><label>Fármaco</label><select id="dosis-farmaco" onchange="calcularDosisFarmaco_()"></select></div>
+      <div class="row">
+        <div class="fg"><label>Peso (kg)</label><input id="dosis-peso" type="number" step="0.1" min="0" oninput="calcularDosisFarmaco_()"></div>
+        <div class="fg"><label>Edad (años)</label><input id="dosis-edad" type="number" step="1" min="0" oninput="calcularDosisFarmaco_()"></div>
+      </div>
+      <div class="row">
+        <div class="fg"><label>Creatinina sérica (mg/dl) — opcional, para ajuste renal</label><input id="dosis-creatinina" type="number" step="0.01" min="0" oninput="calcularDosisFarmaco_()"></div>
+        <div class="fg"><label>Sexo</label><select id="dosis-sexo" onchange="calcularDosisFarmaco_()"><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
+      </div>
+      <div class="resumen-box" id="dosis-resultado" style="display:none;margin-top:8px"></div>
+      <button type="button" class="btn btn-primary" style="margin-top:8px;width:100%" onclick="enviarDosisATerapeutica_()">⬇️ Enviar a Terapéutica</button>
+    </div>
   </div>
 
   <!-- ═══ COLUMNA CENTRAL: DICTADO ═══ -->
@@ -194,7 +316,7 @@
     <div class="card">
       <div class="fg" style="margin-bottom:8px"><label>🎯 Vas a dictar para…</label>
         <select id="destino-dictado" onchange="actualizarEtiquetaDestino()">
-          <option value="">Libre (decidís después con los botones de abajo)</option>
+          <option value="">— Elegí antes de dictar o de enviar —</option>
           <option value="motivo">Motivo de consulta y antecedentes</option>
           <option value="interr">Interrogatorio</option>
           <option value="examen">Examen físico</option>
@@ -213,14 +335,15 @@
         <button type="button" class="btn btn-ia" onclick="pulirCentro(this)">✨ Pulir con IA</button>
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('dictado-centro').value=''">🧹 Limpiar</button>
       </div>
-      <div style="font-size:10.5px;color:var(--muted);margin:10px 0 4px;font-weight:700">⬇️ Enviar este texto a:</div>
+      <!-- AGREGADO (oct 2026) — pedido de Luis: antes había 6 botones acá abajo
+           ("Enviar este texto a: Motivo / Interrogatorio / ...") que repetían
+           la MISMA lista del desplegable "Vas a dictar para…" de arriba — info
+           duplicada. Ahora hay un solo botón que manda al destino ya elegido
+           en ese desplegable (si dictaste con un destino puesto, el texto ya
+           venía cargando solo ahí en vivo — este botón es para cuando se
+           escribe/pega texto a mano y hay que empujarlo después). -->
       <div class="fila-btns">
-        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('motivo')">Motivo</button>
-        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('interr')">Interrogatorio</button>
-        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('examen')">Examen físico</button>
-        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('estudios')">Estudios</button>
-        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('diagnostico')">Diagnóstico</button>
-        <button type="button" class="btn btn-ghost" onclick="enviarCentroA('terapeutica')">Terapéutica</button>
+        <button type="button" class="btn btn-primary" id="btn-enviar-centro" onclick="enviarCentroActivo_()">⬇️ Enviar a…</button>
       </div>
     </div>
   </div>
@@ -256,8 +379,12 @@
     <div class="consulta-box" id="box-estudios">
       <div class="consulta-head">🧪 Estudios e indicaciones</div>
       <div class="consulta-body">
-        <textarea id="texto-estudios" rows="3"></textarea>
-        <div class="fila-btns"><button type="button" class="btn btn-ia" onclick="pulirRecuadro('estudios',this)">✨ Ordenar con IA</button></div>
+        <textarea id="texto-estudios" rows="3" oninput="document.getElementById('pedido-estudio-estado').textContent=''"></textarea>
+        <div class="fila-btns">
+          <button type="button" class="btn btn-ia" onclick="pulirRecuadro('estudios',this)">✨ Ordenar con IA</button>
+          <button type="button" class="btn btn-primary" onclick="enviarPedidoEstudioPorMail(this)">📧 Enviar pedido por mail</button>
+        </div>
+        <div id="pedido-estudio-estado" style="font-size:10.5px;margin-top:4px"></div>
       </div>
     </div>
 
@@ -622,6 +749,7 @@
 
 <div class="toast-cont" id="toast-cont"></div>
 
+<script src="qrcode-generator.js"></script>
 <script>
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxC2fXVUdidzoAyDCGzPBCUoLa1btEGRZxH-S4wAEt71FlQ4Y1Mx1Uy7OsepgSe3i-5/exec';
 // AGREGADO (sep 2026): CAM V no tenía ningún mecanismo de token — llamaba
@@ -736,10 +864,551 @@ async function correrIAEnBoton(btn, fn){
 }
 
 // ══════════════════════════════════════════════════════════════
+// BARRA SECUENCIADORA + CRONÓMETRO DE LA CONSULTA (oct 2026) — pedido de
+// Luis: "una barra que ilumina lo que estoy haciendo" para ir marcando en
+// qué parte de la consulta está (Motivo/Interrogatorio/Examen/Estudios/
+// Diagnóstico/Tratamiento) y, si quiere, medir cuánto dura cada una y la
+// consulta completa. Es 100% independiente del resto de CAM V: no toca
+// ningún dato que se guarda en la nube, no cambia ningún flujo existente —
+// se puede usar o ignorar sin que afecte nada más.
+// ══════════════════════════════════════════════════════════════
+// Orden de las 6 etapas, para repartir entre ellas el tiempo total elegido.
+const ORDEN_PASOS_CONSULTA_ = ['motivo','interr','examen','estudios','diagnostico','terapeutica'];
+const cronometroConsulta_ = {
+  corriendo:false, inicioGlobal:null, pasoActual:null, inicioPaso:null, intervalId:null,
+  // AGREGADO (oct 2026, 2da vuelta) — pedido de Luis: cuenta regresiva de
+  // 10/15/20 min, según cuánto dure la consulta en el consultorio donde
+  // esté (CAM V no sabe en qué consultorio está el médico, así que se
+  // elige a mano acá y se recuerda para la próxima vez con localStorage).
+  duracionMin: +(localStorage.getItem('camv_duracion_consulta')||15),
+  avisoTiempoCumplidoDado: false,
+  tiempos:{motivo:0, interr:0, examen:0, estudios:0, diagnostico:0, terapeutica:0}
+};
+const NOMBRES_PASO_CONSULTA_ = {motivo:'Motivo', interr:'Interrogatorio', examen:'Examen físico', estudios:'Estudios', diagnostico:'Diagnóstico', terapeutica:'Tratamiento'};
+// El <select> ya existe en el HTML de más arriba (se ejecuta después de
+// parsear todo el body, así que el elemento ya está armado) — lo dejamos
+// mostrando lo último elegido.
+(function(){ const sel=document.getElementById('sec-duracion'); if(sel) sel.value=String(cronometroConsulta_.duracionMin); })();
+
+function formatearDuracion_(ms){
+  const s = Math.max(0, Math.floor(ms/1000));
+  const mm = String(Math.floor(s/60)).padStart(2,'0');
+  const ss = String(s%60).padStart(2,'0');
+  return mm+':'+ss;
+}
+
+// Cambia la duración elegida (se puede tocar antes o durante la consulta;
+// si se cambia a mitad de consulta, el cronómetro y la guía de etapas se
+// recalculan solos en el siguiente segundo contra la nueva duración).
+function cambiarDuracionConsulta_(valor){
+  cronometroConsulta_.duracionMin = +valor || 15;
+  localStorage.setItem('camv_duracion_consulta', String(cronometroConsulta_.duracionMin));
+  cronometroConsulta_.avisoTiempoCumplidoDado = false;
+}
+
+function iniciarCronometroConsulta(){
+  cronometroConsulta_.corriendo = true;
+  cronometroConsulta_.inicioGlobal = Date.now();
+  cronometroConsulta_.avisoTiempoCumplidoDado = false;
+  cronometroConsulta_.tiempos = {motivo:0, interr:0, examen:0, estudios:0, diagnostico:0, terapeutica:0};
+  document.getElementById('sec-btn-iniciar').style.display = 'none';
+  document.getElementById('sec-btn-finalizar').style.display = '';
+  if(cronometroConsulta_.intervalId) clearInterval(cronometroConsulta_.intervalId);
+  cronometroConsulta_.intervalId = setInterval(actualizarCronometroConsulta_, 1000);
+  actualizarCronometroConsulta_();
+  // si ya había un paso marcado (iluminado) antes de arrancar el cronómetro, empieza a contarle el tiempo desde ahora
+  if(cronometroConsulta_.pasoActual) cronometroConsulta_.inicioPaso = Date.now();
+  toast('⏱️ Consulta iniciada — ' + cronometroConsulta_.duracionMin + ' min estimados');
+}
+
+// Corre cada segundo mientras el cronómetro está en marcha:
+//  1) Muestra cuánto falta para cumplir la duración elegida (cuenta
+//     regresiva); si ya se pasó, muestra en rojo cuánto se excedió
+//     (+mm:ss) — la consulta sigue, esto es solo un aviso visual.
+//  2) "Ilumina" con un ⏳ la etapa que, repartiendo la duración elegida en
+//     6 partes iguales, tocaría estar haciendo ahora — es una guía de
+//     ritmo nada más: no cambia qué recuadro está activo para escribir,
+//     eso lo sigue eligiendo el médico con un clic, como siempre.
+function actualizarCronometroConsulta_(){
+  const transcurridoMs = Date.now() - cronometroConsulta_.inicioGlobal;
+  const totalMs = cronometroConsulta_.duracionMin * 60000;
+  const restanteMs = totalMs - transcurridoMs;
+  const numEl = document.getElementById('sec-tiempo-total');
+  if(restanteMs >= 0){
+    numEl.textContent = formatearDuracion_(restanteMs);
+    numEl.classList.remove('sec-tiempo-agotado');
+  } else {
+    numEl.textContent = '+' + formatearDuracion_(-restanteMs);
+    numEl.classList.add('sec-tiempo-agotado');
+    if(!cronometroConsulta_.avisoTiempoCumplidoDado){
+      cronometroConsulta_.avisoTiempoCumplidoDado = true;
+      toast('⏰ Se cumplieron los ' + cronometroConsulta_.duracionMin + ' minutos estimados para esta consulta', 'err');
+    }
+  }
+  const segmentoMs = totalMs / ORDEN_PASOS_CONSULTA_.length;
+  const idx = Math.min(ORDEN_PASOS_CONSULTA_.length-1, Math.max(0, Math.floor(transcurridoMs / segmentoMs)));
+  const pasoSugerido = ORDEN_PASOS_CONSULTA_[idx];
+  document.querySelectorAll('.sec-chip').forEach(el => el.classList.toggle('sugerido', el.dataset.step === pasoSugerido));
+}
+
+function activarPasoConsulta(paso){
+  // si había un paso activo con el cronómetro corriendo, le suma lo transcurrido antes de cambiar de paso
+  if(cronometroConsulta_.corriendo && cronometroConsulta_.pasoActual && cronometroConsulta_.inicioPaso){
+    cronometroConsulta_.tiempos[cronometroConsulta_.pasoActual] += (Date.now() - cronometroConsulta_.inicioPaso);
+  }
+  cronometroConsulta_.pasoActual = paso;
+  cronometroConsulta_.inicioPaso = cronometroConsulta_.corriendo ? Date.now() : null;
+  document.querySelectorAll('.sec-chip').forEach(el => el.classList.toggle('activo', el.dataset.step === paso));
+  document.querySelectorAll('.consulta-box').forEach(el => el.classList.remove('activo'));
+  const box = document.getElementById('box-'+paso);
+  if(box) box.classList.add('activo');
+}
+
+function finalizarCronometroConsulta(){
+  if(!cronometroConsulta_.corriendo) return;
+  if(cronometroConsulta_.pasoActual && cronometroConsulta_.inicioPaso){
+    cronometroConsulta_.tiempos[cronometroConsulta_.pasoActual] += (Date.now() - cronometroConsulta_.inicioPaso);
+  }
+  clearInterval(cronometroConsulta_.intervalId);
+  const totalMs = Date.now() - cronometroConsulta_.inicioGlobal;
+  cronometroConsulta_.corriendo = false;
+  cronometroConsulta_.inicioPaso = null;
+  document.getElementById('sec-btn-iniciar').style.display = '';
+  document.getElementById('sec-btn-finalizar').style.display = 'none';
+  document.getElementById('sec-tiempo-total').textContent = '00:00';
+  document.getElementById('sec-tiempo-total').classList.remove('sec-tiempo-agotado');
+  document.querySelectorAll('.sec-chip').forEach(el => el.classList.remove('sugerido'));
+  const resumen = Object.keys(cronometroConsulta_.tiempos)
+    .filter(k => cronometroConsulta_.tiempos[k] > 0)
+    .map(k => `${NOMBRES_PASO_CONSULTA_[k]} ${formatearDuracion_(cronometroConsulta_.tiempos[k])}`)
+    .join(' · ');
+  toast('⏱️ Consulta finalizada — duración total ' + formatearDuracion_(totalMs) + (resumen ? (' (' + resumen + ')') : ''));
+}
+
+// ══════════════════════════════════════════════════════════════
 // ACORDEÓN de herramientas de examen físico (columna izquierda)
 // ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// FARMACOS_DOSIS_ — base de datos de posología para el calculador de dosis
+// AGREGADO (oct 2026). Cada entrada cita su fuente (ficha técnica oficial
+// CIMA/AEMPS — el organismo regulador de medicamentos de España, equivalente
+// a ANMAT — porque NINGÚN formulario oficial argentino en PDF que revisamos
+// [Farmacopea Argentina Vol. I y II, Formulario Terapéutico Nacional COMRA,
+// Guía Farmacoterapéutica Posadas, Formularios de Neuquén y Mendoza] trae
+// posología real con mg/kg y dosis máxima — son listados de qué está
+// habilitado, no manuales de dosificación. La dosis de un principio activo
+// es la misma a nivel internacional; lo que cambia entre países son las
+// marcas y presentaciones comerciales, no la farmacología.
+//
+// IMPORTANTE: esto es una lista INICIAL para que la revises y corrijas vos
+// contra lo que ya usás en tu práctica — no reemplaza tu criterio clínico.
+// Si tenés tu propio vademécum de cabecera (Kairos, PR Vademécum, etc.),
+// decime los valores que difieran y los actualizo.
+const FARMACOS_DOSIS_ = {
+
+  // ───────────────────────── ANALGÉSICOS / AINES ─────────────────────────
+  paracetamol: {
+    nombre: 'Paracetamol', categoria: 'Analgésicos / AINEs',
+    adultoTexto: '500–1000 mg cada 6–8 h VO (adultos y adolescentes >15 años, >50 kg)',
+    adultoMaxDiaTexto: '4 g/día (2 g/día si insuficiencia hepática o alcoholismo crónico)',
+    pediatrico: { rangoMgKg: '10–15 mg/kg/dosis', intervaloHoras: '4–6 h', maxMgKgDia: 80,
+      nota: 'Tabla por peso disponible de 0,6 ml (3 meses) a 4,8 ml (9-10 años) en solución 100 mg/ml — no superar nunca 4 g/día total.' },
+    ajusteRenal: [ {clcrMin:10, clcrMax:50, texto:'500 mg cada 6 h'}, {clcrMin:0, clcrMax:10, texto:'500 mg cada 8 h'} ],
+    ajusteHepatico: 'No superar 2 g/24 h, con intervalo mínimo de 8 h entre dosis.',
+    ajusteMayores: 'Reducir la dosis de adulto en un 25% por aumento de la semivida de eliminación.',
+    fuente: 'Ficha técnica Paracetamol Cinfa 1 g y Paracetamol Level 100 mg/ml solución oral — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/pdfs/es/ft/70310/FichaTecnica_70310.html.pdf'
+  },
+  ibuprofeno: {
+    nombre: 'Ibuprofeno', categoria: 'Analgésicos / AINEs',
+    adultoTexto: '200–400 mg cada 4–6 h VO (≥12 años, ≥40 kg)',
+    adultoMaxDiaTexto: '1200 mg/día (uso habitual; dosis mayores solo bajo indicación médica puntual)',
+    pediatrico: { rangoMgKg: '20–30 mg/kg/día repartidos en 3 tomas', intervaloHoras: '6–8 h', maxMgKgDia: 30,
+      nota: 'No recomendado en menores de 3 meses o con peso menor a 5 kg.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Reducir dosis; evitar en insuficiencia renal grave'} ],
+    ajusteHepatico: 'Reducir dosis; evitar en insuficiencia hepática grave.',
+    ajusteMayores: 'Posología a establecer por el médico; mayor riesgo de efectos adversos gastrointestinales y renales.',
+    fuente: 'Ficha técnica Ibuprofeno Normon 40 mg/ml suspensión oral EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/75244/FichaTecnica_75244.html'
+  },
+  diclofenac: {
+    nombre: 'Diclofenac (sódico)', categoria: 'Analgésicos / AINEs',
+    adultoTexto: 'Hasta 3 comprimidos/día (casos leves: 2 comprimidos/día)',
+    adultoMaxDiaTexto: '150 mg/día',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null,
+      nota: 'No recomendado en menores de 14 años. De 14 años en adelante: igual que adulto, máximo 150 mg/día.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Precaución en insuficiencia leve-moderada; CONTRAINDICADO en insuficiencia renal grave'} ],
+    ajusteHepatico: 'Precaución en insuficiencia leve-moderada; contraindicado en insuficiencia hepática grave.',
+    ajusteMayores: 'Emplear la dosis eficaz más baja por mayor propensión a efectos adversos.',
+    fuente: 'Ficha técnica Diclofenaco Normon 50 mg comprimidos dispersables EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/64442/FT_64442.html'
+  },
+  metamizol: {
+    nombre: 'Metamizol (Dipirona)', categoria: 'Analgésicos / AINEs',
+    adultoTexto: 'Hasta 1000 mg por dosis única (≥15 años, >53 kg), hasta 4 veces/día cada 6–8 h',
+    adultoMaxDiaTexto: '4000 mg/día',
+    pediatrico: { rangoMgKg: '8–16 mg/kg/dosis única', intervaloHoras: '6–8 h', maxMgKgDia: null,
+      nota: 'Válido hasta los 14 años.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Reducir dosis; evitar administración repetida de dosis elevadas'} ],
+    ajusteHepatico: 'Evitar administración repetida de dosis elevadas — eliminación de metabolitos retardada.',
+    ajusteMayores: 'Reducir la dosis en personas de edad avanzada y pacientes debilitados.',
+    fuente: 'Ficha técnica Metamizol Normon 0,4 g/ml solución inyectable y para perfusión EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/63430/FT_63430.html'
+  },
+  meloxicam: {
+    nombre: 'Meloxicam', categoria: 'Analgésicos / AINEs',
+    adultoTexto: '7,5 mg/día (artrosis; puede subirse a 15 mg/día); 15 mg/día (artritis reumatoide, espondilitis anquilosante)',
+    adultoMaxDiaTexto: '15 mg/día',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null,
+      nota: 'CONTRAINDICADO en menores de 16 años.' },
+    ajusteRenal: [
+      {clcrMin:50, clcrMax:9999, texto:'Sin reducción de dosis necesaria'},
+      {clcrMin:0, clcrMax:50, texto:'En hemodiálisis (terminal): no superar 7,5 mg/día. Insuficiencia grave no dializada: CONTRAINDICADO'}
+    ],
+    ajusteHepatico: 'Leve-moderada: sin reducción necesaria. Grave: contraindicado.',
+    ajusteMayores: 'En artritis reumatoide/espondilitis: 7,5 mg/día.',
+    fuente: 'Ficha técnica Meloxicam Normon 15 mg comprimidos EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/69366/FichaTecnica_69366.html'
+  },
+  ketorolac: {
+    nombre: 'Ketorolac (trometamol)', categoria: 'Analgésicos / AINEs',
+    adultoTexto: 'Inicial 10 mg, luego 10–30 mg cada 4–6 h IM/IV (adultos no ancianos)',
+    adultoMaxDiaTexto: '90 mg/día (adultos no ancianos) — 60 mg/día en ancianos',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null,
+      nota: 'Esta ficha no establece pauta pediátrica — uso habitualmente reservado a adultos en el ámbito ambulatorio.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'CONTRAINDICADO en insuficiencia renal moderada o grave. Leve: mitad de dosis, sin superar 60 mg/día'} ],
+    ajusteHepatico: 'No requiere ajuste en cirrosis, pero sí vigilancia clínica.',
+    ajusteMayores: 'Extremar precauciones y usar dosis menores — máximo 60 mg/día.',
+    duracionMaxima: 'Máximo 2 días por vía parenteral. Si continúa por vía oral, el tratamiento total (parenteral + oral) no debe superar los 7 días.',
+    fuente: 'Ficha técnica Ketorolaco Trometamol Normon 30 mg/ml solución inyectable EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/70102/FichaTecnica_70102.html'
+  },
+  naproxeno: {
+    nombre: 'Naproxeno', categoria: 'Analgésicos / AINEs',
+    adultoTexto: '500–1000 mg/día en 2 tomas (crisis agudas: hasta 1500 mg/día, máximo 2 semanas)',
+    adultoMaxDiaTexto: '1000 mg/día habitual — 1500 mg/día solo transitorio (≤2 semanas)',
+    pediatrico: { rangoMgKg: '10 mg/kg/día en 2 tomas', intervaloHoras: '12 h', maxMgKgDia: 10,
+      nota: 'Dato de ficha corresponde a artritis reumatoide juvenil.' },
+    ajusteRenal: [ {clcrMin:20, clcrMax:9999, texto:'Reducir a la dosis mínima eficaz'}, {clcrMin:0, clcrMax:20, texto:'No recomendado — acumulación de metabolitos'} ],
+    ajusteHepatico: 'Reducir a la dosis mínima eficaz que cada paciente precise.',
+    ajusteMayores: 'Reducir a la dosis mínima eficaz por mayor riesgo cardiovascular, hepático y renal.',
+    fuente: 'Ficha técnica Naproxeno Normon 500 mg comprimidos EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/68435/FichaTecnica_68435.html'
+  },
+  tramadol: {
+    nombre: 'Tramadol (clorhidrato)', categoria: 'Analgésicos / AINEs (opioide)',
+    adultoTexto: 'Inicial 50–100 mg, luego 50–100 mg cada 4–6 h VO',
+    adultoMaxDiaTexto: '400 mg/día (salvo circunstancias clínicas especiales)',
+    pediatrico: { rangoMgKg: '1–2 mg/kg/dosis única (3 a 11 años)', intervaloHoras: null, maxMgKgDia: 8,
+      nota: 'De 3 a 11 años: máximo 8 mg/kg/día o 400 mg/día (lo que sea menor). ≥12 años: dosis de adulto. No usar esta presentación en <12 años por su concentración.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Considerar alargar los intervalos de dosificación según necesidad del paciente'} ],
+    ajusteHepatico: 'Considerar alargar los intervalos de dosificación según necesidad del paciente.',
+    ajusteMayores: 'En mayores de 75 años puede prolongarse la eliminación — alargar intervalos según necesidad individual.',
+    fuente: 'Ficha técnica Tramadol Normon 50 mg cápsulas duras EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/63910/FT_63910.html'
+  },
+
+  // ─────────────────────────────── ANTIBIÓTICOS ───────────────────────────────
+  cefalexina: {
+    nombre: 'Cefalexina', categoria: 'Antibióticos',
+    adultoTexto: '250–500 mg cada 6–12 h VO (1 a 4 g/día según gravedad)',
+    adultoMaxDiaTexto: '4 g/día',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null,
+      nota: 'Esta presentación (cápsulas 500 mg) no trae pauta pediátrica propia — para niños usar una presentación en suspensión oral con su propia ficha pediátrica.' },
+    ajusteRenal: [ {clcrMin:10, clcrMax:9999, texto:'Sin cambios en insuficiencia leve-moderada'}, {clcrMin:0, clcrMax:10, texto:'Reducir a máximo 500 mg/día (FG <10 ml/min)'} ],
+    ajusteHepatico: 'Sin datos de ajuste específico en esta ficha.',
+    ajusteMayores: 'Dosis de adulto, salvo que exista insuficiencia renal.',
+    fuente: 'Ficha técnica Cefalexina Reiwa Healthcare 500 mg cápsulas duras EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/85347/FT_85347.html'
+  },
+  cefazolina: {
+    nombre: 'Cefazolina', categoria: 'Antibióticos (uso típico: profilaxis quirúrgica ortopédica)',
+    adultoTexto: '500 mg–1 g cada 6–8 h IV/IM según gravedad. Profilaxis quirúrgica: 1–2 g IV 30–60 min antes de la cirugía; dosis adicional de 500 mg–1 g si la cirugía se prolonga; postoperatorio 500 mg–1 g cada 6–8 h durante 24 h',
+    adultoMaxDiaTexto: 'Hasta 12 g/día en casos excepcionales (uso habitual muy por debajo de ese límite)',
+    pediatrico: { rangoMgKg: '25–50 mg/kg/día en 2–4 dosis (mayores de 1 mes)', intervaloHoras: null, maxMgKgDia: 100,
+      nota: 'Profilaxis quirúrgica pediátrica: 25–30 mg/kg (máximo 50 mg/kg), dosis máxima absoluta 2 g.' },
+    ajusteRenal: [
+      {clcrMin:55, clcrMax:9999, texto:'Dosis estándar'},
+      {clcrMin:35, clcrMax:54, texto:'Dosis estándar cada 8 h'},
+      {clcrMin:11, clcrMax:34, texto:'50% de la dosis estándar cada 12 h'},
+      {clcrMin:0, clcrMax:10, texto:'50% de la dosis estándar cada 18–24 h'}
+    ],
+    ajusteHepatico: 'Sin datos de ajuste específico en esta ficha.',
+    ajusteMayores: 'Dosis de adulto, ajustando siempre por función renal.',
+    fuente: 'Ficha técnica Cefazolina Normon 1 g polvo y disolvente para solución inyectable IM EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/64848/FT_64848.html'
+  },
+  amoxiclavulanico: {
+    nombre: 'Amoxicilina / Ácido clavulánico', categoria: 'Antibióticos',
+    adultoTexto: '875/125 mg cada 12 h VO (estándar) — cada 8 h en infecciones más graves',
+    adultoMaxDiaTexto: '1750 mg amoxicilina/250 mg clavulánico por día (pauta c/12h) — 2625 mg/375 mg por día (pauta c/8h)',
+    pediatrico: { rangoMgKg: '25/3,6 a 45/6,4 mg/kg/día en 2 tomas (niños <40 kg)', intervaloHoras: '12 h', maxMgKgDia: 70,
+      nota: 'Hasta 70/10 mg/kg/día en 2 tomas para infecciones específicas más graves.' },
+    ajusteRenal: [ {clcrMin:30, clcrMax:9999, texto:'Sin ajuste necesario'}, {clcrMin:0, clcrMax:30, texto:'No recomendado con esta presentación — requiere ajuste especial'} ],
+    ajusteHepatico: 'Usar con precaución y monitorear función hepática.',
+    ajusteMayores: 'Dosis de adulto, ajustando por función renal.',
+    fuente: 'Ficha técnica Amoxicilina/Ácido Clavulánico Viatris 875 mg/125 mg comprimidos recubiertos EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/64712/FichaTecnica_64712.html'
+  },
+  clindamicina: {
+    nombre: 'Clindamicina', categoria: 'Antibióticos',
+    adultoTexto: '1,2–1,8 g/día en 3–4 dosis (infecciones moderadamente graves) — 2,4–2,7 g/día en infecciones graves',
+    adultoMaxDiaTexto: 'Hasta 4,8 g/día IV en infecciones muy graves',
+    pediatrico: { rangoMgKg: '20–40 mg/kg/día en 3–4 dosis (lactantes y niños)', intervaloHoras: null, maxMgKgDia: 40,
+      nota: 'Recién nacidos: 15–20 mg/kg/día en 3–4 dosis (prematuros de bajo peso: desde 15 mg/kg/día).' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Generalmente sin ajuste, salvo deterioro renal grave con anomalías metabólicas'} ],
+    ajusteHepatico: 'Generalmente sin ajuste, salvo deterioro hepático grave con anomalías metabólicas.',
+    ajusteMayores: 'Dosis de adulto.',
+    fuente: 'Ficha técnica Clindamicina Normon 300 mg/2 ml solución inyectable EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/63667/FT_63667.html'
+  },
+
+  // ───────────────────────────── PROTECTORES GÁSTRICOS ─────────────────────────────
+  omeprazol: {
+    nombre: 'Omeprazol', categoria: 'Protectores gástricos',
+    adultoTexto: '20 mg/día VO (úlcera gástrica/duodenal, gastroprotección con AINEs)',
+    adultoMaxDiaTexto: '20 mg/día en gastroprotección (dosis mayores solo en indicaciones específicas)',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null,
+      nota: 'En mayores de 1 año (≥10 kg) por grupos de peso: 10–20 kg → 10 mg/día; >20 kg → 20 mg/día (indicación: esofagitis por reflujo).' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Sin ajuste específico en esta ficha'} ],
+    ajusteHepatico: 'Una dosis diaria de 10–20 mg puede ser suficiente.',
+    ajusteMayores: 'Dosis de adulto.',
+    fuente: 'Ficha técnica Omeprazol Cinfa 40 mg cápsulas duras gastrorresistentes — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/78891/FichaTecnica_78891.html'
+  },
+  pantoprazol: {
+    nombre: 'Pantoprazol', categoria: 'Protectores gástricos',
+    adultoTexto: '40 mg/día VO (úlcera/esofagitis); hasta 80 mg/día en casos particulares',
+    adultoMaxDiaTexto: '80 mg/día (síndrome de Zollinger-Ellison, ajustable según respuesta)',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null,
+      nota: 'No se recomienda su uso en menores de 12 años — seguridad y eficacia no establecidas.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Sin ajuste necesario'} ],
+    ajusteHepatico: 'Insuficiencia grave: no superar 20 mg/día.',
+    ajusteMayores: 'Dosis de adulto.',
+    fuente: 'Ficha técnica Pantoprazol Normon 40 mg comprimidos gastrorresistentes EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/69548/FT_69548.html'
+  },
+
+  // ─────────────────────────── RELAJANTES MUSCULARES ───────────────────────────
+  ciclobenzaprina: {
+    nombre: 'Ciclobenzaprina', categoria: 'Relajantes musculares',
+    adultoTexto: '10 mg cada 8 h VO (3 veces al día)',
+    adultoMaxDiaTexto: '20–40 mg/día habitual — máximo 60 mg/día',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null, nota: 'Sin indicación ni dosis pediátrica establecida en esta ficha.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Sin datos de ajuste específico en esta ficha'} ],
+    ajusteHepatico: 'Usar con precaución en insuficiencia moderada o severa — aumento de concentraciones plasmáticas.',
+    ajusteMayores: 'Mayor riesgo de efectos adversos — usar con precaución.',
+    duracionMaxima: 'El tratamiento no debe superar las 3 semanas.',
+    fuente: 'Ficha técnica Ciclobenzaprina (Yurelax) 10 mg cápsulas duras — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/pdfs/es/ft/56428/FichaTecnica_56428.html.pdf'
+  },
+  tizanidina: {
+    nombre: 'Tizanidina', categoria: 'Relajantes musculares',
+    adultoTexto: '2–4 mg cada 8 h VO (espasmo muscular doloroso), con posible dosis nocturna adicional',
+    adultoMaxDiaTexto: '36 mg/día (espasticidad neurológica) — en espasmo muscular doloroso la recomendación es más conservadora',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null, nota: 'Sin dosis pediátrica establecida en esta ficha.' },
+    ajusteRenal: [ {clcrMin:25, clcrMax:9999, texto:'Dosis estándar'}, {clcrMin:0, clcrMax:25, texto:'Iniciar con 2 mg una vez al día y ajustar lentamente'} ],
+    ajusteHepatico: 'CONTRAINDICADO en insuficiencia grave. Moderada: iniciar con la dosis más baja, incrementar con precaución.',
+    ajusteMayores: 'Usar con precaución, igual criterio que insuficiencia renal/hepática.',
+    fuente: 'Ficha técnica Tizanidina (Sirdalud) 4 mg comprimidos — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/58314/FichaTecnica_58314.html'
+  },
+  baclofeno: {
+    nombre: 'Baclofeno', categoria: 'Relajantes musculares',
+    adultoTexto: 'Inicial 15 mg/día en 2–3 tomas; mantenimiento habitual 30–80 mg/día en 2–4 tomas',
+    adultoMaxDiaTexto: '100–120 mg/día (solo con mucha precaución y en pacientes hospitalizados)',
+    pediatrico: { rangoMgKg: '0,75–2 mg/kg/día de mantenimiento (inicio ≈0,3 mg/kg/día)', intervaloHoras: null, maxMgKgDia: null,
+      nota: 'Máximo 40 mg/día en menores de 8 años, 60 mg/día desde los 8 años. Los comprimidos no son aptos para menores de 6 años ni con peso menor a 33 kg.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Reducir a 5 mg/día en insuficiencia renal o hemodiálisis'} ],
+    ajusteHepatico: 'Sin datos de ajuste específico en esta ficha.',
+    ajusteMayores: 'Mayor sensibilidad — iniciar con dosis bajas y titular con precaución.',
+    fuente: 'Ficha técnica Baclofeno (Lioresal) 25 mg comprimidos — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/52181/FichaTecnica_52181.html'
+  },
+
+  // ───────────────────────────────── ANSIOLÍTICOS ─────────────────────────────────
+  diazepam: {
+    nombre: 'Diazepam', categoria: 'Ansiolíticos',
+    adultoTexto: '2–10 mg, 2–4 veces al día VO (ansiedad / coadyuvante en espasmo musculoesquelético)',
+    adultoMaxDiaTexto: 'Sin tope diario explícito en esta ficha — usar la dosis mínima eficaz',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null, nota: 'No evaluado en esta ficha para la indicación de relajante muscular en pediatría traumatológica — requiere criterio pediátrico específico.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'2–2,5 mg, 1–2 veces al día, aumentando gradualmente según necesidad y tolerancia'} ],
+    ajusteHepatico: 'Leve-moderada: 2–2,5 mg, 1–2 veces al día. Grave: CONTRAINDICADO.',
+    ajusteMayores: '2–2,5 mg, 1–2 veces al día, aumentando gradualmente.',
+    fuente: 'Ficha técnica Diazepam Normon 5 mg comprimidos — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/51208/FT_51208.html'
+  },
+  alprazolam: {
+    nombre: 'Alprazolam', categoria: 'Ansiolíticos',
+    adultoTexto: 'Inicial 0,25–0,5 mg 3 veces al día; rango habitual 0,5–4 mg/día en 3–4 tomas',
+    adultoMaxDiaTexto: '4 mg/día',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null, nota: 'Sin indicación ni dosis pediátrica en esta ficha.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Sin datos de ajuste específico en esta ficha'} ],
+    ajusteHepatico: 'CONTRAINDICADO en insuficiencia grave. Moderada: especial cuidado con la dosis inicial.',
+    ajusteMayores: 'Inicial 0,25 mg, 2–3 veces al día; hasta 0,5–0,75 mg/día.',
+    fuente: 'Ficha técnica Alprazolam Mabo 1 mg comprimidos EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/63341/FT_63341.html'
+  },
+  clonazepam: {
+    nombre: 'Clonazepam', categoria: 'Ansiolíticos',
+    adultoTexto: 'Inicial ≤1,5 mg/día en 3 tomas, aumentando 0,5 mg cada 72 h. Mantenimiento habitual 3–6 mg/día',
+    adultoMaxDiaTexto: '20 mg/día — no debe superarse nunca',
+    pediatrico: { rangoMgKg: null, intervaloHoras: null, maxMgKgDia: null, nota: 'Esta ficha no cubre la indicación de uso en traumatología — requiere criterio específico si se usa en pediatría.' },
+    ajusteRenal: [ {clcrMin:0, clcrMax:9999, texto:'Sin ajuste necesario según estudios farmacocinéticos (sin estudios específicos de seguridad)'} ],
+    ajusteHepatico: 'Sin datos disponibles — usar con prudencia.',
+    ajusteMayores: 'Especial cuidado durante el ajuste a dosis elevadas.',
+    fuente: 'Ficha técnica Clonazepam Biomed 2 mg comprimidos EFG — CIMA/AEMPS',
+    fuenteUrl: 'https://cima.aemps.es/cima/dochtml/ft/79769/FT_79769.html'
+  }
+};
+
+// Orden de categorías para agrupar el <select> del calculador
+const FARMACOS_CATEGORIAS_ORDEN_ = [
+  'Analgésicos / AINEs', 'Analgésicos / AINEs (opioide)', 'Antibióticos',
+  'Antibióticos (uso típico: profilaxis quirúrgica ortopédica)',
+  'Protectores gástricos', 'Relajantes musculares', 'Ansiolíticos'
+];
+
+// ═══════════════════════════════════════════════════════════════════════
+// Calculador de dosis por peso — lógica de la UI
+// AGREGADO (oct 2026).
+// ═══════════════════════════════════════════════════════════════════════
+
+function poblarSelectFarmacosDosis_(){
+  const sel = document.getElementById('dosis-farmaco');
+  if(!sel) return;
+  const porCategoria = {};
+  Object.keys(FARMACOS_DOSIS_).forEach(key=>{
+    const f = FARMACOS_DOSIS_[key];
+    (porCategoria[f.categoria] = porCategoria[f.categoria] || []).push(key);
+  });
+  let html = '<option value="">Elegí un fármaco…</option>';
+  FARMACOS_CATEGORIAS_ORDEN_.forEach(cat=>{
+    if(!porCategoria[cat]) return;
+    html += '<optgroup label="'+cat+'">';
+    porCategoria[cat].sort((a,b)=>FARMACOS_DOSIS_[a].nombre.localeCompare(FARMACOS_DOSIS_[b].nombre)).forEach(key=>{
+      html += '<option value="'+key+'">'+FARMACOS_DOSIS_[key].nombre+'</option>';
+    });
+    html += '</optgroup>';
+  });
+  sel.innerHTML = html;
+}
+
+// Fórmula de Cockcroft-Gault — estándar clínico para estimar el clearance
+// de creatinina (ClCr, ml/min) a partir de edad, peso, sexo y creatinina
+// sérica. Es la misma fórmula usada en la bibliografía de ajuste renal.
+function calcularClCr_(edad, pesoKg, creatininaMgDl, sexo){
+  if(!edad || !pesoKg || !creatininaMgDl) return null;
+  let clcr = ((140 - edad) * pesoKg) / (72 * creatininaMgDl);
+  if(sexo === 'F') clcr *= 0.85;
+  return Math.round(clcr * 10) / 10;
+}
+
+function buscarAjusteRenal_(farmaco, clcr){
+  if(!farmaco.ajusteRenal || clcr===null) return null;
+  for(const bracket of farmaco.ajusteRenal){
+    if(clcr >= bracket.clcrMin && clcr <= bracket.clcrMax) return bracket.texto;
+  }
+  return null;
+}
+
+function calcularDosisFarmaco_(){
+  const key = document.getElementById('dosis-farmaco').value;
+  const out = document.getElementById('dosis-resultado');
+  if(!key){ out.style.display='none'; return; }
+  const f = FARMACOS_DOSIS_[key];
+
+  const peso = parseFloat(document.getElementById('dosis-peso').value);
+  const edad = parseFloat(document.getElementById('dosis-edad').value);
+  const creatinina = parseFloat(document.getElementById('dosis-creatinina').value);
+  const sexo = document.getElementById('dosis-sexo').value;
+
+  if(!peso || peso<=0){ toast('⚠️ Cargá el peso del paciente (kg)','err'); return; }
+  if(!edad && edad!==0){ toast('⚠️ Cargá la edad del paciente (años)','err'); return; }
+
+  let html = '';
+  html += '<div style="font-weight:800;font-size:13.5px;color:var(--violeta);margin-bottom:6px">'+f.nombre+'</div>';
+
+  // Dosis pediátrica calculada por peso, si corresponde y hay datos
+  const esPediatrico = edad < 18;
+  if(esPediatrico && f.pediatrico && f.pediatrico.rangoMgKg){
+    html += '<div class="info-box" style="margin-top:0"><span class="k">👶 Dosis pediátrica (calculada):</span><br>'+f.pediatrico.rangoMgKg;
+    // Si el rango viene como "X–Y mg/kg", calculamos el total en mg para este peso
+    const match = f.pediatrico.rangoMgKg.match(/(\d+(?:[.,]\d+)?)\s*[–-]\s*(\d+(?:[.,]\d+)?)\s*mg\/kg/);
+    const matchUnico = f.pediatrico.rangoMgKg.match(/(\d+(?:[.,]\d+)?)\s*mg\/kg/);
+    if(match){
+      const lo = parseFloat(match[1].replace(',','.')) * peso;
+      const hi = parseFloat(match[2].replace(',','.')) * peso;
+      html += '<br><b>→ Para '+peso+' kg: '+lo.toFixed(0)+'–'+hi.toFixed(0)+' mg</b>';
+    } else if(matchUnico){
+      const dosis = parseFloat(matchUnico[1].replace(',','.')) * peso;
+      html += '<br><b>→ Para '+peso+' kg: '+dosis.toFixed(0)+' mg</b>';
+    }
+    if(f.pediatrico.intervaloHoras) html += '<br>Intervalo: cada '+f.pediatrico.intervaloHoras;
+    if(f.pediatrico.maxMgKgDia) html += '<br>Máximo: '+f.pediatrico.maxMgKgDia+' mg/kg/día (para '+peso+' kg → '+(f.pediatrico.maxMgKgDia*peso).toFixed(0)+' mg/día), sin superar el máximo absoluto de adulto';
+    if(f.pediatrico.nota) html += '<div style="margin-top:4px;font-style:italic">'+f.pediatrico.nota+'</div>';
+    html += '</div>';
+  } else if(esPediatrico){
+    html += '<div class="info-box" style="margin-top:0;border-color:#fde68a;background:#fefce8"><span class="k" style="color:#92400e">⚠️ Paciente pediátrico (&lt;18 años):</span><br>'
+      + (f.pediatrico && f.pediatrico.nota ? f.pediatrico.nota : 'Esta fuente no trae una pauta pediátrica específica para este fármaco — no calcules por extrapolación, consultá una referencia pediátrica dedicada (ej. Pediamécum) antes de indicar.')
+      + '</div>';
+  }
+
+  // Dosis de adulto (texto de referencia, no es por peso en la mayoría de los casos)
+  html += '<div class="info-box"><span class="k">🧑 Dosis de adulto (referencia):</span><br>'+f.adultoTexto+'</div>';
+  html += '<div class="info-box" style="border-color:#fecaca;background:#fef2f2"><span class="k" style="color:#991b1b">⛔ Dosis máxima diaria:</span><br>'+f.adultoMaxDiaTexto+'</div>';
+
+  if(f.duracionMaxima){
+    html += '<div class="info-box" style="border-color:#fecaca;background:#fef2f2"><span class="k" style="color:#991b1b">⏱️ Duración máxima de tratamiento:</span><br>'+f.duracionMaxima+'</div>';
+  }
+
+  // Ajuste por función renal (si se cargó creatinina) o nota general
+  const clcr = calcularClCr_(edad, peso, creatinina, sexo);
+  if(clcr !== null){
+    const ajuste = buscarAjusteRenal_(f, clcr);
+    html += '<div class="info-box"><span class="k">🧪 Clearance de creatinina estimado (Cockcroft-Gault): '+clcr+' ml/min</span><br>'
+      + (ajuste || 'Esta fuente no da un ajuste puntual para este valor de ClCr — usar criterio clínico.') + '</div>';
+  } else if(f.ajusteRenal){
+    html += '<div class="info-box"><span class="k">🧪 Ajuste por función renal:</span><br>'+f.ajusteRenal[f.ajusteRenal.length-1].texto
+      + '<div style="margin-top:4px;font-size:10.5px">Cargá peso + edad + creatinina sérica + sexo abajo para calcular el clearance exacto (fórmula de Cockcroft-Gault).</div></div>';
+  }
+
+  if(f.ajusteHepatico){
+    html += '<div class="info-box"><span class="k">🫀 Insuficiencia hepática:</span><br>'+f.ajusteHepatico+'</div>';
+  }
+  if(edad >= 65 && f.ajusteMayores){
+    html += '<div class="info-box" style="border-color:#fde68a;background:#fefce8"><span class="k" style="color:#92400e">👴 Adulto mayor (≥65 años):</span><br>'+f.ajusteMayores+'</div>';
+  }
+
+  html += '<div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5">📚 Fuente: '+f.fuente
+    + (f.fuenteUrl ? ' — <a href="'+f.fuenteUrl+'" target="_blank" style="color:var(--violeta)">ver ficha técnica</a>' : '') + '</div>';
+
+  out.innerHTML = html;
+  out.style.display = 'block';
+}
+
+function enviarDosisATerapeutica_(){
+  const key = document.getElementById('dosis-farmaco').value;
+  if(!key){ toast('⚠️ Elegí un fármaco y calculá la dosis primero','err'); return; }
+  const out = document.getElementById('dosis-resultado');
+  if(out.style.display==='none' || !out.textContent.trim()){ toast('⚠️ Calculá la dosis primero','err'); return; }
+  const f = FARMACOS_DOSIS_[key];
+  const peso = document.getElementById('dosis-peso').value;
+  const edad = document.getElementById('dosis-edad').value;
+  const texto = f.nombre + ' — ' + f.adultoTexto + ' (máx. ' + f.adultoMaxDiaTexto + ') — calculado para paciente de ' + edad + ' años, ' + peso + ' kg. [Revisar antes de indicar — ver fuente en el calculador]';
+  const destinoEl = document.getElementById('texto-terapeutica');
+  if(!destinoEl) return;
+  destinoEl.value = destinoEl.value.trim() ? destinoEl.value.trim() + '\n' + texto : texto;
+  toast('✅ Enviado a Terapéutica — revisalo antes de guardar la consulta');
+}
+
+document.addEventListener('DOMContentLoaded', poblarSelectFarmacosDosis_);
+// Por si el DOM ya estaba listo cuando se cargó este script (caso típico al
+// estar al final del <body>):
+if(document.readyState==='interactive' || document.readyState==='complete'){ poblarSelectFarmacosDosis_(); }
+
 function toggleHerramienta(k){
-  ['podo','sind','man'].forEach(otro=>{
+  ['podo','sind','man','dosis'].forEach(otro=>{
     const panel = document.getElementById('panel-herr-'+otro);
     const btn = document.getElementById('btn-herr-'+otro);
     if(otro===k){
@@ -782,6 +1451,7 @@ function enviarHerramientaAExamen(cual){
     if(!filas.length){ toast('⚠️ No hay maniobras cargadas todavía','err'); return; }
     const segmento = document.getElementById('man-segmento').value;
     texto = (segmento ? `Maniobras — ${segmento}:\n` : 'Maniobras:\n') + filas.join('\n');
+    _manSinEnviar_ = false;
   }
   destino.value = destino.value.trim() ? destino.value.trim()+'\n\n'+texto : texto;
   toast('✅ Enviado a Examen físico','ok');
@@ -810,27 +1480,36 @@ function generarInformePodoscopia(){
 // SÍNDROMES (mismo diccionario y lógica que CAM_Herramientas_Clinicas.html)
 // ══════════════════════════════════════════════════════════════
 const SINDROMES = [
-  {n:'Acondroplasia', h:'Autosómico Dominante', gen:'Gen FGFR3 — cromosoma 4p16.3', d:'Predomina: rizomelia (acortamiento proximal de miembros), macrocefalia relativa, lordosis lumbar. Buscar: estenosis del canal espinal, genu varo, hipoplasia del tercio medio facial.'},
-  {n:'Síndrome de Marfan', h:'Autosómico Dominante', gen:'Gen FBN1 — cromosoma 15q21.1', d:'Predomina: aracnodactilia, hiperlaxitud, hábito longilíneo, deformidades torácicas. Buscar: escoliosis, luxación del cristalino, dilatación de la raíz aórtica (derivar a cardiología/oftalmología).'},
-  {n:'Síndrome de Ehlers-Danlos', h:'Autosómico Dominante (mayoría de subtipos) o Recesivo (algunos subtipos)', gen:'Varios genes de colágeno según subtipo', d:'Predomina: hiperlaxitud articular generalizada, piel hiperextensible y frágil. Buscar: inestabilidad articular recurrente, escoliosis, cicatrización anómala.'},
-  {n:'Síndrome de Down (Trisomía 21)', h:'Cromosómico', gen:'Trisomía del cromosoma 21', d:'Predomina: hipotonía, hiperlaxitud ligamentaria, facies característica. Buscar: inestabilidad atlantoaxoidea (radiografía cervical dinámica antes de deporte/anestesia), pie plano, displasia de cadera.'},
-  {n:'Osteogénesis Imperfecta', h:'Autosómico Dominante (mayoría) o Recesivo (formas graves)', gen:'Genes COL1A1 / COL1A2, entre otros', d:'Predomina: fragilidad ósea con fracturas a bajo impacto, escleras azuladas. Buscar: escoliosis, deformidades progresivas en huesos largos, hipoacusia.'},
-  {n:'Artrogriposis Múltiple Congénita', h:'Multifactorial / esporádica', gen:'Variable según etiología', d:'Predomina: contracturas articulares múltiples desde el nacimiento. Buscar: pie equinovaro, luxación de cadera, escoliosis, compromiso de miembros superiores.'},
-  {n:'Síndrome de Larsen', h:'Autosómico Dominante', gen:'Gen FLNB', d:'Predomina: luxaciones articulares múltiples congénitas, facies característica. Buscar: luxación de rodilla/cadera/codo, inestabilidad cervical.'},
-  {n:'Displasia del desarrollo de la cadera', h:'Multifactorial', gen:'No monogénica — herencia poligénica/ambiental', d:'Predomina: inestabilidad o displasia acetabular en el neonato/lactante. Buscar: signo de Ortolani/Barlow, asimetría de pliegues, limitación de la abducción.'},
-  {n:'Neurofibromatosis tipo 1', h:'Autosómico Dominante', gen:'Gen NF1 — cromosoma 17q11.2', d:'Predomina: manchas café con leche, neurofibromas cutáneos. Buscar: escoliosis distrófica, pseudoartrosis congénita de tibia, displasias óseas focales.'},
-  {n:'Síndrome de Prader-Willi', h:'Cromosómico', gen:'Región 15q11-q13', d:'Predomina: hipotonía neonatal marcada, obesidad de inicio en la infancia. Buscar: escoliosis, displasia de cadera.'},
-  {n:'Síndrome de Turner', h:'Cromosómico', gen:'Monosomía total o parcial del cromosoma X (45,X)', d:'Predomina: talla baja, cuello alado, cubitus valgo. Buscar: escoliosis, displasia de cadera, luxación rotuliana.'},
-  {n:'Síndrome de Noonan', h:'Autosómico Dominante', gen:'Gen PTPN11, entre otros', d:'Predomina: talla baja, cuello alado, cardiopatía congénita. Buscar: deformidades torácicas (pectus), escoliosis.'},
-  {n:'Síndrome de Klippel-Feil', h:'Esporádico', gen:'Variable — genes GDF6/GDF3 en algunas familias', d:'Predomina: fusión congénita de vértebras cervicales, cuello corto. Buscar: escoliosis asociada, anomalías renales y auditivas.'},
-  {n:'Displasia Espondiloepifisaria (SED)', h:'Autosómico Dominante', gen:'Gen COL2A1, entre otros', d:'Predomina: tronco corto desproporcionado, epífisis irregulares. Buscar: inestabilidad atlantoaxoidea, coxa vara, escoliosis.'},
-  {n:'Displasia Diastrófica', h:'Autosómico Recesivo', gen:'Gen SLC26A2', d:'Predomina: talla baja, pulgar en autoestop, orejas en "coliflor". Buscar: pie equinovaro rígido bilateral, escoliosis cervical.'},
-  {n:'Mucopolisacaridosis (Hurler, Hunter, Morquio, etc.)', h:'Autosómico Recesivo (mayoría) o Ligado al X (Hunter)', gen:'Genes de enzimas lisosomales, según tipo', d:'Predomina: rigidez articular progresiva, rasgos faciales toscos, talla baja. Buscar: inestabilidad atlantoaxoidea (especialmente Morquio), displasia de cadera, deformidades espinales.'},
-  {n:'Síndrome de Rett', h:'Ligado al X (predomina en niñas)', gen:'Gen MECP2', d:'Predomina: regresión del desarrollo, estereotipias manuales. Buscar: escoliosis progresiva de aparición temprana.'},
-  {n:'Atrofia Muscular Espinal (AME)', h:'Autosómico Recesivo', gen:'Gen SMN1', d:'Predomina: debilidad muscular proximal progresiva, hipotonía. Buscar: escoliosis neuromuscular, contracturas articulares, luxación de cadera.'},
-  {n:'Distrofia Muscular de Duchenne', h:'Ligado al X recesivo (varones)', gen:'Gen DMD', d:'Predomina: debilidad muscular proximal progresiva, pseudohipertrofia de pantorrillas. Buscar: escoliosis neuromuscular, contracturas en equino, signo de Gowers.'},
-  {n:'Displasia Cleidocraneal', h:'Autosómico Dominante', gen:'Gen RUNX2', d:'Predomina: hipoplasia/aplasia de clavículas, hombros hipermóviles. Buscar: hipermovilidad de hombros, talla baja, escoliosis.'},
-  {n:'Parálisis Cerebral', h:'No genética — adquirida perinatal / multifactorial', gen:'No aplica (lesión del SNC en desarrollo)', d:'Predomina: espasticidad y alteración del tono, patrón de marcha variable según topografía. Buscar: luxación de cadera progresiva, escoliosis neuromuscular, contracturas en equino.'}
+// ── Fichas basadas en: Solari AJ. "Genética Humana. Fundamentos y aplicaciones en medicina", 4ª ed. (Ed. Médica Panamericana).
+//    Resumidas con palabras propias. Cada ficha cita el capítulo y la(s) página(s) del libro.
+//    "comp" = complemento ortopédico de referencia general que NO proviene del libro (se muestra aparte y rotulado).
+  {n:'Acondroplasia', grupo:'solari', h:'Autosómico dominante, penetrancia completa. ~80% son mutaciones nuevas (casi siempre de origen paterno; aumenta con la edad del padre).', gen:'Gen FGFR3 (receptor 3 del factor de crecimiento fibroblástico), 4p16.3. Mutación G380R (nucleótido 1138, G>A) en 150 de 154 casos estudiados.', d:'Talla baja por acortamiento de huesos largos, con el segmento proximal (húmero) más acortado. Cráneo relativamente grande y puente nasal deprimido. Dedos en tridente (separación entre 2-3 y 4-5). Estrechamiento del foramen magnum. Desviaciones compensadoras de la columna por inclinación anterior de la pelvis. Talla adulta promedio 1,30 m (varones) y 1,23 m (mujeres). Si se evitan las complicaciones respiratorias y neurológicas, la vida media es normal y la fertilidad se conserva. Los homocigotas rara vez sobreviven al período perinatal (dos acondroplásicos: 25% normales, 50% acondroplásicos, 25% homocigotas).', comp:'Evaluar estenosis del canal lumbar, genu varo y cifosis toracolumbar.', fuente:'Solari, cap. 9, pp. 196–198'},
+  {n:'Síndrome de Marfan', grupo:'solari', h:'Autosómico dominante (efecto dominante negativo de la fibrilina mutante).', gen:'Gen FBN1 (fibrilina), 15q21; 110 kb, 65 exones. Las mutaciones que sólo reducen la cantidad de fibrilina dan formas más benignas.', d:'Talla elevada, miembros largos y finos (aracnodactilia), cifoescoliosis, hipotonía muscular, subluxación del cristalino, insuficiencia de válvulas cardíacas y degeneración de la túnica media de las grandes arterias, en especial la aorta. Prevalencia: 2 cada 10.000 (el cuadro 9-4 del mismo libro cita 1:60.000).', comp:'Evaluar pectus, pie plano, protrusión acetabular y estudio cardiológico antes de cirugía de columna.', fuente:'Solari, cap. 15, pp. 383–384 (panel 15-2); cuadro 9-4, cap. 9'},
+  {n:'Osteogénesis imperfecta', grupo:'solari', h:'Dominante en la mayoría (mutaciones de los genes del colágeno tipo I, con efecto dominante negativo).', gen:'Genes COL1A1 (17q21.3) y COL1A2 (7q21.3). Prevalencia ≈ 1:10.000.', d:'Fragilidad ósea con fracturas espontáneas o ante traumas mínimos, esclerótica azulada, otosclerosis/sordera, dientes opalescentes (hipoplasia de la dentina). La gravedad depende de la ubicación de la mutación: cerca del propéptido-C da la forma II (letal); cerca del propéptido-N, formas más leves; una menor expresión de COL1A1 da formas relativamente benignas. Más de 1.100 mutaciones descritas en los colágenos I a V.', comp:'Evaluar deformidades de huesos largos, escoliosis y platibasia.', fuente:'Solari, cap. 15, pp. 381–383; cuadro 9-4, cap. 9'},
+  {n:'Neurofibromatosis tipo 1 (von Recklinghausen)', grupo:'solari', h:'Autosómico dominante; ~50% son mutaciones nuevas.', gen:'Gen NF1 (neurofibromina, una proteína activadora de GTPasa), cromosoma 17q11.2; 60 exones.', d:'Manchas café con leche (más de 7 en un niño sugiere el diagnóstico; criterio clásico: 6 manchas de ≥1,5 cm en adultos o ≥0,5 cm en niños), efélides axilares e inguinales, neurofibromas cutáneos que aparecen progresivamente con la edad, nódulos de Lisch en el iris. Rasgos de aparición variable: glioma del nervio óptico, baja estatura, trastornos del aprendizaje, hipertensión, seudoartrosis y escoliosis.', comp:'Ante escoliosis de inicio temprano o curva corta y angulada, buscar signos de distrofia y evaluar tibia (angulación/seudoartrosis).', fuente:'Solari, cap. 9, pp. 205–207'},
+  {n:'Distrofia muscular de Duchenne / Becker', grupo:'solari', h:'Recesivo ligado al X (afecta a varones; transmisión por mujeres portadoras o mutación nueva).', gen:'Gen de la distrofina, Xp21.3: el gen humano más grande (2,6 Mb, 79 exones). Duchenne: distrofina ausente o muy disminuida; Becker: distrofina anormal pero parcialmente funcional.', d:'Afecta a 1 de cada 3.000 varones. Duchenne: comienzo a los 3-4 años, marcha tardía e hipotonía; debilidad de músculos pelvianos y glúteos, luego de los hombros; dificultad para ponerse de pie, no sube escaleras ni salta; seudohipertrofia de pantorrillas por infiltración adiposa y fibrosa; afectación simétrica y más tardía en la parte distal. Hacia los 10 años se movilizan en silla de ruedas; afectación cardíaca. CPK sérica muy elevada (de 100 UI normal a ~10.000 UI al año de edad). Becker: comienza en la 2ª o 3ª década.', comp:'Evaluar contracturas en equino, escoliosis neuromuscular y signo de Gowers.', fuente:'Solari, cap. 11, pp. 266–268'},
+  {n:'Enfermedad de Charcot-Marie-Tooth (CMT1A)', grupo:'solari', h:'Autosómico dominante (forma CMT1A). El grupo CMT incluye varias formas con hasta 26 genes distintos.', gen:'Duplicación de ~1,5 Mb en 17p11.2 (gen PMP22), detectable por FISH. Puede aparecer de novo.', d:'Atrofia muscular peronea hereditaria: debilidad y atrofia de los músculos peroneos, deformidad del pie (pie cavo), conducción nerviosa disminuida en el nervio mediano, dificultades para caminar, antecedentes familiares de patrón dominante. Neuropatía periférica desmielinizante (motora y sensitiva). Frecuencia ≈ 1 en 2.500 nacimientos.', comp:'Evaluar varo del retropié, garra de dedos, test de Coleman y electromiografía.', fuente:'Solari, cap. 2, pp. 31–32; cap. 18, p. 460'},
+  {n:'Síndrome de Down (trisomía 21)', grupo:'solari', h:'Cromosómico. Mayoría por no disyunción (trisomía libre); también por translocaciones: t(21q;Dq) 54%, t(21q;22q) 6,5%, t(21q;21q) 34% (esta última con riesgo de recurrencia del 100%).', gen:'Triplicación de genes de 21q, con una "zona crítica" en las bandas q22.1 a q22.3 (genes sensibles a dosis, p. ej. DYRK1A, RCAN1).', d:'Hipotonía muscular marcada, retraso mental (CI adulto habitual 25-50), facies característica (pliegues epicánticos, hendidura palpebral oblicua hacia arriba y afuera, hipoplasia maxilar con protrusión lingual, manchas de Brushfield), dedos cortos con hipoplasia de la falange media del 5º dedo, surco simiano, cardiopatías (defectos septales, ductus), atresia o estenosis duodenal. Riesgo aumentado de leucemia y Alzheimer precoz. Los que superan los 5 años tienen una expectativa de vida de alrededor de 55 años.', comp:'Evaluar inestabilidad atlantoaxoidea (radiografía cervical dinámica antes de deporte o anestesia), hiperlaxitud ligamentaria, pie plano y displasia de cadera.', fuente:'Solari, cap. 17, pp. 437–441'},
+  {n:'Trisomía 18 (síndrome de Edwards)', grupo:'solari', h:'Cromosómico (trisomía; relacionada con la edad materna).', gen:'Trisomía del cromosoma 18, por no disyunción meiótica, más a menudo materna.', d:'Unas diez veces menos frecuente que el Down. Predomina en niñas (4:1). Retraso de crecimiento y del desarrollo neurológico, hipertonía marcada con manos crispadas y 2º y 5º dedos superpuestos a los vecinos, sindactilia, dislocación de cadera, micrognatia, malformaciones cardíacas y gastrointestinales. Fallecen casi todos en las primeras semanas o meses.', fuente:'Solari, cap. 17, p. 441'},
+  {n:'Síndrome de Turner (45,X y variantes)', grupo:'solari', h:'Cromosómico (monosomía X total o parcial; también mosaicos).', gen:'Cariotipo 45,X y variantes. La insuficiencia haploide del gen SHOX (región seudoautosómica de Xp/Yp) explica la talla baja y varias alteraciones óseas.', d:'Disgenesia ovárica (amenorrea primaria, infantilismo sexual, esterilidad). Talla disminuida ~20% en el 95% de las pacientes. Alteraciones esqueléticas: mentón pequeño, esternón en quilla, inclinación del platillo tibial interno, genu valgo, cúbito valgo, acortamiento del 4º metacarpiano. Malformaciones renales (~40%) y cardiovasculares (17–45%, p. ej. coartación aórtica), hipertensión e hipotiroidismo. Inteligencia en general normal. La hormona de crecimiento temprana recupera entre 5,3 y 9,7 cm. Mutaciones de SHOX también causan la discondrosteosis de Leri-Weill (acortamiento de miembros y deformidad de Madelung).', comp:'Evaluar escoliosis y osteoporosis.', fuente:'Solari, cap. 17, pp. 443–446 (panel 17-3)'},
+  {n:'Síndrome de Klinefelter (47,XXY y variantes)', grupo:'solari', h:'Cromosómico (polisomía sexual con Y; 50% de origen paterno y 50% materno).', gen:'47,XXY en ~80%; el resto son mosaicos o polisomías mayores (XXXY, XXXXY, XXYY).', d:'Microorquidismo, esterilidad con azoospermia, gonadotrofinas (FSH, LH) elevadas, ginecomastia y apariencia corporal eunucoide. Prevalencia ≈ 1 cada 600 varones nacidos vivos; la aberración cromosómica más frecuente en varones. Muchos casos nunca se diagnostican. Las polisomías mayores se diferencian del cuadro clásico por varios rasgos fenotípicos.', comp:'Evaluar talla alta con miembros inferiores largos y osteopenia.', fuente:'Solari, cap. 17, pp. 446–448'},
+  {n:'Síndrome del X frágil', grupo:'solari', h:'Ligado al X, semidominante con baja penetrancia en la mujer (la transmisión depende de la expansión de repeticiones).', gen:'Expansión de tripletes CGG en el exón 1 de FMR1, Xq27.3. Normal: hasta 44 repeticiones; zona gris: 45–54; premutación: 56–200; mutación plena: >200 (con metilación del promotor).', d:'Principal causa de retraso mental hereditario. Incidencia 1 cada 4.000 varones y 1 cada 8.000 mujeres. Retraso mental profundo en varones, macroorquidismo (>30 mL), rostro alargado con mentón prominente y laxitud ligamentosa / alteraciones del tejido conectivo. Los portadores de premutación pueden presentar el síndrome de temblor y ataxia (FXTAS) o falla ovárica prematura.', comp:'Evaluar pie plano y escoliosis.', fuente:'Solari, cap. 18, pp. 466–469 y panel final; cap. 8, p. 155'},
+  {n:'Síndrome de Prader-Willi', grupo:'solari', h:'Impronta genómica. Falta la contribución paterna del segmento 15q11-q13.', gen:'Deleción 15q11-q13 del cromosoma paterno en ~50% de los casos; con cariotipo normal, disomía uniparental de origen materno.', d:'Hipotonía neonatal, retraso del desarrollo, hiperfagia con obesidad infantil, hipogonadismo, retraso mental y corta estatura.', comp:'Evaluar escoliosis y displasia de cadera.', fuente:'Solari, cap. 12, pp. 315–317 (cuadro 12-1)'},
+  {n:'Síndrome de Angelman', grupo:'solari', h:'Impronta genómica. Falta la contribución materna del segmento 15q11-q13.', gen:'Deleción 15q11-q13 del cromosoma materno en ~50% de los casos; con cariotipo normal, disomía uniparental de origen paterno.', d:'Ataxia, hiperactividad, epilepsia, facies de títere, retraso mental, risa incontrolada y ausencia del habla.', fuente:'Solari, cap. 12, pp. 315–317 (cuadro 12-1)'},
+  {n:'Síndrome de Rett', grupo:'solari', h:'Dominante ligado al X. Casi exclusivo de mujeres; en varones suele ser letal en etapa prenatal o en el primer año.', gen:'Gen MECP2 (proteína 2 de unión a citosinas metiladas), Xq28. Incidencia 1:10.000–1:15.000.', d:'Aspecto y desarrollo normales al nacer; entre los 6 y 18 meses el desarrollo neurológico se detiene, se estanca el perímetro craneano y se pierden conductas del lactante; aparecen movimientos estereotipados de las manos, trastornos del lenguaje y de la coordinación muscular, y retraso mental profundo.', comp:'Evaluar escoliosis progresiva de aparición temprana.', fuente:'Solari, cap. 7, pp. 149–150 (panel 7-2)'},
+  {n:'Mucopolisacaridosis (Hurler, Hunter, Morquio)', grupo:'solari', h:'Errores congénitos del metabolismo (enfermedades lisosomales). Hunter (MPS II): recesivo ligado al X.', gen:'Hunter: déficit de iduronato-2-sulfatasa (gen IDS, Xq28; 13% de los casos por recombinación ilegítima con IDS-2). Hurler (MPS I): déficit de α-L-iduronidasa. Morquio: déficit de galactosamino-6-sulfatasa (cuadro del cap. 14).', d:'Hunter: enanismo, aspecto grueso de cara y miembros (gargolismo: nariz aplanada, labios gruesos), cifosis, rigidez articular, hepatoesplenomegalia y sordera; los varones pueden tener retraso mental; la mayoría no sobrevive a la segunda década. Se acumulan sulfatos de heparina y de dermatano en los lisosomas.', comp:'Evaluar rigidez articular progresiva, cifosis toracolumbar, inestabilidad cervical (Morquio) y síndrome del túnel carpiano.', fuente:'Solari, cap. 14, pp. 359–363'},
+  {n:'Raquitismo hipofosfatémico ligado al X', grupo:'solari', h:'Dominante ligado al X (mujeres y varones afectados; el padre nunca lo transmite a hijos varones).', gen:'Gen PHEX (antes HYP), Xp22. Los túbulos renales no reabsorben fosfato.', d:'Aspecto similar al raquitismo carencial: epífisis aumentadas de tamaño e irregulares, huesos de la pierna arqueados, defecto de calcificación del tejido osteoide. No responde a la vitamina D (es una hipofosfatemia genética, no una carencia). Se distingue por laboratorio, respuesta a vitamina D y antecedentes familiares.', comp:'Evaluar genu varo/valgo progresivo, talla baja y osteotomías correctoras.', fuente:'Solari, cap. 2, pp. 16–17 (panel 2-1); cap. 11, p. 266'},
+  {n:'Síndrome de Ehlers-Danlos', h:'Autosómico Dominante (mayoría de subtipos) o Recesivo (algunos subtipos)', gen:'Varios genes de colágeno según subtipo', d:'Predomina: hiperlaxitud articular generalizada, piel hiperextensible y frágil. Buscar: inestabilidad articular recurrente, escoliosis, cicatrización anómala.', grupo:'general'},
+  {n:'Artrogriposis Múltiple Congénita', h:'Multifactorial / esporádica', gen:'Variable según etiología', d:'Predomina: contracturas articulares múltiples desde el nacimiento. Buscar: pie equinovaro, luxación de cadera, escoliosis, compromiso de miembros superiores.', grupo:'general'},
+  {n:'Síndrome de Larsen', h:'Autosómico Dominante', gen:'Gen FLNB', d:'Predomina: luxaciones articulares múltiples congénitas, facies característica. Buscar: luxación de rodilla/cadera/codo, inestabilidad cervical.', grupo:'general'},
+  {n:'Displasia del desarrollo de la cadera', h:'Multifactorial', gen:'No monogénica — herencia poligénica/ambiental', d:'Predomina: inestabilidad o displasia acetabular en el neonato/lactante. Buscar: signo de Ortolani/Barlow, asimetría de pliegues, limitación de la abducción.', grupo:'general'},
+  {n:'Síndrome de Noonan', h:'Autosómico Dominante', gen:'Gen PTPN11, entre otros', d:'Predomina: talla baja, cuello alado, cardiopatía congénita. Buscar: deformidades torácicas (pectus), escoliosis.', grupo:'general'},
+  {n:'Síndrome de Klippel-Feil', h:'Esporádico', gen:'Variable — genes GDF6/GDF3 en algunas familias', d:'Predomina: fusión congénita de vértebras cervicales, cuello corto. Buscar: escoliosis asociada, anomalías renales y auditivas.', grupo:'general'},
+  {n:'Displasia Espondiloepifisaria (SED)', h:'Autosómico Dominante', gen:'Gen COL2A1, entre otros', d:'Predomina: tronco corto desproporcionado, epífisis irregulares. Buscar: inestabilidad atlantoaxoidea, coxa vara, escoliosis.', grupo:'general'},
+  {n:'Displasia Diastrófica', h:'Autosómico Recesivo', gen:'Gen SLC26A2', d:'Predomina: talla baja, pulgar en autoestop, orejas en "coliflor". Buscar: pie equinovaro rígido bilateral, escoliosis cervical.', grupo:'general'},
+  {n:'Atrofia Muscular Espinal (AME)', h:'Autosómico Recesivo', gen:'Gen SMN1', d:'Predomina: debilidad muscular proximal progresiva, hipotonía. Buscar: escoliosis neuromuscular, contracturas articulares, luxación de cadera.', grupo:'general'},
+  {n:'Displasia Cleidocraneal', h:'Autosómico Dominante', gen:'Gen RUNX2', d:'Predomina: hipoplasia/aplasia de clavículas, hombros hipermóviles. Buscar: hipermovilidad de hombros, talla baja, escoliosis.', grupo:'general'},
+  {n:'Parálisis Cerebral', h:'No genética — adquirida perinatal / multifactorial', gen:'No aplica (lesión del SNC en desarrollo)', d:'Predomina: espasticidad y alteración del tono, patrón de marcha variable según topografía. Buscar: luxación de cadera progresiva, escoliosis neuromuscular, contracturas en equino.', grupo:'general'},
 ];
 let SINDROMES_TODOS = [...SINDROMES];
 async function cargarSindromesPersonalizados(){
@@ -852,7 +1531,12 @@ async function inicializarSindromes(){
 function poblarSelectSindromes(){
   const sel=document.getElementById('sind-select');
   const actual=sel.value;
-  sel.innerHTML='<option value="">Seleccionar…</option>'+SINDROMES_TODOS.map((s,i)=>`<option value="${i}">${s.n}${s.personalizado?' ⭐':''}</option>`).join('');
+  const _grupos=[['solari','📘 Según Solari — Genética Humana (con página)'],['general','📋 Referencia general (pendiente de contrastar con el Atlas)'],['personal','⭐ Agregados por vos']];
+  const _grupoDe=s=>s.grupo||(s.personalizado?'personal':'general');
+  sel.innerHTML='<option value="">Seleccionar…</option>'+_grupos.map(g=>{
+    const ops=SINDROMES_TODOS.map((s,i)=>_grupoDe(s)===g[0]?`<option value="${i}">${s.n}${s.personalizado?' ⭐':''}</option>`:'').join('');
+    return ops?`<optgroup label="${g[1]}">${ops}</optgroup>`:'';
+  }).join('');
   if(actual) sel.value=actual;
 }
 function mostrarSindrome(){
@@ -862,7 +1546,9 @@ function mostrarSindrome(){
   const s=SINDROMES_TODOS[idx];
   info.innerHTML=`<div><span class="k">Herencia:</span> ${s.h}</div>
     <div style="margin-top:4px"><span class="k">Hallazgo genético:</span> ${s.gen}</div>
-    <div style="margin-top:4px"><span class="k">Predomina / a buscar:</span> ${s.d}</div>`;
+    <div style="margin-top:4px"><span class="k">Predomina / a buscar:</span> ${s.d}</div>`
+    + (s.comp?`<div style="margin-top:4px"><span class="k">Complemento ortopédico</span> <i>(referencia general, no tomado del libro)</i>: ${s.comp}</div>`:'')
+    + `<div style="margin-top:6px;font-size:10px;color:var(--muted)">📚 ${s.fuente?s.fuente:(s.personalizado?'Cargado por el médico':'Referencia general — todavía no verificada contra Solari ni el Atlas de Guízar; revisar antes de usar.')}</div>`;
 }
 async function agregarSindromePersonalizado(){
   const nombre = prompt('Nombre del síndrome:');
@@ -920,6 +1606,307 @@ async function sugerirManiobras(btnEl){
     toast('✅ ' + lista.length + ' maniobras sugeridas');
   });
 }
+// ═══════════════════════════════════════════════════════════════════════
+// LISTA ESTÁNDAR DE MANIOBRAS SEMIOLÓGICAS POR SEGMENTO (agregado oct 2026)
+// Armada con los nombres de maniobras de uso habitual en semiología
+// ortopédica, con una frase propia sobre qué evalúa cada una. NO es una
+// transcripción de Hoppenfeld ni de Mosby: contrastar con esos libros.
+// Las maniobras con 📖 están respaldadas por: Hoppenfeld S. Exploración física de la
+// columna vertebral y las extremidades (Manual Moderno) y por Moraleda Novo L,
+// González Morán G. Adolescere 2015;3(2):92-108. Cada una cita la página.
+// Formato de cada maniobra: [nombre, qué indica, fuente, cómo se hace].
+// Las claves coinciden con las opciones de #man-segmento.
+// ═══════════════════════════════════════════════════════════════════════
+const MANIOBRAS_SEGMENTO_ = {
+  "Columna cervical":[
+    ["Prueba de distracción","Alivio del dolor al traccionar la cabeza: estrechamiento del orificio neural, presión sobre las carillas articulares o espasmo muscular","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 216","Palma abierta bajo el mentón y la otra mano sobre el occipucio; elevar la cabeza de forma gradual para quitarle peso al cuello"],
+    ["Prueba de compresión","Reproduce el dolor irradiado a la extremidad superior; si coincide con un dermatoma ayuda a ubicar el nivel neurológico","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 216","Presión hacia abajo sobre la parte alta de la cabeza, con el paciente sentado o acostado; anotar la distribución exacta del dolor"],
+    ["Prueba de Valsalva (cervical)","Aumenta la presión intratecal: dolor cervical o radicular si hay una lesión que ocupa espacio (hernia de disco, tumor)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 217","El paciente contiene la respiración y puja como para evacuar; preguntar si aumenta el dolor y dónde (es una prueba subjetiva)"],
+    ["Prueba de deglución","Dolor o dificultad al tragar por lesión de la cara anterior de la columna cervical (osteofitos, hematoma, infección, tumor)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 217","Preguntar por molestia al deglutir y asociarla con la exploración cervical"],
+    ["Prueba de Adson","Disminución o desaparición del pulso radial: compresión de la arteria subclavia por costilla cervical o escalenos tensos","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 219","Tomar el pulso radial; llevar el brazo a abducción, extensión y rotación externa; pedir inspiración profunda y girar la cabeza hacia el brazo explorado"],
+    ["Niveles neurológicos C5–D1 (fuerza, reflejos y sensibilidad)","Nivel comprometido: C5 abducción del hombro, reflejo bicipital, cara lateral del brazo; C6 extensión de muñeca, reflejo supinador, antebrazo lateral; C7 flexión de muñeca y extensión de dedos, reflejo tricipital, dedo medio; C8 flexión de dedos, antebrazo medial; D1 brazo medial","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 215","Valorar primero todos los niveles motores, luego los reflejos y por último los dermatomas, comparando ambos lados"],
+    ["Spurling (compresión foraminal)","Reproduce el dolor radicular al comprimir con el cuello extendido e inclinado hacia el lado sintomático","",""],
+    ["Jackson (compresión cervical)","Compresión axial con la cabeza inclinada: busca irritación radicular","",""],
+    ["Lhermitte","Descarga eléctrica con la flexión cervical: orienta a compromiso medular","",""],
+    ["Hoffmann","Signo de neurona motora superior / mielopatía cervical","",""],
+    ["Sharp-Purser","Inestabilidad atlantoaxoidea","",""],
+    ["Rango de movilidad cervical","Flexión, extensión, inclinación y rotación; dolor y limitación","",""]
+  ],
+  "Columna dorsal":[
+    ["Test de Adams (inclinación anterior, rodillas extendidas)","Se mira el tronco desde la cabecera del paciente: toda gibosidad paravertebral indica rotación vertebral (escoliosis estructural). Con escoliómetro, una inclinación mayor a 7° exige radiografía","Moraleda y González Morán, Adolescere 2015;3(2),  p. 93",""],
+    ["Plomada desde C7","Debe pasar por el surco interglúteo; las escoliosis lumbares suelen mostrar desequilibrio del tronco","Moraleda y González Morán, Adolescere 2015;3(2),  p. 93",""],
+    ["Simetría del tronco","Altura de hombros, prominencia de escápulas y de la pared costal, amplitud de la cintura; nivelar las crestas ilíacas con alza si hay acortamiento. Las asimetrías leves están en ~10% de la población y no son sinónimo de escoliosis","Moraleda y González Morán, Adolescere 2015;3(2),  pp. 92-93",""],
+    ["Flexión anterior del tronco (cifosis)","Contorno regular (dorso curvo postural, suele haber rigidez de isquiotibiales: no llega con las manos al suelo con rodillas extendidas) frente a contorno angular (Scheuermann)","Moraleda y González Morán, Adolescere 2015;3(2),  pp. 94-95",""],
+    ["Hiperextensión del tronco en decúbito prono","La cifosis postural se corrige; la cifosis rígida de Scheuermann no se corrige","Moraleda y González Morán, Adolescere 2015;3(2),  pp. 94-95",""],
+    ["Expansión torácica","Excursión costal: disminuida en espondiloartropatías","",""],
+    ["Índice de Ott (dorsal)","Movilidad dorsal: disminuye en espondilitis anquilosante y otras espondiloartropatías","","Marcar C7 y un punto 30 cm por debajo; con la flexión anterior del tronco, la distancia aumenta unos 2–4 cm normalmente"],
+    ["Percusión de apófisis espinosas","Dolor localizado: fractura, infección, tumor","",""],
+    ["Signo de Beevor","Movimiento del ombligo al flexionar el cuello: nivel de debilidad abdominal (T10)","",""],
+    ["Fuerza y sensibilidad por dermatomas dorsales","Descartar compromiso medular o radicular dorsal","",""]
+  ],
+  "Columna lumbar":[
+    ["Elevación de la pierna extendida (Lasègue)","Reproduce el dolor de espalda y pierna; normalmente la pierna sube unos 80° sin molestia. Dolor solo en la cara posterior del muslo: isquiotibiales tensos; dolor que baja por toda la pierna: nervio ciático","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 449-451","Paciente supino; elevar la pierna extendida tomando el calcáneo, con la otra mano sobre la rodilla para que no se doble"],
+    ["Dorsiflexión del pie al límite del dolor (Bragard)","Si la dorsiflexión reproduce el dolor ciático, se confirma tensión del nervio ciático; si no, el dolor era de los isquiotibiales","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 450-451","En el punto de dolor de la elevación, bajar un poco la pierna y hacer dorsiflexión del pie"],
+    ["Elevación de la pierna sana (prueba cruzada)","Dolor lumbar y ciático en el lado afectado al elevar la pierna sana: lesión que ocupa espacio, p. ej. hernia de disco","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 451","Paciente supino; elevar la pierna no afectada"],
+    ["Prueba de Hoover","Distingue un esfuerzo genuino de una simulación al no poder elevar la pierna","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 451-452","Mano abierta bajo el calcáneo de la pierna contraria; quien intenta de verdad elevar una pierna empuja con la otra hacia abajo"],
+    ["Prueba de Kernig (según Hoppenfeld)","Estira la médula y las raíces: dolor cervical, lumbar o en piernas indica irritación meníngea, de raíces o de la duramadre","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 452-453","Paciente supino con las manos detrás de la cabeza; flexión forzada de la cabeza hacia el tórax"],
+    ["Prueba de Milgram","Si mantiene las piernas elevadas 30 segundos sin dolor se descartan lesiones intratecales; si no puede o duele: lesión intratecal o extratecal (hernia) o compresión medular","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 453","Supino, elevar ambas piernas rectas unos 5 cm de la mesa y sostenerlas lo más posible"],
+    ["Prueba de Naffziger","Dolor al toser tras aumentar la presión del líquido cefalorraquídeo: lesión que comprime la teca","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 453-455","Comprimir suavemente las yugulares unos 10 segundos hasta que enrojezca la cara; luego pedir que tosa y que señale el dolor"],
+    ["Maniobra de Valsalva (lumbar)","Dolor de espalda o irradiado a las piernas: aumento de presión intratecal o compromiso de la teca","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 455","El paciente puja como para evacuar"],
+    ["Signo de Beevor","Desplazamiento del ombligo: debilidad asimétrica de los rectos abdominales y paraespinales (D5–D12/L1); se mueve hacia el lado sano","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 459-460","Paciente que intenta sentarse con los brazos cruzados; observar el ombligo (normalmente no se mueve)"],
+    ["Prueba de Babinski","Dedo gordo en extensión y los otros dedos separándose en flexión: lesión de la neurona motora superior (normal en el recién nacido)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 449","Deslizar un instrumento romo por la planta, desde el calcáneo por el borde lateral hasta el antepié"],
+    ["Prueba de Oppenheim","Misma respuesta que Babinski: lesión de la neurona motora superior","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 449","Deslizar la uña por la cresta de la tibia"],
+    ["Palpación de apófisis espinosas, musculatura paravertebral, sacroilíacas y fosa lumbar","Dolor selectivo en un punto localizado es un signo de alarma en el adolescente con dolor lumbar","Moraleda y González Morán, Adolescere 2015;3(2),  p. 100",""],
+    ["Ángulo poplíteo / elevación del miembro inferior en extensión de rodilla","Contractura de los isquiotibiales","Moraleda y González Morán, Adolescere 2015;3(2),  p. 100",""],
+    ["Estiramiento femoral (Lasègue invertido)","Tensión radicular L2–L4","",""],
+    ["Slump test","Tensión neural en sedestación","",""],
+    ["Schober modificado","Movilidad en flexión lumbar: disminuida en espondilitis anquilosante","",""],
+    ["Hiperextensión unipodal (Kemp)","Dolor lumbar en extensión y rotación: carilla articular / espondilólisis","",""],
+    ["Marcha en talones y en puntas","Fuerza de L4–L5 (talones) y S1 (puntas)","",""],
+    ["Reflejos rotuliano y aquíleo; fuerza y sensibilidad L2–S1","Nivel radicular comprometido","Moraleda y González Morán, Adolescere 2015;3(2),  p. 100",""],
+    ["Signos de Waddell","Componentes no orgánicos del dolor lumbar","",""]
+  ],
+  "Articulación sacroilíaca / pelvis":[
+    ["Prueba de estremecimiento pélvico (compresión / cierre de Erichsen)","Dolor sacroilíaco: alteración propia de la articulación (infección o secuela de traumatismo)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 455","Supino, manos sobre las crestas ilíacas con los pulgares en las EIAS; comprimir la pelvis con fuerza hacia la línea media"],
+    ["Prueba de Gaenslen","Dolor en la región sacroilíaca: alteración de esa articulación","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 457","Supino, ambas piernas al tórax; desplazar al paciente al borde de la mesa para que un glúteo sobresalga y dejar caer esa pierna manteniendo flexionada la otra"],
+    ["Prueba de Patrick o FABERE","Dolor inguinal: cadera o músculos vecinos; dolor sacroilíaco al presionar: alteración de esa articulación","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 457","Supino, pie sobre la rodilla opuesta (flexión, abducción y rotación externa); presionar hacia abajo la rodilla y la EIAS contraria como \"abriendo un libro\""],
+    ["Distracción pélvica (Gapping / apertura de Volkmann)","Estira ligamentos sacroilíacos anteriores","",""],
+    ["Thigh thrust (P4)","Cizallamiento posterior de la sacroilíaca","",""],
+    ["Empuje sacro (Sacral thrust)","Presión sobre el sacro en decúbito prono","",""],
+    ["Yeoman","Estrés sobre la sacroilíaca anterior con la cadera en extensión","",""],
+    ["Palpación de las articulaciones sacroilíacas","Dolor sacroilíaco (sacroileítis) como causa de dolor lumbar en el adolescente","Moraleda y González Morán, Adolescere 2015;3(2),  p. 100",""],
+    ["Longitud de miembros / altura de crestas ilíacas","Asimetría pélvica","",""],
+    ["Palpación del coxis","Coccigodinia: dolor local a la palpación, a la presión o al sentarse (traumatismo, luxación o fractura coccígea)","","Paciente en decúbito lateral o prono; palpar el coxis y su articulación sacrococcígea, buscando dolor y movilidad anormal"]
+  ],
+  "Hombro":[
+    ["Prueba del \"rascado\" de Apley","Rápida valoración activa de los arcos de movilidad: limitación o alteración del ritmo y de la simetría","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 35","Tocarse el ángulo superior del omóplato opuesto por detrás de la cabeza (abducción y rotación externa); luego el acromion opuesto (rotación interna y aducción); luego el ángulo inferior del omóplato por la espalda"],
+    ["Prueba de Yergason","Estabilidad del tendón de la cabeza larga del bíceps en el surco bicipital: si es inestable, sale del surco y duele","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 55-56","Codo en flexión completa; resistir la rotación externa del brazo mientras se tira del codo hacia abajo"],
+    ["Prueba de la caída del brazo","Desgarro del manguito rotador (sobre todo supraespinoso): el brazo cae desde unos 90° y no se baja con suavidad","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 56-58","Abducción total y pedir que lo baje lentamente; si lo sostiene, un golpe suave en el antebrazo lo hace caer"],
+    ["Prueba de la aprensión a la luxación","Luxación crónica de hombro: el paciente muestra alarma y se resiste si la cabeza humeral está por luxarse","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 58","Colocar el brazo en abducción y rotación externa, la posición en que se luxaría con facilidad"],
+    ["Reposición (Relocation)","Inestabilidad glenohumeral anterior: la aprensión cede al empujar la cabeza humeral hacia atrás","",""],
+    ["Neer","Pinzamiento subacromial: dolor al elevar pasivamente el brazo en rotación interna","",""],
+    ["Hawkins-Kennedy","Pinzamiento subacromial: dolor con rotación interna a 90° de flexión","",""],
+    ["Yocum","Pinzamiento subacromial: dolor al elevar el codo con la mano apoyada en el hombro contrario","","Mano del brazo explorado sobre el hombro opuesto; el paciente eleva el codo sin elevar el hombro"],
+    ["Jobe (lata vacía)","Supraespinoso: debilidad o dolor en abducción resistida con pulgar hacia abajo","",""],
+    ["Patte / retraso en rotación externa (ER lag)","Infraespinoso y redondo menor","",""],
+    ["Hornblower (signo del trompetista)","Redondo menor (y rotadores externos): no puede rotar externamente con el brazo elevado","","Brazo en abducción de 90° en el plano escapular y codo a 90°; pedir rotación externa contra resistencia (o llevar la mano a la boca: si necesita abducir el brazo, el signo es positivo)"],
+    ["Lift-off de Gerber","Subescapular: incapacidad de separar la mano de la espalda baja (o de mantenerla separada) indica lesión del subescapular","","Mano del paciente en la región lumbar con la palma hacia atrás; pedirle que la separe de la espalda contra la resistencia del examinador"],
+    ["Belly press (compresión del abdomen)","Subescapular: si para presionar el abdomen debe llevar el codo hacia atrás o flexionar la muñeca, el subescapular está insuficiente","","Mano plana sobre el abdomen, codo por delante del tronco; pedir que presione el abdomen sin mover el codo"],
+    ["Bear Hug","Subescapular (sobre todo rotura del tendón): no puede mantener la mano sobre el hombro contrario o hay dolor","","Palma sobre el hombro opuesto con los dedos extendidos y el codo hacia adelante; el examinador intenta separar la mano con una rotación externa mientras el paciente resiste"],
+    ["Speed","Porción larga del bíceps","",""],
+    ["O'Brien","Lesión labral superior (SLAP) y patología acromioclavicular","",""],
+    ["Signo del surco (Sulcus)","Inestabilidad inferior / multidireccional","",""],
+    ["Cajón glenohumeral (anterior y posterior / load and shift)","Inestabilidad glenohumeral: grado de traslación de la cabeza humeral hacia adelante o atrás, comparado con el lado sano","","Escápula fijada con una mano; con la otra, tomar la cabeza humeral y desplazarla hacia adelante y hacia atrás con una carga axial suave"],
+    ["Aducción cruzada (Cross-body)","Patología acromioclavicular","",""]
+  ],
+  "Codo":[
+    ["Prueba de estabilidad de los ligamentos colaterales (valgo y varo)","Vacío o hendidura en el lado medial (colateral medial) o lateral (colateral lateral)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 98","Codo apoyado en una mano ahuecada, la otra sujeta la muñeca; con unos grados de flexión forzar el antebrazo hacia lateral (tensión en valgo) y luego hacia medial (tensión en varo), palpando la interlínea"],
+    ["Signo de Tinel cubital","Hormigueo hacia la distribución cubital de la mano: neuroma o irritación del nervio cubital en el surco","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 98","Golpear sobre el nervio cubital en el surco entre olécranon y epitróclea"],
+    ["Prueba del codo de tenista","Dolor intenso y súbito en el epicóndilo: epicondilitis lateral","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 100-101","Estabilizar el antebrazo, paciente con puño cerrado y muñeca extendida; forzar la muñeca hacia la flexión presionando sobre el dorso del puño"],
+    ["Cozen","Epicondilitis lateral: dolor con extensión resistida de muñeca","",""],
+    ["Chair test (levantar una silla)","Epicondilitis lateral: dolor en el codo o el supinador al levantar la silla con los codos extendidos","","De pie detrás de una silla, tomarla del respaldo y levantarla con los codos extendidos y los hombros aducidos"],
+    ["Maudsley (extensión resistida del dedo medio)","Epicondilitis lateral: dolor en el epicóndilo o en el tendón extensor común","","Con el codo extendido y la mano sobre el tendón extensor común, pedir extensión del dedo medio contra resistencia"],
+    ["Mill","Epicondilitis lateral: dolor con estiramiento pasivo de los extensores","",""],
+    ["Epicondilitis medial (flexión resistida de muñeca y pronación)","Epitrocleítis","",""],
+    ["Mill invertido (estiramiento de flexores)","Epitrocleítis (epicondilitis medial): dolor en el epicóndilo medial al estirar los flexores-pronadores","","Codo en extensión, antebrazo en supinación; extender pasivamente la muñeca y los dedos mientras se palpa el epicóndilo medial"],
+    ["Moving valgus stress test","Insuficiencia del ligamento colateral medial (deportistas de lanzamiento)","",""],
+    ["Pivot-shift lateral del codo (inestabilidad posterolateral)","Inestabilidad posterolateral rotatoria: subluxación de la cabeza radial con abultamiento y hoyuelo posterolateral y chasquido en la reducción","","Paciente en decúbito supino con el brazo sobre la cabeza; desde la extensión, supinar el antebrazo mientras se flexiona el codo aplicando valgo y carga axial (la máxima subluxación ocurre cerca de 40° de flexión). En el paciente despierto suele verse solo aprensión"],
+    ["Chair push-up (inestabilidad posterolateral)","Dolor, aprensión, chasquido o bloqueo al levantarse apoyando las manos: sugiere inestabilidad posterolateral por insuficiencia del ligamento colateral lateral","","Sentado en una silla con las manos sobre el asiento o los apoyabrazos, el paciente se empuja hasta ponerse de pie"],
+    ["Hook test","Integridad del tendón distal del bíceps","",""],
+    ["Flexión sostenida del codo","Neuropatía cubital: reproduce parestesias en 4º y 5º dedo","",""],
+    ["Rango de movilidad (flexo-extensión, prono-supinación)","Bloqueos, cuerpos libres, sinovitis","",""]
+  ],
+  "Muñeca":[
+    ["Prueba de Finkelstein","Dolor intenso sobre el túnel I: tenosinovitis estenosante (De Quervain)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 130","Paciente con el puño cerrado y el pulgar metido debajo de los otros dedos; estabilizar el antebrazo y desviar la muñeca hacia el lado cubital"],
+    ["Signo de Tinel (carpo)","Dolor u hormigueo en la distribución del mediano: síndrome del túnel carpiano","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 144","Golpear sobre el ligamento carpiano palmar"],
+    ["Prueba de Phalen","Hormigueo de los dedos reproducido: síndrome del túnel carpiano","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 144-145","Flexión máxima de la muñeca sostenida durante al menos un minuto"],
+    ["Prueba de Allen","Permeabilidad de las arterias radial y cubital: la mano se vuelve rosada de inmediato al liberar una; si no, esa arteria está ocluida","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 178","Abrir y cerrar el puño varias veces y apretarlo; comprimir radial y cubital, abrir la mano (debe estar pálida) y liberar una arteria; repetir con la otra y comparar con el lado opuesto"],
+    ["Phalen invertido (rezo)","Túnel carpiano: provocación en extensión","",""],
+    ["Durkan (compresión carpiana)","Compresión directa del nervio mediano","",""],
+    ["Watson (desplazamiento del escafoides)","Inestabilidad escafolunar","",""],
+    ["Compresión del TFCC (estrés cubital)","Lesión del complejo fibrocartilaginoso triangular","",""],
+    ["Signo de la tecla de piano","Inestabilidad radiocubital distal","",""],
+    ["Ballottement lunopiramidal (Reagan)","Inestabilidad lunopiramidal","",""],
+    ["Sensibilidad al palpar la tabaquera anatómica","Sospecha de fractura de escafoides","",""]
+  ],
+  "Mano / dedos":[
+    ["Prueba del flexor común superficial","Integridad del tendón flexor superficial: si no puede flexionar la articulación interfalángica proximal, el tendón está cortado o falta","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 173","Sujetar en extensión todos los dedos menos el explorado y pedir flexión de la interfalángica proximal"],
+    ["Prueba del flexor común profundo","Integridad del tendón flexor profundo: si no flexiona la interfalángica distal, el tendón está cortado o el músculo desnervado","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 173-175","Aislar la interfalángica distal estabilizando metacarpofalángica e interfalángica proximal en extensión y pedir flexión"],
+    ["Prueba de Bunnell-Littler","Tensión de los músculos intrínsecos frente a contractura de la cápsula articular","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 175-177","Con la metacarpofalángica en pocos grados de extensión intentar flexionar la interfalángica proximal; si no flexiona, repetir con la metacarpofalángica flexionada (si ahora flexiona: intrínsecos tensos; si no: cápsula)"],
+    ["Prueba de los ligamentos retinaculares","Tensión del retináculo frente a contractura de la cápsula de la interfalángica distal","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 177-178","Con la interfalángica proximal en neutro intentar flexionar la distal; si no flexiona, repetir con la proximal ligeramente flexionada (si flexiona: retináculo tenso)"],
+    ["Prueba de Allen modificada (arterias digitales)","Permeabilidad de las arterias digitales: si el dedo no recupera el color, el vaso es dudoso","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 178-180","Con el puño apretado comprimir los dos lados de la base del dedo; abrir la mano y liberar un lado; repetir con el otro y comparar con el dedo opuesto"],
+    ["Froment","Debilidad del aductor del pulgar (nervio cubital)","",""],
+    ["Wartenberg","Abducción del meñique por debilidad de interóseos (nervio cubital)","",""],
+    ["Signo de la O (OK)","Nervio interóseo anterior (flexores largos del pulgar e índice)","",""],
+    ["Grind (compresión-rotación del pulgar)","Rizartrosis trapeciometacarpiana","",""],
+    ["Elson","Lesión de la bandeleta central del extensor (deformidad en ojal)","",""],
+    ["Discriminación de dos puntos","Sensibilidad digital","",""],
+    ["Tinel digital / cubital / mediano","Compresión o lesión nerviosa","",""],
+    ["Cascada digital","Alineación en reposo: sospecha de lesión tendinosa","",""]
+  ],
+  "Cadera":[
+    ["Prueba de Thomas","Contractura en flexión de la cadera: la cadera no extiende por completo o el paciente compensa arqueando el dorso","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 272-274, 296","Supino, mano bajo la columna lumbar para estabilizar la pelvis; flexionar al máximo una cadera y dejar la otra pierna apoyada en la mesa"],
+    ["Prueba de Trendelenburg","Debilidad del glúteo medio: la pelvis del lado no apoyado cae o no sube al pararse sobre una pierna","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 290-291","Observar los hoyuelos sobre las espinas ilíacas posteriores desde atrás; pedir que se pare sobre una pierna"],
+    ["Longitud verdadera de las piernas","Diferencia ósea real; con las rodillas a 90° una rodilla más alta indica tibia más larga y una rodilla más adelantada indica fémur más largo","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 291-292","Medir con cinta desde la EIAS (concavidad bajo la espina) hasta el maléolo medial"],
+    ["Longitud aparente de las piernas","Diferencia por oblicuidad pélvica o deformidad en aducción o flexión","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 293","Medir desde el ombligo (o unión xifoesternal) hasta los maléolos mediales con las piernas lo más neutras posible"],
+    ["Prueba de Ober","Contractura de la cintilla iliotibial: el muslo queda en abducción en lugar de caer en aducción","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 293-296","Decúbito lateral, pierna afectada arriba; abducción máxima con rodilla a 90° y cadera neutra, luego soltar"],
+    ["Prueba de Ortolani (chasquido)","Luxación congénita de cadera: chasquido palpable al reducirse la cabeza femoral bajo la ceja acetabular; limitación de la abducción","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 296-297","Lactante con caderas flexionadas a 90°, abducción y rotación externa suaves; sentir el chasquido"],
+    ["Prueba de tracción y empuje (telescopio)","Movimiento de oscilación del trocánter mayor: luxación congénita de cadera","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 297","Traccionar el fémur desde la rodilla con una mano y estabilizar la pelvis con el pulgar sobre el trocánter mayor"],
+    ["Abducción de caderas en el lactante (90° de flexión)","Se debe lograr unos 90° de abducción bilateral; 20° o menos sugiere luxación congénita; comparar ambos lados","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 297","Caderas en flexión de 90° y llevarlas a abducción"],
+    ["Rotación de cadera en extensión y en flexión","Rotación interna excesiva: anteversión femoral; rotación externa excesiva: retroversión; limitada en epifisiolisis o artrosis","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 278-281","En decúbito con piernas extendidas rotar desde los pies; luego sentado con caderas y rodillas a 90° rotar la pierna usando tibia y peroné como palanca"],
+    ["FABER (Patrick)","Patología de cadera o sacroilíaca","",""],
+    ["FADIR (flexión, aducción y rotación interna)","Pinzamiento femoroacetabular","",""],
+    ["Log roll","Irritación intraarticular: rotación pasiva del miembro","",""],
+    ["Stinchfield","Dolor intraarticular con elevación resistida de la pierna","",""],
+    ["Duncan-Ely (flexión de rodilla con la cadera extendida)","Dolor inguinal que aumenta con la maniobra: avulsión de la espina ilíaca anteroinferior por contracción violenta del recto anterior; acortamiento del recto femoral","Moraleda y González Morán, Adolescere 2015;3(2),  p. 101",""],
+    ["Galeazzi","Diferencia de altura de rodillas (luxación o displasia de cadera, o discrepancia de longitud)","",""],
+    ["Weber-Barstow (diferencia funcional de longitud)","Diferencia funcional de longitud de los miembros (por escoliosis o pronación excesiva), no estructural","","Paciente supino con ligera tracción; palpar ambos maléolos internos, flexionar caderas y rodillas, elevar la pelvis, volver a extender las piernas y comparar con los pulgares la altura de los maléolos"],
+    ["Longitud de miembros inferiores — método indirecto (bloques)","Bloques de medida conocida bajo el miembro corto hasta equilibrar la pelvis","Moraleda y González Morán, Adolescere 2015;3(2),  pp. 95-96",""],
+    ["Longitud de miembros inferiores — método directo (cinta métrica)","Distancia entre la espina ilíaca anterosuperior y el maléolo medial o lateral; menos fiable (depende de ubicar bien los relieves y no incluye el pie). Distinguir diferencia verdadera de la aparente por contractura articular; si supera 1-2 cm, telerradiografía en bipedestación","Moraleda y González Morán, Adolescere 2015;3(2),  pp. 95-96",""],
+    ["Rotación interna y externa de cadera (anteversión femoral)","Un exceso de rotación interna respecto de la externa es buena medida del grado de anteversión femoral","Moraleda y González Morán, Adolescere 2015;3(2),  p. 98",""],
+    ["Ángulo de progresión de la marcha","Ángulo entre el eje del pie y la dirección de la marcha (parte del perfil torsional)","Moraleda y González Morán, Adolescere 2015;3(2),  p. 98",""],
+    ["Palpación inguinal y movilidad de cadera","En la avulsión de la espina ilíaca anteroinferior hay dolor a la palpación inguinal con movilidad de cadera completa y simétrica","Moraleda y González Morán, Adolescere 2015;3(2),  p. 101",""]
+  ],
+  "Rodilla":[
+    ["Estabilidad de los ligamentos colaterales (valgo y varo)","Hendidura palpable o visible en la interlínea: colateral medial (el más crítico y el más lesionado) o lateral","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 327-328","Supino, rodilla con leve flexión; una mano en el tobillo y la otra alrededor de la rodilla; tensión valga abre el lado medial, tensión vara abre el lateral"],
+    ["Cajón anterior (signo de deslizamiento hacia adelante)","Desgarro del ligamento cruzado anterior; si el desplazamiento no disminuye con rotación externa, también la cápsula posteromedial, y con rotación interna la posterolateral","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 329-331","Supino, rodilla a 90°, pie fijo sentándose sobre él; manos alrededor de la rodilla, tirar de la tibia hacia adelante; repetir en rotación interna y externa"],
+    ["Cajón posterior (signo de deslizamiento hacia atrás)","Lesión del ligamento cruzado posterior (el desgarro aislado es raro)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 331-332","Misma posición; empujar la tibia hacia atrás"],
+    ["Prueba de McMurray","Desgarro del menisco medial (sobre todo mitad posterior): chasquido palpable o audible","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 340-342","Supino, flexión completa de la rodilla; rotar la pierna en ambos sentidos, aplicar tensión valga con rotación externa y extender lentamente palpando la interlínea medial"],
+    ["Prueba de compresión de Apley","Dolor al comprimir y rotar: lesión meniscal (el lado del dolor indica menisco medial o lateral)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 342","Decúbito prono, rodilla a 90°, estabilizar el muslo; presionar sobre el talón y rotar la tibia en ambos sentidos"],
+    ["Prueba de distracción de Apley","Dolor al traccionar: lesión ligamentosa; si solo está lesionado el menisco no duele","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 344","Misma posición; traccionar la pierna y rotar la tibia"],
+    ["Chasquido de reducción (rodilla trabada)","Reduce el menisco desplazado y destraba la rodilla permitiendo la extensión total","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 344-346","Posición de McMurray; flexionar la rodilla rotando interna y externamente, luego girar y extender hasta oír el chasquido"],
+    ["Prueba de extensión total de la rodilla","Falta de extensión con tope mecánico: desgarro meniscal, cuerpo suelto o tumefacción intracapsular","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 346","Supino, flexión total y dejar extender pasivamente; debe llegar a un punto final preciso"],
+    ["Prueba de fricción rótula-fémur","Crepitación o dolor: rugosidad de las superficies articulares (condromalacia, defectos osteocondrales); típico al subir escaleras","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 346-347","Empujar la rótula distalmente, pedir contracción del cuádriceps y palpar el deslizamiento"],
+    ["Prueba de aprensión a la luxación de la rótula","Expresión de temor al empujar la rótula: luxación o subluxación lateral recurrente","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 347","Supino, cuádriceps relajado; presión sobre el borde medial de la rótula con el pulgar"],
+    ["Signo de Tinel (rama infrarrotuliana del safeno)","Dolor sobre un neuroma tras cirugía de rodilla (p. ej. meniscectomía medial)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 347-348","Percutir en el lado medial del tubérculo tibial"],
+    ["Prueba de derrame mayor (chapoteo rotuliano)","Rebote de la rótula: gran cantidad de líquido en la articulación","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 350","Extender la rodilla con el cuádriceps relajado; empujar la rótula contra el surco troclear y soltarla rápido"],
+    ["Prueba de derrame menor (ordeñe)","Desplazamiento del líquido hacia el lado lateral: derrame mínimo","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 350","Con la rodilla extendida ordeñar el líquido desde la bolsa suprarrotuliana y el lado lateral hacia el medial, luego golpear suavemente y ver la plenitud del lado lateral"],
+    ["Lachman","Ligamento cruzado anterior","",""],
+    ["Pivot shift","Inestabilidad rotatoria anterolateral","",""],
+    ["Dial test","Esquina posterolateral","",""],
+    ["Thessaly","Lesión meniscal con apoyo monopodal en flexión de 20°","",""],
+    ["Compresión patelofemoral (Clarke)","Dolor patelofemoral","",""],
+    ["Noble","Síndrome de la banda iliotibial","",""],
+    ["Distancia intercondílea (genu varo) e intermaleolar (genu valgo)","Si la distancia intermaleolar supera 13 cm, pedir telerradiografía en bipedestación; una alteración angular asimétrica, unilateral o con talla baja se deriva a ortopedia infantil","Moraleda y González Morán, Adolescere 2015;3(2),  p. 97",""],
+    ["Ángulo muslo-pie (torsión tibial)","Decúbito prono con rodilla y tobillo a 90°: ángulo entre el eje del pie y el del muslo","Moraleda y González Morán, Adolescere 2015;3(2),  p. 98",""],
+    ["Palpación de la tuberosidad anterior de la tibia y del polo inferior de la rótula","Dolor localizado: enfermedad de Osgood-Schlatter o de Sinding-Larsen-Johansson","Moraleda y González Morán, Adolescere 2015;3(2),  p. 101",""],
+    ["Recorrido rotuliano en flexo-extensión y alineación del miembro","Dolor anterior de rodilla: mal recorrido de la rótula; chasquidos o bloqueos obligan a descartar lesión meniscal","Moraleda y González Morán, Adolescere 2015;3(2),  p. 102",""]
+  ],
+  "Tobillo":[
+    ["Esfuerzo en inversión (ligamento peroneoastragalino anterior)","Dolor al aumentar la inversión: ligamento peroneoastragalino anterior distendido o desgarrado (el más afectado en los esguinces)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 391-392","Llevar el pie a flexión plantar e inversión"],
+    ["Cajón anterior del tobillo (deslizamiento hacia adelante)","El astrágalo se desliza hacia adelante bajo la mortaja, a veces con chasquido: lesión del peroneoastragalino anterior; en inestabilidad crónica la subastragalina es normal","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 392; Moraleda y González Morán, Adolescere 2015, p. 103","Sentado con las piernas colgando y leve flexión plantar; una mano en la tibia distal y la otra en el calcáneo, empujar calcáneo y astrágalo hacia adelante y la tibia hacia atrás"],
+    ["Inversión del calcáneo (inestabilidad lateral)","El astrágalo se separa y se tuerce en la mortaja: lesión de peroneoastragalino anterior y peroneocalcáneo","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 393-394","Invertir el calcáneo y observar el astrágalo"],
+    ["Estabilidad del ligamento deltoideo (eversión)","Separación importante en el lado medial: desgarro del deltoideo; confirmar con radiografía con tensión","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 394","Estabilizar la tibia y el calcáneo y hacer eversión del pie; comparar con el lado sano"],
+    ["Prueba de dorsiflexión (gemelos frente a sóleo — Silfverskiöld)","Si la dorsiflexión mejora al flexionar la rodilla, la limitación es de los gemelos; si no cambia, del sóleo","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, pp. 415-417","Medir la dorsiflexión con la rodilla extendida y repetir con la rodilla flexionada"],
+    ["Signo de Homans","Dolor en la pantorrilla: tromboflebitis profunda (el dolor a la palpación profunda es otro dato)","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 417","Dorsiflexión forzada del tobillo con la pierna extendida"],
+    ["Movilidad subastragalina (inversión y eversión)","Limitada en la coalición tarsal; normal en la inestabilidad crónica de tobillo","Moraleda y González Morán, Adolescere 2015;3(2),  p. 103",""],
+    ["Dorsiflexión del tobillo con rodilla extendida y pie en supinación","Si no se consiguen 10° de dorsiflexión: Aquiles corto (causa de pie plano no flexible)","Moraleda y González Morán, Adolescere 2015;3(2),  p. 98",""],
+    ["Squeeze (compresión de la pierna)","Lesión de la sindesmosis","",""],
+    ["Rotación externa (Kleiger)","Sindesmosis y ligamento deltoideo","",""],
+    ["Thompson","Rotura del tendón de Aquiles","",""],
+    ["Matles","Rotura del tendón de Aquiles: posición de reposo en prono","",""],
+    ["Tinel del túnel tarsiano (retromaleolar)","Neuropatía del tibial posterior","",""],
+    ["Peroneos: eversión resistida y subluxación","Tendinopatía o inestabilidad de peroneos","",""],
+    ["Rango de movilidad y estabilidad ligamentaria","Dorsiflexión, flexión plantar, inversión y eversión","",""]
+  ],
+  "Pie / dedos":[
+    ["Prueba del pie plano rígido o flexible","Arco presente de puntillas o sentado y ausente al estar de pie: pie plano flexible (se corrige con soportes del arco); ausente en todas las posiciones: rígido","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 411","Observar los pies parado sobre los dedos y sentado"],
+    ["Prueba de torsión tibial","Normalmente la línea entre los maléolos está en rotación externa de unos 15° respecto de la perpendicular al tubérculo tibial; si mira directamente hacia adelante: torsión tibial interna","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 411","Ubicar el tubérculo tibial y ambos maléolos y comparar ejes"],
+    ["Corrección de la aducción del antepié","Si se corrige más allá del neutro se corrige sola; si solo llega al neutro o menos, probablemente requiera yeso","Hoppenfeld, Exploración física de la columna vertebral y las extremidades, p. 412","Corregir manualmente la aducción del segmento anterior del pie y llevarlo a abducción"],
+    ["Coleman (bloque)","Flexibilidad del retropié en el pie cavo","",""],
+    ["Test de puntillas","Si al ponerse en puntillas se restablece el arco, el pie plano es flexible","Moraleda y González Morán, Adolescere 2015;3(2),  p. 98",""],
+    ["Windlass (Jack)","La dorsiflexión pasiva del dedo gordo restaura el arco longitudinal: pie plano flexible","Moraleda y González Morán, Adolescere 2015;3(2),  p. 98",""],
+    ["Prono-supinación subastragalina","Limitada en el pie plano rígido: coalición tarsal (la más frecuente), osteoma osteoide o proceso inflamatorio/infeccioso","Moraleda y González Morán, Adolescere 2015;3(2),  pp. 98-99",""],
+    ["Huella plantar y posición del talón","Pie plano: huella más ancha, talón en valgo y arco bajo. Pie cavo: arco alto, huella reducida, talón en varo y garra de dedos","Moraleda y González Morán, Adolescere 2015;3(2),  pp. 98-99",""],
+    ["Exploración neurológica en pie cavo","Si hay cambios de fuerza, sensibilidad o reflejos: pie cavo patológico, completar estudio neurológico","Moraleda y González Morán, Adolescere 2015;3(2),  p. 99",""],
+    ["Aducción del antepie / primer radio (\"dedo gordo explorador\")","Causa añadida de intratorsión","Moraleda y González Morán, Adolescere 2015;3(2),  p. 98",""],
+    ["Punto de máximo dolor (retropié, mediopié, antepié)","Orienta: talón bilateral con actividad (Sever), retropié (coalición), prominencia ósea medial dolorosa en mediopié (escafoides accesorio), dorso del antepie (fractura de estrés de metatarsiano)","Moraleda y González Morán, Adolescere 2015;3(2),  pp. 102-103",""],
+    ["Elevación unipodal del talón","Insuficiencia del tibial posterior","",""],
+    ["Caída del navicular (Navicular drop)","Pronación del pie","",""],
+    ["Mulder","Neuroma de Morton","",""],
+    ["Compresión metatarsiana","Neuroma de Morton / metatarsalgia","",""],
+    ["Lachman del primer rayo / movilidad del 1.er metatarsiano","Hipermovilidad del primer rayo","",""],
+    ["Cajón dorsal-plantar de la metatarsofalángica (laxitud MTF)","Laxitud o rotura de la placa plantar: desplazamiento dorsal anormal de la falange proximal, dolor o subluxación","","Fijar la cabeza metatarsiana con una mano y con la otra tomar la falange proximal y desplazarla dorsal y plantarmente; comparar con el lado sano"],
+    ["Posición de los dedos y reductibilidad","Dedos en martillo, garra o mazo: flexibles frente a rígidos","",""],
+    ["Pulsos pedio y tibial posterior; relleno capilar","Estado vascular","",""],
+    ["Monofilamento de 10 g","Neuropatía periférica / pie diabético","",""]
+  ],
+  "Vascular periférico":[
+    ["Pulsos periféricos (radial, cubital, femoral, poplíteo, pedio, tibial posterior)","Estado arterial: ausencia o disminución indica compromiso vascular","","Palpar cada pulso comparando ambos lados; registrar presente, disminuido o ausente"],
+    ["Prueba de Allen (arterias radial y cubital)","Permeabilidad del arco palmar: el tiempo que tarda en volver el color de la mano indica qué arteria irriga mejor","","Comprimir radial y cubital mientras el paciente abre y cierra la mano hasta palidecer; liberar una arteria y observar el retorno del color; repetir con la otra"],
+    ["Prueba de Buerger","Insuficiencia arterial de los miembros inferiores: palidez al elevar y rubor al descolgar","","Paciente supino con las piernas elevadas a unos 45° durante 1–2 minutos (observar palidez); luego sentarlo con las piernas colgando (observar el tiempo hasta el rubor)"],
+    ["Signo de Homans","Trombosis venosa profunda: dolor en la pantorrilla a la dorsiflexión pasiva (poco sensible ni específico; confirmar con ecografía)","","Pierna extendida; dorsiflexionar el pie de forma pasiva y preguntar por dolor en la pantorrilla"],
+    ["Maniobra de Brodie-Trendelenburg (varices)","Orienta sobre el reflujo venoso superficial según la velocidad y la forma del llenado de las venas","","Pierna elevada para vaciar las venas; comprimir la safena en el muslo, pedir bipedestación y observar cómo se llenan las venas con y sin compresión"],
+    ["Maniobra de Perthes","Valora la permeabilidad del sistema venoso profundo al caminar con compresión superficial","","Con un torniquete sobre las varices, hacer caminar al paciente y observar el vaciado de las venas y la aparición de dolor"],
+    ["Signo de Schwartz (oleada)","Continuidad dentro de una vena varicosa: la percusión se transmite como un impulso palpable","","Percutir una vena varicosa con un dedo y palpar el impulso con el otro, más arriba o abajo en el trayecto"]
+  ],
+  "Reflejos":[
+    ["Reflejo bicipital (C5)","Hiporreflexia o hiperreflexia: nivel C5-C6","","Codo semiflexionado, antebrazo apoyado; percutir con el martillo el tendón del bíceps sobre el dedo del examinador"],
+    ["Reflejo estilorradial / supinador (C6)","Nivel C6","","Antebrazo a medio camino entre pronación y supinación; percutir la apófisis estiloides del radio y observar la flexión del codo y la supinación"],
+    ["Reflejo tricipital (C7)","Nivel C7","","Brazo apoyado con el codo flexionado; percutir el tendón tricipital por encima del olécranon y observar la extensión del codo"],
+    ["Reflejo rotuliano (L2–L4)","Nivel L3-L4 (nervio femoral)","","Rodilla flexionada y colgando; percutir el tendón rotuliano y observar la extensión de la pierna"],
+    ["Reflejo aquíleo (S1)","Nivel S1 (disminuido en radiculopatía S1)","","Pie en ligera dorsiflexión; percutir el tendón de Aquiles y observar la flexión plantar"],
+    ["Reflejo cutáneo plantar de Babinski","Extensión del primer dedo (con abanico del resto): lesión de la neurona motora superior (en el adulto)","","Estimular con un objeto romo el borde lateral de la planta desde el talón hacia los dedos y observar la respuesta del primer dedo"],
+    ["Sucedáneos de Babinski (Oppenheim, Gordon, Chaddock)","Misma respuesta que Babinski por otro estímulo: refuerzan el signo de neurona motora superior","","Oppenheim: deslizar los nudillos por la cara anterior de la tibia hacia abajo. Gordon: comprimir la masa de la pantorrilla. Chaddock: estimular el borde externo del pie, bajo el maléolo lateral. Se busca la extensión del primer dedo"],
+    ["Hoffmann / Tromner","Signo de neurona motora superior de la mano: mielopatía cervical","","Hoffmann: tomar la falange distal del dedo medio y chasquear la uña; Tromner: percutir la cara palmar de la falange distal. Se observa la flexión del pulgar y los demás dedos"]
+  ],
+  "Sensibilidad":[
+    ["Sensibilidad táctil superficial","Nivel y distribución del déficit (dermatoma, nervio periférico o polineuropatía)","","Con una torunda de algodón, rozar la piel y comparar con el lado sano; el paciente indica cuándo y dónde lo siente, con los ojos cerrados"],
+    ["Sensibilidad térmica","Compromiso de fibras finas y vía espinotalámica","","Tubos con agua fría y caliente (o un diapasón frío); el paciente reconoce la temperatura con los ojos cerrados"],
+    ["Sensibilidad dolorosa","Vía espinotalámica y fibras finas; delimita territorios de hipoestesia o anestesia","","Pinchazo suave con un alfiler o aguja no cortante; el paciente distingue lo punzante de lo romo"],
+    ["Sensibilidad vibratoria (palestesia)","Cordones posteriores y neuropatía periférica (temprana en la diabética)","","Diapasón de 128 Hz sobre una prominencia ósea (maléolo, dedo gordo, cresta tibial); preguntar si siente la vibración y hasta cuándo"],
+    ["Sensibilidad posicional (batiestesia)","Cordones posteriores: pérdida del sentido de posición articular","","Con los ojos cerrados, mover un dedo hacia arriba o abajo sujetándolo por los lados, y pedir que diga hacia dónde lo movieron"],
+    ["Estereognosia","Integridad cortical parietal: no reconoce los objetos por el tacto","","Con los ojos cerrados, poner un objeto conocido (llave, moneda) en la mano y pedir que lo nombre"],
+    ["Discriminación de dos puntos","Densidad de inervación: umbral de discriminación aumentado en lesión nerviosa","","Tocar la yema con una o dos puntas de un clip a distancia variable; normalmente se distinguen a menos de unos 6 mm"]
+  ],
+  "Fuerza muscular y tono":[
+    ["Escala de Daniels / MRC (0–5)","Graduación de la fuerza: 0 sin contracción; 1 contracción visible o palpable; 2 movimiento sin gravedad; 3 contra la gravedad; 4 contra resistencia moderada; 5 normal","","Valorar cada grupo muscular contra gravedad y resistencia, comparando ambos lados"],
+    ["Tono muscular","Hipotonía o hipertonía (espasticidad, rigidez): orienta a lesión central o periférica","","Movilizar pasivamente las articulaciones del paciente relajado y valorar la resistencia"],
+    ["Maniobra de Mingazzini","Paresia leve de miembros inferiores: no puede mantener la posición","","Paciente supino con caderas y rodillas flexionadas a 90°; mantener la posición unos 30 segundos. El descenso de un miembro indica déficit"],
+    ["Maniobra de Barré","Paresia leve: claudicación de un miembro en la posición mantenida","","Miembro superior: brazos extendidos al frente con las palmas hacia arriba y los ojos cerrados, buscando descenso o pronación. Miembro inferior: paciente prono con las rodillas a 90°, buscando descenso de la pierna"]
+  ],
+  "Marcha y equilibrio":[
+    ["Marcha libre (observación)","Cojeras y patrones patológicos: antálgica, de Trendelenburg, steppage, atáxica, espástica","","Observar al paciente caminando, de frente y de espaldas, sin ayuda, con calzado y descalzo"],
+    ["Marcha en tándem (talón-punta)","Ataxia cerebelosa o sensitiva: pérdida del equilibrio al caminar en línea recta","","Caminar en línea recta apoyando el talón de un pie delante de la punta del otro"],
+    ["Prueba de Romberg","Ataxia sensitiva (cordones posteriores): se agrava al cerrar los ojos","","Pies juntos y brazos al frente; observar el equilibrio con los ojos abiertos y luego cerrados, con el examinador atento a evitar una caída"],
+    ["Marcha en talones y en puntas","Debilidad de dorsiflexores (L4-L5) o de flexores plantares (S1)","","Pedir que camine sobre los talones y luego sobre las puntas de los pies"]
+  ]
+};
+
+// Al cambiar de segmento la lista se REEMPLAZA (antes se le sumaban las del segmento nuevo
+// a las del anterior, y parecía que no refrescaba). Si había resultados marcados que no
+// se enviaron a Examen físico, pregunta antes de descartarlos.
+let _manSegPrev_ = '', _manSinEnviar_ = false;
+function cambiarSegmentoManiobras_(){
+  const sel = document.getElementById('man-segmento');
+  const nuevo = sel.value;
+  const cont = document.getElementById('man-lista');
+  const conResultado = [...cont.querySelectorAll('select[id^="man-resultado-"]')].filter(x=>x.value).length;
+  if(conResultado && _manSinEnviar_ && !confirm('Hay '+conResultado+' resultado(s) de maniobras marcados que todavía no enviaste a Examen físico.\n\n¿Cambiar de segmento y descartarlos?')){
+    sel.value = _manSegPrev_; return;
+  }
+  cont.innerHTML = '';
+  _manSegPrev_ = nuevo; _manSinEnviar_ = false;
+  if(nuevo) cargarManiobrasSegmento_();
+}
+document.addEventListener('change', e=>{ if(e.target && e.target.id && e.target.id.indexOf('man-resultado-')===0) _manSinEnviar_ = true; });
+function cargarManiobrasSegmento_(){
+  const seg = document.getElementById('man-segmento').value;
+  if(!seg){ toast('⚠️ Elegí primero el segmento a evaluar','err'); return; }
+  const lista = MANIOBRAS_SEGMENTO_[seg];
+  if(!lista){ toast('⚠️ No hay lista cargada para ese segmento','err'); return; }
+  const yaEstan = new Set();
+  document.querySelectorAll('#man-lista input[id^="man-nombre-"]').forEach(inp=>yaEstan.add(inp.value.trim().toLowerCase()));
+  let agregadas = 0;
+  lista.forEach(([nombre, indica, fuente, como])=>{
+    if(yaEstan.has(nombre.toLowerCase())) return;
+    const txt = (como ? '<b>Cómo:</b> ' + como + '<br>' : '') + '<b>Indica:</b> ' + indica + (fuente ? ' <i>📖 ' + fuente + '</i>' : '');
+    agregarFilaManiobra(nombre, txt);
+    agregadas++;
+  });
+  toast(agregadas ? '✅ ' + agregadas + ' maniobras cargadas — marcá el resultado de las que hagas y quitá el resto' : 'ℹ️ Ya estaban todas cargadas');
+}
+
 function agregarManiobraManual(){ agregarFilaManiobra('', ''); }
 function agregarFilaManiobra(nombre, rationale){
   const i = maniobraCount++;
@@ -1052,7 +2039,13 @@ function actualizarEtiquetaDestino(){
   hint.textContent = destino
     ? `🎙️ Dictando directo a: ${DESTINO_NOMBRES_[destino]} — igual podés escribir/corregir a mano en cualquier recuadro`
     : 'o escribí directo abajo';
+  const btnEnviar = document.getElementById('btn-enviar-centro');
+  if(btnEnviar) btnEnviar.textContent = destino ? ('⬇️ Enviar a: ' + DESTINO_NOMBRES_[destino]) : '⬇️ Enviar a…';
 }
+// Deja el botón "Enviar a…" ya al tono con el destino elegido apenas carga la
+// página (por si quedó un valor guardado por el navegador en el <select>).
+actualizarEtiquetaDestino();
+
 function enviarCentroA(destino){
   const centro = document.getElementById('dictado-centro');
   const texto = centro.value.trim();
@@ -1061,7 +2054,15 @@ function enviarCentroA(destino){
   if(!destinoEl) return;
   destinoEl.value = destinoEl.value.trim() ? destinoEl.value.trim()+' '+texto : texto;
   centro.value = '';
-  toast('✅ Enviado');
+  toast('✅ Enviado a ' + DESTINO_NOMBRES_[destino]);
+}
+// AGREGADO (oct 2026): reemplaza a los 6 botones "Enviar a X" — manda al
+// destino que ya está elegido en el desplegable "Vas a dictar para…" de
+// arriba, sin tener que repetir la lista de recuadros una segunda vez.
+function enviarCentroActivo_(){
+  const destino = document.getElementById('destino-dictado').value;
+  if(!destino){ toast('⚠️ Elegí arriba a dónde mandarlo (en "Vas a dictar para…")','err'); return; }
+  enviarCentroA(destino);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1078,13 +2079,114 @@ async function pulirRecuadro(cual, btnEl){
     examen: 'Sos un asistente médico especialista en traumatología/ortopedia. Redactá los HALLAZGOS DEL EXAMEN FÍSICO en prosa clínica prolija a partir de este dictado, sin inventar datos. Sin markdown:\n\n',
     diagnostico: 'Sos un médico especialista en traumatología/ortopedia. Redactá el DIAGNÓSTICO de forma breve y precisa (una o dos líneas), en términos clínicos correctos, a partir de este texto. No inventes datos que no estén dichos. Sin markdown:\n\n',
     terapeutica: 'Sos un médico especialista en traumatología/ortopedia. Redactá el PLAN TERAPÉUTICO (medicación, reposo, kinesiología/rehabilitación, otras indicaciones de tratamiento) en prosa clínica breve y prolija, a partir de este dictado, sin inventar datos que no estén. Sin markdown:\n\n',
-    estudios: 'Sos un asistente médico. Ordená este dictado de ESTUDIOS A SOLICITAR E INDICACIONES en una lista prolija con "- " al inicio de cada línea. Sin markdown de títulos:\n\n'
+    // NUEVO (sept 2026): a diferencia de los demás recuadros, "estudios" le
+    // pide a la IA que devuelva JSON (no prosa libre), para poder detectar
+    // si el dictado ya trae estudio + segmento + lateralidad — y así
+    // "prearmar" semiautomáticamente el pedido que se manda por mail en PDF
+    // (pedido explícito de Luis: "si describo un estudio con el segmento
+    // descrito y la lateralidad... debería prearmarse la orden").
+    estudios: 'Sos un asistente médico especialista en traumatología/ortopedia. Te paso un dictado de ESTUDIOS A SOLICITAR E INDICACIONES. Hacé dos cosas:\n'+
+      '1) Reescribilo en una lista prolija, con "- " al inicio de cada estudio, indicando estudio + segmento + lateralidad cuando corresponda. No inventes estudios ni datos que no estén dichos.\n'+
+      '2) Evaluá si CADA estudio donde la lateralidad tiene sentido clínico (rodilla, hombro, tobillo, muñeca, cadera, mano, pie, etc. — no aplica en columna, EMG, laboratorio u otros estudios sin lado) tiene el lado indicado (derecho/izquierdo/bilateral).\n'+
+      'Respondé SOLO con JSON válido, sin markdown ni texto alrededor, exactamente con esta forma: {"texto":"- estudio 1\\n- estudio 2","completo":true,"motivo":""} (si falta algún dato, "completo":false y "motivo" breve explicando qué falta).\n\nDictado:\n'
   };
   const prompt_ = (tareas[cual]||'Redactá en prosa clínica prolija, sin inventar datos:\n\n') + ta.value.trim();
   await correrIAEnBoton(btnEl, async ()=>{
     const res = await llamarBackend('asistente_consulta_ia', {prompt: prompt_});
-    if(res && res.success && res.texto){ ta.value = res.texto; toast('✅ Redactado con IA'); }
-    else{ toast('❌ ' + ((res&&res.error)||'No se pudo procesar con IA'), 'err'); }
+    if(!(res && res.success && res.texto)){ toast('❌ ' + ((res&&res.error)||'No se pudo procesar con IA'), 'err'); return; }
+    if(cual === 'estudios'){
+      let datos = null;
+      try{ datos = JSON.parse(res.texto.trim().replace(/^```json\s*|^```\s*|\s*```$/g,'')); }catch(e){ datos = null; }
+      const estadoEl = document.getElementById('pedido-estudio-estado');
+      if(datos && datos.texto){
+        ta.value = datos.texto;
+        if(estadoEl){
+          if(datos.completo){ estadoEl.textContent = '✅ Pedido prearmado — tiene estudio, segmento y lateralidad. Revisalo y enviálo por mail cuando quieras.'; estadoEl.style.color = '#16a34a'; }
+          else{ estadoEl.textContent = '⚠️ ' + (datos.motivo || 'Conviene completar segmento y/o lateralidad antes de enviarlo.'); estadoEl.style.color = '#dc2626'; }
+        }
+        toast(datos.completo ? '✅ Pedido prearmado con IA' : '⚠️ Ordenado, pero revisá el dato que falta');
+      } else {
+        // La IA no devolvió el JSON esperado — igual dejamos el texto tal cual vino, sirve como orden ordenada a mano.
+        ta.value = res.texto;
+        if(estadoEl) estadoEl.textContent = '';
+        toast('✅ Redactado con IA');
+      }
+      return;
+    }
+    ta.value = res.texto; toast('✅ Redactado con IA');
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// PEDIDO DE ESTUDIO POR MAIL (sept 2026) — genera un PDF prolijo a partir
+// de "texto-estudios" (ya prearmado o escrito a mano) y lo manda por mail
+// reusando enviarRecetaPorMail, que ya existe en el backend y no requiere
+// token. Mismo patrón html2pdf que usa OCM (mailRecetaQXCompleta): un
+// elemento oculto fuera de pantalla se renderiza a PDF y se descarta.
+// ══════════════════════════════════════════════════════════════
+async function enviarPedidoEstudioPorMail(btnEl){
+  const dni = document.getElementById('pac-dni').value.trim();
+  const nombre = document.getElementById('pac-nombre').value.trim();
+  const mail = document.getElementById('pac-mail').value.trim();
+  const texto = document.getElementById('texto-estudios').value.trim();
+  if(!texto){ toast('⚠️ No hay ningún pedido de estudio escrito para enviar','err'); return; }
+  if(!mail || !mail.includes('@')){ toast('⚠️ Falta un mail válido del paciente (arriba, al lado del DNI)','err'); return; }
+  if(typeof html2pdf === 'undefined'){ toast('⚠️ La librería de PDF todavía no cargó (conexión lenta) — esperá unos segundos y probá de nuevo','err'); return; }
+
+  await correrIAEnBoton(btnEl, async ()=>{
+    const hoy = new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+    const html = `
+      <div style="font-family:Arial,sans-serif;padding:18px;max-width:600px;color:#0f172a">
+        <div style="text-align:center;border-bottom:2px solid #0369a1;padding-bottom:10px;margin-bottom:14px">
+          <div style="font-weight:700;font-size:16px;color:#0369a1">Dr. Luis Alberto Muratori</div>
+          <div style="font-size:11px;color:#475569">Traumatología y Ortopedia · M.N. 100.540 · M.P. 9943</div>
+        </div>
+        <div style="font-size:12px;margin-bottom:10px">
+          <b>Paciente:</b> ${(nombre||'—').replace(/</g,'&lt;')} &nbsp;&nbsp; <b>DNI:</b> ${(dni||'—').replace(/</g,'&lt;')} &nbsp;&nbsp; <b>Fecha:</b> ${hoy}
+        </div>
+        <div style="font-weight:700;font-size:13px;text-align:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:6px;margin-bottom:12px">ORDEN DE ESTUDIOS COMPLEMENTARIOS</div>
+        <div style="font-size:12.5px;line-height:1.7;white-space:pre-wrap">${texto.replace(/</g,'&lt;')}</div>
+        <div style="margin-top:26px;font-size:11px;color:#475569;text-align:right">Dr. Luis Alberto Muratori — M.N. 100.540 · M.P. 9943</div>
+      </div>`;
+
+    let el = document.getElementById('pedido-estudio-oculto');
+    if(!el){ el = document.createElement('div'); el.id = 'pedido-estudio-oculto'; el.style.cssText = 'position:fixed;left:-9999px;top:0;background:#fff'; document.body.appendChild(el); }
+    el.innerHTML = html;
+    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+
+    try{
+      const blob = await html2pdf().set({
+        margin:4, image:{type:'jpeg', quality:0.95},
+        html2canvas:{scale:2, useCORS:true, backgroundColor:'#ffffff'},
+        jsPDF:{unit:'mm', format:'a4', orientation:'portrait'}
+      }).from(el).outputPdf('blob');
+      const base64 = await new Promise((resolve,reject)=>{
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      el.innerHTML = '';
+      const nombreArch = (nombre||'paciente').replace(/[,\s]+/g,'_');
+      const fechaArch = new Date().toLocaleDateString('es-AR').replace(/\//g,'-');
+      const res = await llamarBackend('enviarRecetaPorMail', {
+        Email: mail,
+        Nombre_Paciente: nombre,
+        Asunto: 'Orden de estudios — Dr. Muratori',
+        Mini_Resumen: 'Adjunto tu orden de estudios complementarios indicada en la consulta de hoy.',
+        Pdf_Base64: base64,
+        Pdf_Nombre: `Orden_Estudios_${nombreArch}_${fechaArch}.pdf`
+      });
+      const estadoEl = document.getElementById('pedido-estudio-estado');
+      if(res && res.success){
+        toast('✅ Pedido enviado por mail a ' + mail);
+        if(estadoEl){ estadoEl.textContent = '📧 Enviado por mail el ' + hoy + '.'; estadoEl.style.color = 'var(--muted)'; }
+      } else {
+        toast('❌ ' + ((res&&res.error)||'No se pudo enviar el mail'), 'err');
+      }
+    }catch(e){
+      toast('❌ Error generando el PDF: ' + (e&&e.message?e.message:e), 'err');
+    }
   });
 }
 
@@ -1529,6 +2631,185 @@ function irAOCM(){
 
 // ══════════════════════════════════════════════════════════════
 inicializarSindromes();
+
+// ══════════════════════════════════════════════════════════════════
+// ACCESO A drmuratorisalud.ar — Clave A (tratamiento médico) y Clave B
+// (tratamiento quirúrgico), por tema (sept 2026, pedido de Luis). Todo
+// pasa por llamarBackend()/Codigo.gs — CAM V nunca habla directo con el
+// sitio ni guarda la SIMM_CLAVE en este navegador; eso queda solo en las
+// Propiedades del Script de Apps Script. El QR se dibuja acá mismo con
+// qrcode-generator.js (misma librería MIT que ya usa el sitio), nunca con
+// un servicio externo de QR.
+// ══════════════════════════════════════════════════════════════════
+// Claves A / B y página personal del titular: un profesional extra (OCM → Gestión de Médicos)
+// no puede generarlas, habilitarlas ni extenderlas. Misma regla en el servidor: el backend
+// de un profesional extra no incluye estas acciones ni la SIMM_CLAVE.
+function medicoActivoOcm_(){
+  try{
+    const ms = JSON.parse(localStorage.getItem('ocm_medicos')||'[]');
+    const id = localStorage.getItem('ocm_medico_activo');
+    return ms.find(m=>String(m.id)===String(id)) || null;
+  }catch(e){ return null; }
+}
+function saludBloqueado_(){ const m = medicoActivoOcm_(); return !!(m && m.rol==='extra'); }
+function mostrarSaludBloqueado_(){
+  const m = medicoActivoOcm_() || {};
+  const cuerpo = document.getElementById('salud-modal-body');
+  const b = document.getElementById('salud-bloqueo');
+  b.innerHTML = '<div style="font-size:13px;line-height:1.6"><div style="font-weight:700;margin-bottom:6px">🔒 Las Claves A y B son exclusivas del médico titular</div>' +
+    'Reflejan su elección terapéutica personal y están ligadas a su página. Con este usuario no se pueden generar, habilitar ni extender.' +
+    (m.recomendarSitio!==false ? '<div style="margin-top:10px;padding:10px 12px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px">Si lo desea, puede recomendar a sus pacientes — como <b>información general de acceso libre</b> — el sitio de contenido educativo del Dr. Muratori: <a href="https://drmuratorisalud.ar" target="_blank" rel="noopener">drmuratorisalud.ar</a>. No lleva claves ni datos del paciente.</div>' : '') + '</div>';
+  b.style.display='block'; cuerpo.classList.add('bloqueado');
+  document.getElementById('salud-modal').classList.add('abierto');
+}
+function restaurarSaludNormal_(){
+  const cuerpo = document.getElementById('salud-modal-body');
+  const b = document.getElementById('salud-bloqueo');
+  cuerpo.classList.remove('bloqueado');
+  if(b){ b.style.display='none'; }
+}
+let temasAccesoSalud_ = [];
+let ultimoAccesoSalud_ = null;
+
+function fechaArAccesoSalud_(iso){
+  if(!iso) return '—';
+  const p = String(iso).split('-');
+  return p.length===3 ? (p[2]+'/'+p[1]+'/'+p[0]) : iso;
+}
+function tituloTemaAccesoSalud_(slug){
+  const t = temasAccesoSalud_.find(x=>x.slug===slug);
+  return t ? t.titulo : slug;
+}
+function etiquetaClavesAccesoSalud_(claves){
+  return String(claves||'A').split('').map(c=>c==='A' ? 'A · médico' : 'B · quirúrgico').join(' + ');
+}
+
+async function abrirAccesoSalud(){
+  if(saludBloqueado_()){ mostrarSaludBloqueado_(); return; }
+  restaurarSaludNormal_();
+  const dni = document.getElementById('pac-dni').value.trim();
+  if(!dni){ toast('⚠️ Escribí primero el DNI del paciente arriba','err'); return; }
+  document.getElementById('salud-modal').classList.add('abierto');
+  document.getElementById('salud-resultado').style.display = 'none';
+  document.getElementById('salud-error').style.display = 'none';
+  document.getElementById('salud-existentes').innerHTML = '<p style="text-align:center;color:var(--muted);padding:10px">Cargando accesos ya generados…</p>';
+
+  const [temasRes, listaRes] = await Promise.all([
+    llamarBackend('obtenerTemasAccesoSalud', {}),
+    llamarBackend('listarAccesosSalud', {dni})
+  ]);
+
+  const selTema = document.getElementById('salud-tema');
+  if(temasRes && temasRes.success){
+    temasAccesoSalud_ = temasRes.temas || [];
+    selTema.innerHTML = temasAccesoSalud_.length
+      ? temasAccesoSalud_.map(t=>`<option value="${t.slug}">${t.titulo}</option>`).join('')
+      : '<option value="">Sin temas protegidos configurados</option>';
+    actualizarClavesDisponiblesSalud_();
+  } else {
+    selTema.innerHTML = '<option value="">No se pudo conectar con el sitio</option>';
+    mostrarErrorAccesoSalud_((temasRes&&temasRes.error)||'No se pudo conectar con drmuratorisalud.ar. Revisá la conexión y que SIMM_CLAVE esté configurada.');
+  }
+
+  renderAccesosExistentesSalud_((listaRes&&listaRes.accesos)||[]);
+}
+
+function renderAccesosExistentesSalud_(accesos){
+  const cont = document.getElementById('salud-existentes');
+  if(!accesos.length){ cont.innerHTML = '<p style="color:var(--muted);font-size:12px">Este paciente todavía no tiene ningún acceso generado.</p>'; return; }
+  cont.innerHTML = '<div style="font-weight:700;font-size:12.5px;margin-bottom:6px">Accesos ya generados</div>' + accesos.map(a=>{
+    const tieneA = (a.claves||'').includes('A'), tieneB = (a.claves||'').includes('B');
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px">
+      <div><b>${tituloTemaAccesoSalud_(a.tema)}</b> — código <span style="font-family:monospace">${a.codigo}</span></div>
+      <div style="color:var(--muted)">Claves: ${etiquetaClavesAccesoSalud_(a.claves)} — vence ${fechaArAccesoSalud_(a.vence)}</div>
+      <div class="fila-btns" style="margin-top:6px">
+        ${!tieneB ? `<button type="button" class="btn btn-ghost" onclick="habilitarClaveAccesoSaludUI_('${a.codigo}','B')">Habilitar Clave B</button>` : ''}
+        ${!tieneA ? `<button type="button" class="btn btn-ghost" onclick="habilitarClaveAccesoSaludUI_('${a.codigo}','A')">Habilitar Clave A</button>` : ''}
+        <button type="button" class="btn btn-ghost" onclick="extenderAccesoSaludUI_('${a.codigo}')">Extender 30 días</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function actualizarClavesDisponiblesSalud_(){
+  const slug = document.getElementById('salud-tema').value;
+  const t = temasAccesoSalud_.find(x=>x.slug===slug);
+  const disponibles = (t && t.claves) || ['A'];
+  const cbA = document.getElementById('salud-clave-a'), cbB = document.getElementById('salud-clave-b');
+  cbA.disabled = !disponibles.includes('A'); if(cbA.disabled) cbA.checked = false; else if(!cbB.checked) cbA.checked = true;
+  cbB.disabled = !disponibles.includes('B'); if(cbB.disabled) cbB.checked = false;
+}
+
+function mostrarErrorAccesoSalud_(msg){
+  const el = document.getElementById('salud-error');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+
+async function generarAccesoSalud(){
+  if(saludBloqueado_()){ mostrarSaludBloqueado_(); return; }
+  mostrarErrorAccesoSalud_('');
+  const dni = document.getElementById('pac-dni').value.trim();
+  const nombre = document.getElementById('pac-nombre').value.trim();
+  const tema = document.getElementById('salud-tema').value;
+  if(!tema){ mostrarErrorAccesoSalud_('Elegí un tema.'); return; }
+  const claves = (document.getElementById('salud-clave-a').checked?'A':'') + (document.getElementById('salud-clave-b').checked?'B':'');
+  if(!claves){ mostrarErrorAccesoSalud_('Elegí al menos una clave.'); return; }
+  const dias = parseInt(document.getElementById('salud-dias').value, 10) || 30;
+
+  const res = await llamarBackend('registrarAccesoSalud', {dni, nombre, tema, dias, claves});
+  if(!res || !res.success){ mostrarErrorAccesoSalud_((res&&res.error)||'No se pudo generar el acceso'); return; }
+  mostrarResultadoAccesoSalud_(res);
+  const listaRes = await llamarBackend('listarAccesosSalud', {dni});
+  renderAccesosExistentesSalud_((listaRes&&listaRes.accesos)||[]);
+  toast('✅ Acceso generado — anotalo en la historia clínica del paciente');
+}
+
+async function habilitarClaveAccesoSaludUI_(codigo, clave){
+  if(saludBloqueado_()){ mostrarSaludBloqueado_(); return; }
+  const res = await llamarBackend('habilitarClaveAccesoSalud', {codigo, clave});
+  if(!res || !res.success){ toast('❌ '+((res&&res.error)||'No se pudo habilitar la clave'), 'err'); return; }
+  mostrarResultadoAccesoSalud_(res);
+  toast('✅ Clave '+clave+' habilitada — el paciente la va a ver en su próxima visita, sin QR nuevo');
+  const dni = document.getElementById('pac-dni').value.trim();
+  const listaRes = await llamarBackend('listarAccesosSalud', {dni});
+  renderAccesosExistentesSalud_((listaRes&&listaRes.accesos)||[]);
+}
+
+async function extenderAccesoSaludUI_(codigo){
+  if(saludBloqueado_()){ mostrarSaludBloqueado_(); return; }
+  const dias = parseInt(prompt('¿Cuántos días de membresía sumar?', '30')||'30', 10) || 30;
+  const res = await llamarBackend('extenderAccesoSalud', {codigo, dias});
+  if(!res || !res.success){ toast('❌ '+((res&&res.error)||'No se pudo extender'), 'err'); return; }
+  mostrarResultadoAccesoSalud_(res);
+  toast('✅ Extendido — ahora vence el '+fechaArAccesoSalud_(res.vence));
+  const dni = document.getElementById('pac-dni').value.trim();
+  const listaRes = await llamarBackend('listarAccesosSalud', {dni});
+  renderAccesosExistentesSalud_((listaRes&&listaRes.accesos)||[]);
+}
+
+function mostrarResultadoAccesoSalud_(r){
+  ultimoAccesoSalud_ = r;
+  const qr = qrcode(0, 'M');
+  qr.addData(r.enlace);
+  qr.make();
+  document.getElementById('salud-qr').innerHTML = qr.createImgTag(5, 2, 'Código QR de acceso para el paciente');
+  document.getElementById('salud-r-tema').textContent = tituloTemaAccesoSalud_(r.tema);
+  document.getElementById('salud-r-codigo').textContent = r.codigo;
+  document.getElementById('salud-r-claves').textContent = etiquetaClavesAccesoSalud_(r.claves);
+  document.getElementById('salud-r-vence').textContent = fechaArAccesoSalud_(r.vence);
+  document.getElementById('salud-resultado').style.display = 'block';
+}
+
+function copiarEnlaceAccesoSalud_(){
+  if(!ultimoAccesoSalud_) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(ultimoAccesoSalud_.enlace) : Promise.reject())
+    .then(()=>toast('📋 Enlace copiado'))
+    .catch(()=>{ window.prompt('Copiá el enlace:', ultimoAccesoSalud_.enlace); });
+}
+
+function cerrarAccesoSalud(){
+  document.getElementById('salud-modal').classList.remove('abierto');
+}
 </script>
 <script src="efecto-lupa.js" defer></script>
 </body>

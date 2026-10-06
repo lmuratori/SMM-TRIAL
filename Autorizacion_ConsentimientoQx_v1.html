@@ -73,7 +73,8 @@
   const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxC2fXVUdidzoAyDCGzPBCUoLa1btEGRZxH-S4wAEt71FlQ4Y1Mx1Uy7OsepgSe3i-5/exec';
   const params = new URLSearchParams(window.location.search);
   const dni = params.get('dni') || '';
-  // Token propio de ESTE consentimiento (viene en el link que generó OCM) — mismo mecanismo que Autorizacion_HC_v1.html.
+  // Token propio de ESTE consentimiento (viene en el link que generó OCM) —
+  // mismo mecanismo que Autorizacion_HC_v1.html.
   const tFirma = params.get('t') || '';
 
   const elCargando   = document.getElementById('cargando');

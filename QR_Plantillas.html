@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedido de plantillas — Dr. Muratori</title>
+<style>
+  :root{--azul:#0369a1;--azul-osc:#0c4a6e;--verde:#16a34a;--ambar:#d97706;--rojo:#dc2626;--muted:#64748b;--border:#e2e8f0;--bg:#f4fbfd;--surface:#fff}
+  *{box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);margin:0;color:#0f172a}
+  .topbar{background:linear-gradient(135deg,var(--azul),var(--azul-osc));color:#fff;padding:26px 20px 22px;text-align:center}
+  .topbar h1{margin:0 0 4px;font-size:19px}
+  .topbar p{margin:0;font-size:12.5px;opacity:.92;line-height:1.5}
+  main{max-width:520px;margin:0 auto;padding:18px 16px 60px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 16px;margin-bottom:16px}
+  .card h2{font-size:14.5px;margin:0 0 6px;color:var(--azul-osc)}
+  .card p.sub{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.55}
+  .pasos{display:flex;gap:6px;margin:0 0 4px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+  .pasos span{background:#e0f2fe;color:var(--azul-osc);border-radius:99px;padding:3px 9px;font-weight:700}
+  label{display:block;font-size:12px;font-weight:700;color:#334155;margin:12px 0 5px}
+  label .opt{font-weight:400;color:var(--muted)}
+  input[type=text],input[type=tel],input[type=email],input[type=number],textarea{
+    width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;background:#fff}
+  textarea{resize:vertical;min-height:64px}
+  .fila2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .foto{border:1.5px dashed #7dd3fc;border-radius:10px;padding:12px;margin-top:12px;background:#f8fdff}
+  .foto.ok{border-style:solid;border-color:var(--verde);background:#f0fdf4}
+  .foto h3{margin:0 0 4px;font-size:13px;color:var(--azul-osc)}
+  .foto ul{margin:4px 0 8px;padding-left:18px;font-size:12px;color:#334155;line-height:1.55}
+  .foto .btn-foto{display:inline-block;border:1.5px solid var(--azul);background:#fff;color:var(--azul);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+  .foto input[type=file]{display:none}
+  .foto img.prev{display:none;max-width:100%;max-height:200px;border-radius:8px;margin-top:10px;border:1px solid var(--border)}
+  .foto .estado{font-size:11.5px;color:var(--muted);margin-top:6px}
+  .nota{background:#fffbeb;border:1.5px solid #fde68a;color:#92400e;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.55;margin:10px 0}
+  .consent{display:flex;gap:9px;align-items:flex-start;margin-top:16px;font-size:11.5px;color:#334155;line-height:1.5}
+  .consent input{margin-top:3px;flex-shrink:0}
+  .btn{width:100%;padding:14px;border-radius:10px;border:none;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:16px}
+  .btn-primary{background:var(--azul);color:#fff}
+  .btn-primary:disabled{background:#cbd5e1;cursor:not-allowed}
+  .btn-ghost{background:#fff;color:var(--azul);border:1.5px solid var(--azul)}
+  .err{color:var(--rojo);font-size:12px;margin-top:10px;font-weight:600;display:none}
+  .ok-box{background:#f0fdf4;border:1.5px solid #86efac;color:#14532d;border-radius:10px;padding:14px;font-size:13.5px;line-height:1.6}
+  .ok-box b{display:block;font-size:15px;margin-bottom:4px}
+  .archivos{font-size:12px;color:#334155;margin-top:8px;line-height:1.7}
+  footer{text-align:center;color:var(--muted);font-size:11px;padding:10px 20px 30px}
+  .boca{background:#ecfeff;border:1.5px solid #67e8f9;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;color:#164e63}
+  .boca b{display:block;font-size:14.5px;color:var(--azul-osc)}
+  select{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;background:#fff}
+  .consent-box{border:1.5px solid #fcd34d;background:#fffbeb;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.6;color:#451a03}
+  .firma-wrap{margin-top:10px;border:1.5px solid #94a3b8;border-radius:10px;background:#fff;position:relative}
+  #pad{display:block;width:100%;height:150px;touch-action:none;border-radius:10px;cursor:crosshair}
+  .firma-wrap .guia{position:absolute;left:12px;bottom:8px;font-size:11px;color:#94a3b8;pointer-events:none}
+  .btn-mini{border:1.5px solid var(--border);background:#fff;color:#334155;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:8px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🦶 Pedido de plantillas</h1>
+  <p>Dr. Luis Alberto Muratori — M.N. 100.540 · M.P. 9943<br>Traumatología y Ortopedia</p>
+</div>
+
+<main>
+
+<!-- ═══════════ PASO 1: datos + 3 fotos ═══════════ -->
+<section id="sec-fotos">
+  <div class="card">
+    <h2>Mandá tus fotos para el pedido</h2>
+    <p class="sub">Con tres fotos tomadas con el celular el Dr. Muratori puede ir preparando tu plantilla. Tarda unos 10 minutos.</p>
+    <div class="pasos"><span>1 · Talones</span><span>2 · Plantilla con regla</span><span>3 · Huella con talco</span><span>4 · Informe de RX</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Tus datos</h2>
+    <div class="fila2">
+      <div><label for="f-apellido">Apellido</label><input type="text" id="f-apellido" autocomplete="family-name"></div>
+      <div><label for="f-nombre">Nombre</label><input type="text" id="f-nombre" autocomplete="given-name"></div>
+    </div>
+    <label for="f-dni">DNI <span class="opt">(solo números)</span></label>
+    <input type="text" id="f-dni" inputmode="numeric" autocomplete="off" maxlength="12">
+    <div class="fila2">
+      <div><label for="f-tel">Teléfono</label><input type="tel" id="f-tel" autocomplete="tel"></div>
+      <div><label for="f-mail">Mail</label><input type="email" id="f-mail" autocomplete="email"></div>
+    </div>
+    <div class="hp" aria-hidden="true"><label>No completar<input type="text" id="f-web" tabindex="-1" autocomplete="off"></label></div>
+  </div>
+
+  <div class="card">
+    <div class="boca" id="boca-fija" hidden>🏥 Vas a retirar tu plantilla en:<b id="boca-nombre"></b></div>
+    <div id="boca-elegir" hidden>
+      <label for="f-centro" style="margin-top:0">¿Dónde vas a retirar tu plantilla?</label>
+      <select id="f-centro"></select>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Las 3 fotos</h2>
+    <p class="sub">Podés sacarlas en el momento o elegirlas de tu galería. Que se vean nítidas y con buena luz. Las fotos van por mail al médico; no se publican.</p>
+
+    <div class="foto" id="box-talones">
+      <h3>1 · Tus talones, de pie</h3>
+      <ul>
+        <li>Descalzo/a, parado/a de forma natural, con los pies apenas separados.</li>
+        <li>Que otra persona te la saque <b>desde atrás</b>, a la altura de los tobillos.</li>
+        <li>Tienen que verse los dos talones, el piso y la parte baja de las piernas.</li>
+      </ul>
+      <label class="btn-foto">📷 Sacar o elegir foto<input type="file" accept="image/*" id="in-talones"></label>
+      <img class="prev" id="prev-talones" alt="Vista previa de la foto de talones">
+      <div class="estado" id="est-talones"></div>
+    </div>
+
+    <div class="foto" id="box-plantilla">
+      <h3>2 · Tu plantilla actual con una regla</h3>
+      <ul>
+        <li>Apoyá la plantilla (o la plantilla del calzado que usás) sobre una mesa.</li>
+        <li>Poné arriba o al lado una regla o cinta métrica con el <b>0 en el borde del talón</b>.</li>
+        <li>Foto desde arriba, derecha, con el número de la regla bien legible en el extremo de los dedos.</li>
+      </ul>
+      <label class="btn-foto">📷 Sacar o elegir foto<input type="file" accept="image/*" id="in-plantilla"></label>
+      <img class="prev" id="prev-plantilla" alt="Vista previa de la foto de la plantilla">
+      <div class="estado" id="est-plantilla"></div>
+      <label for="f-largo" style="margin-top:12px">¿Cuántos centímetros mide? <span class="opt">(lo que leés en la regla)</span></label>
+      <input type="text" id="f-largo" inputmode="decimal" maxlength="5" autocomplete="off" placeholder="Ej: 26,5">
+    </div>
+
+    <div class="foto" id="box-huella">
+      <h3>3 · La huella de tu pie con talco</h3>
+      <ul>
+        <li>Con el pie limpio y seco, espolvoreá talco en toda la planta.</li>
+        <li>Pisá con todo tu peso sobre una hoja o cartulina oscura, o un piso liso y oscuro.</li>
+        <li>Sacá la foto desde arriba, derecha, de modo que se vea la huella completa. Si podés, una por cada pie.</li>
+      </ul>
+      <label class="btn-foto">📷 Sacar o elegir foto<input type="file" accept="image/*" id="in-huella"></label>
+      <img class="prev" id="prev-huella" alt="Vista previa de la foto de la huella">
+      <div class="estado" id="est-huella"></div>
+    </div>
+
+    <label for="f-observ" style="margin-top:16px">¿Algo que quieras aclarar? <span class="opt">(opcional)</span></label>
+    <textarea id="f-observ" maxlength="400" placeholder="Ej: me duele el talón derecho al caminar"></textarea>
+
+    <h2 style="margin-top:20px">Autorización para compartir las imágenes</h2>
+    <div class="consent-box" id="consent-txt"></div>
+    <label style="margin-top:12px">Firmá con el dedo en el recuadro</label>
+    <div class="firma-wrap"><canvas id="pad"></canvas><span class="guia" id="pad-guia">Firma</span></div>
+    <button type="button" class="btn-mini" id="btn-borrar-firma">Borrar y firmar de nuevo</button>
+
+    <div class="err" id="err-fotos"></div>
+    <button class="btn btn-primary" id="btn-enviar" type="button">Firmar y enviar</button>
+  </div>
+</section>
+
+<!-- ═══════════ PASO 2: informe de radiografías ═══════════ -->
+<section id="sec-rx" hidden>
+  <div class="card" id="aviso-ok" hidden>
+    <div class="ok-box"><b>✅ Recibimos tus fotos</b>El Dr. Muratori las va a revisar. Si te quedó algo para corregir, te escribimos.</div>
+  </div>
+  <div class="card">
+    <h2>Último paso: informe de las radiografías</h2>
+    <p class="sub">Si te hiciste las radiografías que te pidió el Dr. Muratori, mandá acá el informe: debe mencionar la <b>diferencia de longitud de los miembros inferiores</b> y los <b>ángulos de Costa-Bartani</b>. Podés subir una foto nítida del informe o el PDF (hasta 3 archivos).</p>
+    <label for="r-dni">DNI <span class="opt">(el mismo que usaste antes)</span></label>
+    <input type="text" id="r-dni" inputmode="numeric" maxlength="12">
+    <label class="btn-foto" style="display:inline-block;margin-top:14px;border:1.5px solid var(--azul);background:#fff;color:var(--azul);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">📎 Elegir archivos del informe
+      <input type="file" id="in-rx" accept="image/*,application/pdf" multiple style="display:none"></label>
+    <div class="archivos" id="lista-rx"></div>
+    <label for="r-nota">Nota <span class="opt">(opcional)</span></label>
+    <textarea id="r-nota" maxlength="500" placeholder="Ej: las placas las tengo en el centro de diagnóstico, el informe es el de hoy"></textarea>
+    <div class="hp" aria-hidden="true"><label>No completar<input type="text" id="r-web" tabindex="-1" autocomplete="off"></label></div>
+    <label class="consent"><input type="checkbox" id="r-acepto"><span>Autorizo al Dr. Muratori a recibir este informe y las imágenes para evaluar mi pedido de plantillas. No se publican ni se usan para otro fin.</span></label>
+    <div class="err" id="err-rx"></div>
+    <button class="btn btn-primary" id="btn-rx" type="button">Enviar informe</button>
+    <button class="btn btn-ghost" id="btn-despues" type="button">Todavía no lo tengo — lo mando más tarde</button>
+    <p class="sub" style="margin-top:10px">Para mandarlo después, volvé a abrir el link que te llegó por mail o escaneá de nuevo el QR.</p>
+  </div>
+  <div class="card" id="link-fotos" hidden>
+    <p class="sub" style="margin:0">¿Todavía no mandaste las fotos? <a href="#" id="a-fotos">Hacelo desde acá</a>.</p>
+  </div>
+</section>
+
+<!-- ═══════════ FINAL ═══════════ -->
+<section id="sec-fin" hidden>
+  <div class="card">
+    <div class="ok-box" id="fin-msg"></div>
+    <p class="sub" style="margin-top:12px">Podés cerrar esta página. Cualquier duda, comunicate por los canales habituales del consultorio.</p>
+  </div>
+</section>
+
+</main>
+<footer>S.I.M-M · Dr. Luis Alberto Muratori · No es un servicio de urgencias.</footer>
+
+<script>
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxC2fXVUdidzoAyDCGzPBCUoLa1btEGRZxH-S4wAEt71FlQ4Y1Mx1Uy7OsepgSe3i-5/exec';
+const MAX_LADO = 1400, CALIDAD = 0.75, MAX_B64 = 3400000;
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const fotos = { talones:'', plantilla:'', huella:'' };
+// Bocas de expendio — mismas claves que CENTROS de OCM
+const BOCAS = {
+  sicoli:'Hospital Dr. Domingo Sícoli', espanol:'Hospital Español de Mendoza', palmares:'Centro Médico Palmares',
+  sandona:'Clínica San Donà', altomaipu:'Centro Médico Alto Maipú', rehab:'Rehabilitarte Instituto Médico',
+  norte:'Consultorios Privados del Norte', santamaria:'Clínica Santa María'
+};
+let centroKey = (params.get('centro')||'').toLowerCase();
+if(!BOCAS[centroKey]) centroKey = '';
+(function(){
+  if(centroKey){ $('boca-nombre').textContent = BOCAS[centroKey]; $('boca-fija').hidden = false; }
+  else{
+    const sel = $('f-centro'); sel.innerHTML = '<option value="">— Elegí —</option>' + Object.keys(BOCAS).map(k=>'<option value="'+k+'">'+BOCAS[k]+'</option>').join('');
+    $('boca-elegir').hidden = false;
+  }
+})();
+
+// ── Consentimiento (el texto exacto que ve el paciente es el que viaja al médico) ──
+function textoConsent_(){
+  const nom = ($('f-nombre').value.trim()+' '+$('f-apellido').value.trim()).trim() || '………';
+  const dni = soloDigitos($('f-dni').value) || '………';
+  return 'Yo, ' + nom + ', DNI ' + dni + ', autorizo al Dr. Luis Alberto Muratori a recibir por mail las fotos de mis talones, de mi plantilla y de la huella de mis pies, y el informe de mis radiografías, con el único fin de evaluar y confeccionar mis plantillas ortopédicas. Las imágenes no se publican ni se usan para otro fin. Puedo retirar esta autorización cuando quiera pidiéndolo en el consultorio. Entiendo que esto no reemplaza la consulta médica.';
+}
+function pintarConsent_(){ $('consent-txt').textContent = textoConsent_(); }
+['f-nombre','f-apellido','f-dni'].forEach(id=>$(id).addEventListener('input', pintarConsent_));
+pintarConsent_();
+
+// ── Firma con el dedo (canvas) ──
+const pad = $('pad'); const pctx = pad.getContext('2d');
+let dibujando = false, trazos = 0, ultimo = null;
+function ajustarPad_(){
+  const r = pad.getBoundingClientRect(); const ratio = window.devicePixelRatio||1;
+  pad.width = Math.max(1,Math.round(r.width*ratio)); pad.height = Math.max(1,Math.round(r.height*ratio));
+  pctx.setTransform(ratio,0,0,ratio,0,0); pctx.lineWidth = 2.4; pctx.lineCap='round'; pctx.lineJoin='round'; pctx.strokeStyle='#0f172a';
+  trazos = 0; $('pad-guia').hidden = false;
+}
+function pos_(e){ const r = pad.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+pad.addEventListener('pointerdown', e=>{ e.preventDefault(); dibujando=true; ultimo=pos_(e); try{pad.setPointerCapture(e.pointerId);}catch(_){}
+  pctx.beginPath(); pctx.moveTo(ultimo.x,ultimo.y); pctx.lineTo(ultimo.x+0.1,ultimo.y+0.1); pctx.stroke(); $('pad-guia').hidden=true; });
+pad.addEventListener('pointermove', e=>{ if(!dibujando) return; e.preventDefault(); const p=pos_(e);
+  pctx.beginPath(); pctx.moveTo(ultimo.x,ultimo.y); pctx.lineTo(p.x,p.y); pctx.stroke();
+  trazos += Math.abs(p.x-ultimo.x)+Math.abs(p.y-ultimo.y); ultimo=p; });
+['pointerup','pointercancel','pointerleave'].forEach(ev=>pad.addEventListener(ev, ()=>{ dibujando=false; }));
+$('btn-borrar-firma').addEventListener('click', ajustarPad_);
+window.addEventListener('load', ajustarPad_);
+function firmaPng_(){
+  // PNG chico sobre fondo blanco (≤ 600 px de ancho)
+  const w = Math.min(600, pad.width), h = Math.round(pad.height*(w/pad.width));
+  const c = document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
+  x.fillStyle='#fff'; x.fillRect(0,0,w,h); x.drawImage(pad,0,0,w,h);
+  return c.toDataURL('image/png');
+}
+let archivosRx = [];
+let procesando = 0;
+
+function lsGet(k){ try{ return localStorage.getItem(k)||''; }catch(_){ return ''; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(_){} }
+function soloDigitos(v){ return String(v||'').replace(/\D/g,''); }
+function mostrar(id){ ['sec-fotos','sec-rx','sec-fin'].forEach(s=>{ $(s).hidden = (s!==id); }); window.scrollTo(0,0); if(id==='sec-fotos' && typeof ajustarPad_==='function' && !trazos) ajustarPad_(); }
+function err(id,msg){ const e=$(id); e.textContent = msg?('⚠️ '+msg):''; e.style.display = msg?'block':'none'; }
+
+// ── Compresión: lado mayor ≤1400 px, JPEG; si aún pesa mucho, baja calidad/tamaño ──
+function comprimirImagen_(file){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        let lado = MAX_LADO, q = CALIDAD, out = '';
+        for(let i=0;i<6;i++){
+          const esc = Math.min(1, lado/Math.max(img.naturalWidth, img.naturalHeight));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1,Math.round(img.naturalWidth*esc)); c.height = Math.max(1,Math.round(img.naturalHeight*esc));
+          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+          out = c.toDataURL('image/jpeg', q);
+          if(out.length <= MAX_B64) break;
+          lado = Math.round(lado*0.8); q = Math.max(0.5, q-0.08);
+        }
+        URL.revokeObjectURL(url);
+        if(out.length > MAX_B64) return reject(new Error('La foto es demasiado pesada. Probá sacarla de nuevo.'));
+        resolve(out);
+      }catch(e){ URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('No se pudo abrir la imagen. Probá con otra foto (JPG o PNG).')); };
+    img.src = url;
+  });
+}
+
+function engancharFoto_(clave){
+  const input = $('in-'+clave);
+  input.addEventListener('change', async ()=>{
+    const f = input.files && input.files[0];
+    const est = $('est-'+clave), prev = $('prev-'+clave), box = $('box-'+clave);
+    fotos[clave] = ''; box.classList.remove('ok'); prev.style.display='none';
+    if(!f){ est.textContent=''; return; }
+    est.textContent = 'Preparando la foto…'; procesando++; $('btn-enviar').disabled = true;
+    try{
+      const data = await comprimirImagen_(f);
+      fotos[clave] = data; prev.src = data; prev.style.display = 'block';
+      box.classList.add('ok'); est.textContent = '✔ Foto lista (' + Math.round(data.length*0.75/1024) + ' KB)';
+      err('err-fotos','');
+    }catch(e){ est.textContent = '✖ ' + (e.message||e); }
+    finally{ procesando--; if(procesando===0) $('btn-enviar').disabled = false; }
+  });
+}
+['talones','plantilla','huella'].forEach(engancharFoto_);
+
+// ── Recordar datos de contacto en el celular (solo comodidad) ──
+['apellido','nombre','dni','tel','mail'].forEach(k=>{
+  const el = $('f-'+k); const v = lsGet('qrpl_'+k); if(v && !el.value) el.value = v;
+  el.addEventListener('input', ()=> lsSet('qrpl_'+k, el.value));
+});
+
+// ── Envío paso 1 ──
+async function postJSON_(payload){
+  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), 120000);
+  try{
+    const resp = await fetch(SHEETS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload), signal:ctrl.signal});
+    return await resp.json();
+  }finally{ clearTimeout(t); }
+}
+
+$('btn-enviar').addEventListener('click', async ()=>{
+  err('err-fotos','');
+  const apellido=$('f-apellido').value.trim(), nombre=$('f-nombre').value.trim();
+  const dni=soloDigitos($('f-dni').value), tel=$('f-tel').value.trim(), mail=$('f-mail').value.trim();
+  const largo=parseFloat(String($('f-largo').value).replace(',','.'));
+  if(!apellido||!nombre) return err('err-fotos','Falta tu apellido y nombre');
+  if(dni.length<6||dni.length>9) return err('err-fotos','Revisá el DNI (solo números, sin puntos)');
+  if(!tel && !mail) return err('err-fotos','Dejá un teléfono o un mail de contacto');
+  if(!fotos.talones) return err('err-fotos','Falta la foto 1: talones de pie');
+  if(!fotos.plantilla) return err('err-fotos','Falta la foto 2: plantilla con la regla');
+  if(!(largo>=10 && largo<=40)) return err('err-fotos','Escribí cuántos centímetros mide tu plantilla según la regla (entre 10 y 40)');
+  if(!fotos.huella) return err('err-fotos','Falta la foto 3: huella del pie con talco');
+  const centro = centroKey || $('f-centro').value;
+  if(!centro) return err('err-fotos','Elegí dónde vas a retirar tu plantilla');
+  if(trazos < 60) return err('err-fotos','Falta tu firma: firmá con el dedo en el recuadro para autorizar el envío de las fotos');
+  const btn=$('btn-enviar'); btn.disabled=true; btn.textContent='Enviando… (puede tardar un minuto)';
+  try{
+    const r = await postJSON_({action:'qr_plantillas_solicitud', apellido, nombre, dni, telefono:tel, email:mail, largoCm:largo,
+      observ:$('f-observ').value.trim(), origen:params.get('origen')||'', web:$('f-web').value,
+      centro, firmaPng:firmaPng_(), textoConsent:textoConsent_(),
+      fotoTalones:fotos.talones, fotoPlantilla:fotos.plantilla, fotoHuella:fotos.huella});
+    if(!r || !r.success) throw new Error((r&&r.error)||'No se pudo enviar. Probá de nuevo.');
+    lsSet('qrpl_enviado_'+dni, new Date().toISOString());
+    $('r-dni').value = dni; $('aviso-ok').hidden = false; $('link-fotos').hidden = true;
+    mostrar('sec-rx');
+  }catch(e){
+    err('err-fotos', (e.name==='AbortError') ? 'Se cortó la conexión. Revisá tu internet y probá de nuevo.' : (e.message||String(e)));
+    btn.disabled=false; btn.textContent='Firmar y enviar';
+  }
+});
+
+// ── Paso 2: informe RX ──
+function leerArchivo_(f){
+  return new Promise((resolve,reject)=>{
+    if(f.type==='application/pdf'){
+      if(f.size > 2500000) return reject(new Error('El PDF "'+f.name+'" pesa más de 2,5 MB. Mandá una foto del informe en su lugar.'));
+      const rd = new FileReader(); rd.onload=()=>resolve({nombre:f.name, data:rd.result}); rd.onerror=()=>reject(new Error('No se pudo leer '+f.name)); rd.readAsDataURL(f);
+    }else if(/^image\//.test(f.type)){
+      comprimirImagen_(f).then(d=>resolve({nombre:f.name,data:d})).catch(reject);
+    }else reject(new Error('"'+f.name+'" no es una imagen ni un PDF.'));
+  });
+}
+$('in-rx').addEventListener('change', async ()=>{
+  const fs = Array.from($('in-rx').files||[]).slice(0,3);
+  archivosRx = []; err('err-rx','');
+  const lista = $('lista-rx'); lista.textContent = fs.length ? 'Preparando archivos…' : '';
+  $('btn-rx').disabled = true;
+  try{
+    for(const f of fs) archivosRx.push(await leerArchivo_(f));
+    lista.innerHTML = archivosRx.map(a=>'✔ '+a.nombre.replace(/[<>&"]/g,'')).join('<br>');
+  }catch(e){ archivosRx=[]; lista.textContent=''; err('err-rx', e.message||String(e)); }
+  finally{ $('btn-rx').disabled = false; }
+});
+$('btn-rx').addEventListener('click', async ()=>{
+  err('err-rx','');
+  const dni = soloDigitos($('r-dni').value);
+  if(dni.length<6||dni.length>9) return err('err-rx','Revisá el DNI (solo números, sin puntos)');
+  if(!archivosRx.length) return err('err-rx','Elegí la foto o el PDF del informe');
+  if(!$('r-acepto').checked) return err('err-rx','Tildá la casilla que autoriza el envío del informe');
+  const btn=$('btn-rx'); btn.disabled=true; btn.textContent='Enviando…';
+  try{
+    const r = await postJSON_({action:'qr_plantillas_rx', dni, nota:$('r-nota').value.trim(), web:$('r-web').value, acepta:true, archivos:archivosRx.map(a=>a.data)});
+    if(!r || !r.success) throw new Error((r&&r.error)||'No se pudo enviar el informe.');
+    $('fin-msg').innerHTML = '<b>✅ Listo, recibimos todo</b>Las fotos y el informe de las radiografías ya están con el Dr. Muratori. Te va a avisar los pasos siguientes.';
+    mostrar('sec-fin');
+  }catch(e){
+    err('err-rx', (e.name==='AbortError') ? 'Se cortó la conexión. Probá de nuevo.' : (e.message||String(e)));
+    btn.disabled=false; btn.textContent='Enviar informe';
+  }
+});
+$('btn-despues').addEventListener('click', ()=>{
+  $('fin-msg').innerHTML = '<b>✅ Fotos enviadas</b>Cuando tengas el informe de las radiografías, volvé a abrir este link (o escaneá de nuevo el QR) y mandalo con tu DNI.';
+  mostrar('sec-fin');
+});
+$('a-fotos').addEventListener('click', e=>{ e.preventDefault(); mostrar('sec-fotos'); });
+
+// ── Arranque: ?paso=rx&dni=... va directo al informe ──
+if(params.get('paso')==='rx'){
+  $('r-dni').value = soloDigitos(params.get('dni')||'') || soloDigitos(lsGet('qrpl_dni'));
+  $('link-fotos').hidden = false;
+  mostrar('sec-rx');
+}
+</script>
+</body>
+</html>

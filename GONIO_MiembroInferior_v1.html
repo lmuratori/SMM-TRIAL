@@ -101,9 +101,10 @@ table.hist th{color:#475569;font-weight:700;font-size:11px;text-transform:upperc
       Si ya cargaste una foto para otro índice de la <b>misma vista</b>, no hace falta sacarla de nuevo — cambiá el "tipo de medición" arriba y reutilizala.
     </div>
     <div class="msg-ok" id="foto-cargada-aviso" style="display:none">✅ Foto cargada — se mantiene al cambiar el tipo de medición. Tocá "Cambiar foto" si necesitás otra.</div>
+    <div class="msg-error" id="foto-error" style="display:none"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <div class="zona-foto" id="zona-foto" style="flex:1;min-width:150px">📱 Foto con el celular</div>
-      <div class="zona-foto" id="zona-foto-galeria" style="flex:1;min-width:150px">🖼️ Elegir de galería / archivo</div>
+      <div class="zona-foto" id="zona-foto-galeria" style="flex:1;min-width:150px">🖼️ Elegir de galería / archivo<br><span style="font-size:10.5px;font-weight:400">(también sirve para una foto que te mandaron por WhatsApp o mail, ya guardada en el celular)</span></div>
       <div class="zona-foto" id="zona-foto-webcam" style="flex:1;min-width:150px">🎥 Cámara Web HD</div>
     </div>
     <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none">
@@ -446,11 +447,28 @@ document.getElementById('btn-capturar-webcam').addEventListener('click', () => {
   cargarImagen(dataURL);
 });
 
+// AGREGADO (oct 2026) — antes, si una foto no se podía leer o decodificar
+// (formato no soportado, archivo dañado, HEIC de algunos celulares, etc.)
+// no pasaba NADA visible: la tarjeta "5 · Marcar puntos" nunca aparecía y
+// no había ningún aviso, como si la herramienta estuviera trabada. Ahora
+// siempre se avisa con un mensaje claro de qué pasó.
+function mostrarErrorFoto(msg){
+  const el = document.getElementById('foto-error');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+  document.getElementById('foto-cargada-aviso').style.display = 'none';
+}
+function ocultarErrorFoto(){
+  document.getElementById('foto-error').style.display = 'none';
+}
+
 fileInput.addEventListener('change', function () {
   const file = this.files[0];
   if (!file) return;
+  ocultarErrorFoto();
   const reader = new FileReader();
   reader.onload = function (e) { cargarImagen(e.target.result); };
+  reader.onerror = function () { mostrarErrorFoto('No se pudo leer el archivo de la foto. Probá de nuevo o elegí otra.'); };
   reader.readAsDataURL(file);
 });
 // Misma lógica que fileInput — permite elegir una foto YA guardada (galería,
@@ -458,8 +476,10 @@ fileInput.addEventListener('change', function () {
 fileInputGaleria.addEventListener('change', function () {
   const file = this.files[0];
   if (!file) return;
+  ocultarErrorFoto();
   const reader = new FileReader();
   reader.onload = function (e) { cargarImagen(e.target.result); };
+  reader.onerror = function () { mostrarErrorFoto('No se pudo leer el archivo de la foto. Probá de nuevo o elegí otra.'); };
   reader.readAsDataURL(file);
 });
 
@@ -468,6 +488,7 @@ function cargarImagen(dataURL){
   img.onload = function () {
     hayFoto = true;
     vistaFotoCargada = cfgActual().vistaTag;
+    ocultarErrorFoto();
     document.getElementById('foto-cargada-aviso').style.display = 'block';
     dibujarImagenBase();
     const cfg = cfgActual();
@@ -481,6 +502,13 @@ function cargarImagen(dataURL){
     }
     cardResult.style.display = 'none';
     actualizarAvisoVista();
+  };
+  // AGREGADO (oct 2026): si la foto no se puede decodificar (formato no
+  // soportado — por ejemplo algunos HEIC de iPhone —, archivo dañado, etc.)
+  // antes no pasaba nada y la tarjeta de "Marcar puntos" nunca se mostraba.
+  img.onerror = function () {
+    hayFoto = false;
+    mostrarErrorFoto('No se pudo abrir esa foto (puede ser un formato no soportado, por ejemplo HEIC de algunos iPhone, o un archivo dañado). Probá sacar la foto de nuevo, elegí otra, o si es HEIC convertila a JPG antes de subirla.');
   };
   img.src = dataURL;
 }
